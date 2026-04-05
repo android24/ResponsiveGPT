@@ -1,0 +1,101 @@
+[
+  {
+    "id": "case_highd_following_low_ttc_001",
+    "kb_type": "case",
+    "title": "高速低 TTC 跟驰风险案例",
+    "text": "在高速持续跟驰场景中，若车辆在较小前向间距下继续保持较高速度，且 closing speed 为正，则最小 TTC 会快速下降。这类场景通常对应急刹或追尾近失碰风险，应优先减速和扩大车距。",
+    "scene_type": "highD",
+    "event_type": "FOLLOWING_CRITICAL",
+    "pair_type": null,
+    "source": "highd_dataset_casebook",
+    "priority": 0.95
+  },
+  {
+    "id": "case_highd_cutin_rear_reaction_001",
+    "kb_type": "case",
+    "title": "高速 cut-in 后车反应不足案例",
+    "text": "在高速场景中，切入车辆若在目标车道可用间隙较小的情况下完成 cut-in，后车会面临显著缩短的反应时间与制动空间。若相对速度为正且 headway 突降，应视为高风险交互。",
+    "scene_type": "highD",
+    "event_type": "CUTIN_CRITICAL",
+    "pair_type": null,
+    "source": "highd_dataset_casebook",
+    "priority": 0.95
+  },
+  {
+    "id": "case_highd_short_headway_accumulation_002",
+    "kb_type": "case",
+    "title": "高速持续小间距跟驰累积风险案例",
+    "text": "在高速场景中，车辆若长时间维持较小车头间距，即使短时未发生冲突，也会显著提高风险累积。当出现轻微减速或扰动时，容易迅速演化为近失碰。",
+    "scene_type": "highD",
+    "event_type": "FOLLOWING_CRITICAL",
+    "pair_type": null,
+    "source": "highd_dataset_casebook",
+    "priority": 0.9
+  },
+  {
+    "id": "case_highd_aggressive_gap_acceptance_002",
+    "kb_type": "case",
+    "title": "高速激进间隙接受案例",
+    "text": "部分车辆在变道时接受过小间隙，依赖后车减速配合完成操作。这类激进策略在高相对速度条件下极易导致危险交互。",
+    "scene_type": "highD",
+    "event_type": "CUTIN_CRITICAL",
+    "pair_type": null,
+    "source": "highd_dataset_casebook",
+    "priority": 0.95
+  },
+  {
+    "id": "case_round_vehicle_merge_conflict_001",
+    "kb_type": "case",
+    "title": "环岛车辆汇入冲突案例",
+    "text": "在环岛入口与环内车辆交互时，若双方都倾向维持通行效率而缺少主动让行，则容易形成低间距、高冲突概率的汇入风险。这类场景应通过减速或让行来恢复安全裕度。",
+    "scene_type": "rounD",
+    "event_type": null,
+    "pair_type": "vehicle_vehicle",
+    "source": "round_dataset_casebook",
+    "priority": 0.9
+  },
+  {
+    "id": "case_round_exit_cyclist_conflict_001",
+    "kb_type": "case",
+    "title": "环岛出口车辆与骑行者冲突案例",
+    "text": "在环岛出口附近，机动车若尝试维持效率并抢先驶出，容易与相邻骑行者形成低距离、低 TTC 的高风险交互。此类场景应优先减速、延后退出并让行骑行者。",
+    "scene_type": "rounD",
+    "event_type": null,
+    "pair_type": "vehicle_cyclist",
+    "source": "round_dataset_casebook",
+    "priority": 0.95
+  },
+  {
+    "id": "case_round_vehicle_cyclist_close_001",
+    "kb_type": "case",
+    "title": "环岛机动车与骑行者近距离冲突案例",
+    "text": "当机动车在环岛入口或出口附近与骑行者发生近距离并行、切入或抢先通过时，若最小距离和 TTC 同时较低，应视为高风险并优先采取让行策略。",
+    "scene_type": "rounD",
+    "event_type": null,
+    "pair_type": "vehicle_cyclist",
+    "source": "round_dataset_casebook",
+    "priority": 0.95
+  },
+  {
+    "id": "case_round_double_interaction_conflict_002",
+    "kb_type": "case",
+    "title": "环岛多对象交互冲突案例",
+    "text": "在环岛中同时存在多个交互对象时，驾驶员若只关注单一目标，容易忽略其他方向来车或骑行者，从而形成复合风险场景。",
+    "scene_type": "rounD",
+    "event_type": null,
+    "pair_type": "vehicle_vehicle",
+    "source": "round_dataset_casebook",
+    "priority": 0.9
+  },
+  {
+    "id": "case_round_cyclist_blind_spot_002",
+    "kb_type": "case",
+    "title": "环岛骑行者盲区冲突案例",
+    "text": "在环岛出口或侧方区域，骑行者可能处于驾驶员视觉盲区。若车辆未提前减速或扩大安全范围，容易产生近距离冲突。",
+    "scene_type": "rounD",
+    "event_type": null,
+    "pair_type": "vehicle_cyclist",
+    "source": "round_dataset_casebook",
+    "priority": 0.95
+  }
+]

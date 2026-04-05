@@ -1,0 +1,145 @@
+[
+  {
+    "id": "law_highd_following_distance_001",
+    "kb_type": "law",
+    "title": "高速跟车安全距离规则",
+    "text": "高速行驶场景中，车辆应保持足以避免追尾的安全车距。当相对速度较高、前向间距较小时，应优先减速并避免继续压缩车距。",
+    "scene_type": "highD",
+    "event_type": "FOLLOWING_CRITICAL",
+    "pair_type": null,
+    "source": "manual_highway_rulebook",
+    "priority": 1.0
+  },
+  {
+    "id": "law_highd_lane_change_gap_001",
+    "kb_type": "law",
+    "title": "高速变道间隙接受规则",
+    "text": "高速变道前应确认目标车道前后均存在足够安全间隙。若后车接近速度较高或当前可用间隙不足，不应实施强行切入。",
+    "scene_type": "highD",
+    "event_type": "CUTIN_CRITICAL",
+    "pair_type": null,
+    "source": "manual_highway_rulebook",
+    "priority": 1.0
+  },
+  {
+    "id": "law_highd_forced_cutin_001",
+    "kb_type": "law",
+    "title": "高速避免强制 cut-in 规则",
+    "text": "在高速场景中，不应依赖强制切入来换取通行机会。若变道会显著压缩后车反应空间或导致最小 TTC 快速下降，应立即放弃该操作。",
+    "scene_type": "highD",
+    "event_type": "CUTIN_CRITICAL",
+    "pair_type": null,
+    "source": "manual_highway_rulebook",
+    "priority": 1.0
+  },
+  {
+    "id": "scenario_highd_following_pattern_001",
+    "kb_type": "scenario",
+    "title": "高速 FOLLOWING_CRITICAL 风险模式",
+    "text": "高速关键跟驰的典型风险模式包括：小车头间距、正向 closing speed、前车减速空间不足，以及驾驶策略未及时提高安全裕度。此类场景下应优先控制接近速度并扩大车距。",
+    "scene_type": "highD",
+    "event_type": "FOLLOWING_CRITICAL",
+    "pair_type": null,
+    "source": "scenario_rulebook",
+    "priority": 0.95
+  },
+  {
+    "id": "scenario_highd_cutin_pattern_001",
+    "kb_type": "scenario",
+    "title": "高速 CUTIN_CRITICAL 风险模式",
+    "text": "高速 cut-in 的典型风险模式包括：目标车道间隙不足、切入后 headway 突降、后车反应空间不足，以及驾驶风格偏激进导致的 gap acceptance 过小。此类场景应提高风险等级并限制变道激进性。",
+    "scene_type": "highD",
+    "event_type": "CUTIN_CRITICAL",
+    "pair_type": null,
+    "source": "scenario_rulebook",
+    "priority": 0.95
+  },
+  {
+    "id": "scenario_round_merge_pattern_001",
+    "kb_type": "scenario",
+    "title": "环岛汇入冲突风险模式",
+    "text": "环岛场景的主要风险来自进入、环内运行和驶出三类交互重叠。若车辆忽视已在环岛内对象的位置和速度，则容易出现低距离和高冲突概率的汇入风险。",
+    "scene_type": "rounD",
+    "event_type": null,
+    "pair_type": "vehicle_vehicle",
+    "source": "scenario_rulebook",
+    "priority": 0.95
+  },
+  {
+    "id": "scenario_round_cyclist_pattern_001",
+    "kb_type": "scenario",
+    "title": "环岛 vehicle-cyclist 交互风险模式",
+    "text": "机动车与骑行者在环岛交互时，应重点关注相对位置、出口和汇入点附近的穿插趋势，以及优先权关系。若存在抢先通行倾向，应立即提高风险等级并转向更保守策略。",
+    "scene_type": "rounD",
+    "event_type": null,
+    "pair_type": "vehicle_cyclist",
+    "source": "scenario_rulebook",
+    "priority": 1.0
+  },
+  {
+    "id": "scenario_preference_guardrail_001",
+    "kb_type": "scenario",
+    "title": "激进与保守驾驶偏好的安全护栏规则",
+    "text": "激进驾驶偏好可以提升效率，但不得突破最低安全约束。保守驾驶偏好应在低 TTC、低间距以及弱势道路参与者出现时显著提高安全权重，并优先采用减速、让行和延迟通行策略。",
+    "scene_type": "all",
+    "event_type": null,
+    "pair_type": null,
+    "source": "scenario_rulebook",
+    "priority": 1.0
+  },
+  {
+    "id": "law_round_entry_yield_001",
+    "kb_type": "law",
+    "title": "环岛汇入让行规则",
+    "text": "车辆进入环岛前，应优先观察已在环岛内运行的车辆，并根据相对位置和速度主动让行，不应通过抢行方式压缩对方通行空间。",
+    "scene_type": "rounD",
+    "event_type": null,
+    "pair_type": "vehicle_vehicle",
+    "source": "manual_round_rulebook",
+    "priority": 1.0
+  },
+  {
+    "id": "law_round_exit_yield_001",
+    "kb_type": "law",
+    "title": "环岛出口通行与让行规则",
+    "text": "车辆驶出环岛时，应同时考虑出口附近车辆与其他交通参与者的位置和速度，不应在安全距离不足时抢先切出。",
+    "scene_type": "rounD",
+    "event_type": null,
+    "pair_type": "vehicle_vehicle",
+    "source": "manual_round_rulebook",
+    "priority": 1.0
+  },
+  {
+    "id": "law_round_cyclist_priority_001",
+    "kb_type": "law",
+    "title": "环岛骑行者优先保护规则",
+    "text": "在环岛与骑行者交互时，机动车应采用更保守策略，保持足够纵向和横向安全距离，避免通过抢先通行或近距离穿插压缩骑行者空间。",
+    "scene_type": "rounD",
+    "event_type": null,
+    "pair_type": "vehicle_cyclist",
+    "source": "manual_round_rulebook",
+    "priority": 1.0
+  },
+  {
+    "id": "law_round_no_priority_forcing_002",
+    "kb_type": "law",
+    "title": "环岛禁止强制抢行规则",
+    "text": "在环岛交互中，不应通过强制抢行或压缩他人空间来获取通行优先权，应通过减速或等待来维持安全秩序。",
+    "scene_type": "rounD",
+    "event_type": null,
+    "pair_type": "vehicle_vehicle",
+    "source": "manual_round_rulebook",
+    "priority": 1.0
+  },
+  {
+    "id": "law_round_exit_visibility_002",
+    "kb_type": "law",
+    "title": "环岛出口视距与减速要求",
+    "text": "车辆驶出环岛时，应考虑出口视距受限带来的风险，提前降低速度并预留反应空间。",
+    "scene_type": "rounD",
+    "event_type": null,
+    "pair_type": null,
+    "source": "manual_round_rulebook",
+    "priority": 0.9
+  }
+]

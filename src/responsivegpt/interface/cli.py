@@ -11,6 +11,11 @@ from ..infrastructure.profile_repo import JsonProfileRepository
 from ..infrastructure.rules import generic_rules
 from ..evaluation.run_logger import RunLogger
 from ..evaluation.metrics import compute_step_metrics
+from ..infrastructure.knowledge_base import KnowledgeBase
+from ..infrastructure.kb_seed import default_kb_docs
+from ..infrastructure.kb_json_loader import load_kb_json_dir
+from ..infrastructure.hybrid_retriever import HybridRetriever
+from ..evaluation.trigger_plotter import TriggerPlotter
 
 def load_env(path: str = ".env") -> dict:
     env = {}
@@ -40,6 +45,35 @@ def demo_scene() -> SceneState:
         frame_index=0,
     )
 
+def build_service(env: dict) -> ResponsiveGPTService:
+    embedder = OllamaEmbedder(
+        base_url=env.get("OLLAMA_BASE_URL", "http://localhost:11434"),
+        model=env.get("OLLAMA_EMBED_MODEL", "nomic-embed-text"),
+    )
+
+    kb_dir = env.get("KB_DIR", "data/kb")
+    if kb_dir and os.path.isdir(kb_dir):
+        docs = load_kb_json_dir(kb_dir)
+    else:
+        docs = default_kb_docs()
+
+    kb = KnowledgeBase(docs)
+    retriever = HybridRetriever(kb=kb, embedder=embedder)
+
+    llm = JiekouChatModel(
+        api_key=env.get("JIEKOU_API_KEY", ""),
+        base_url=env.get("JIEKOU_BASE_URL", "https://api.jiekou.ai/openai"),
+        model=env.get("JIEKOU_MODEL", "gpt-5.2"),
+    )
+
+    repo = JsonProfileRepository(env.get("PROFILE_PATH", "driver_profile.json"))
+
+    return ResponsiveGPTService(
+        retriever=retriever,
+        chat_model=llm,
+        profile_repo=repo,
+    )
+
 def main():
     parser = argparse.ArgumentParser(description="ResponsiveGPT demo")
     parser.add_argument("--demo", action="store_true")
@@ -52,21 +86,8 @@ def main():
     api_key = env.get("JIEKOU_API_KEY", "")
     if not api_key:
         raise RuntimeError("Missing JIEKOU_API_KEY. Put it into .env.")
-
-    embedder = OllamaEmbedder(
-        base_url=env.get("OLLAMA_BASE_URL", "http://localhost:11434"),
-        model=env.get("OLLAMA_EMBED_MODEL", "nomic-embed-text"),
-    )
-    vs = SimpleVectorStore(embedder=embedder, docs=generic_rules())
-    vs.build()
-
-    llm = JiekouChatModel(
-        api_key=api_key,
-        base_url=env.get("JIEKOU_BASE_URL", "https://api.jiekou.ai/openai"),
-        model=env.get("JIEKOU_MODEL", "gpt-5.2"),
-    )
-    repo = JsonProfileRepository(env.get("PROFILE_PATH", "driver_profile.json"))
-    service = ResponsiveGPTService(vectorstore=vs, chat_model=llm, profile_repo=repo)
+    
+    service = build_service(env)
 
     if not args.demo:
         raise RuntimeError("Use --demo for the minimal CLI.")
@@ -91,6 +112,21 @@ def main():
 
     print(f"Run saved to: {logger.run_dir}")
     print(json.dumps(result.decision, ensure_ascii=False, indent=2))
+
+    # --------------------------------------------------
+    # Trigger 可视化（论文图自动生成）
+    # --------------------------------------------------
+    try:
+        plotter = TriggerPlotter(run_dir=logger.run_dir)
+        fig_paths = plotter.plot_all()
+
+        print("\n📊 Trigger plots generated:")
+        for k, v in fig_paths.items():
+            if v:
+                print(f"{k}: {v}")
+
+    except Exception as e:
+        print("\n[WARN] Trigger plotting failed:", e)
 
 if __name__ == "__main__":
     main()

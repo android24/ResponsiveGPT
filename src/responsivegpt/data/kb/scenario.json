@@ -1,0 +1,123 @@
+[
+  {
+    "id": "scenario_highd_following_pattern_001",
+    "kb_type": "scenario",
+    "title": "高速 FOLLOWING_CRITICAL 风险模式",
+    "text": "高速关键跟驰的典型风险模式包括：小车头间距、正向 closing speed、前车减速空间不足，以及驾驶策略未及时提高安全裕度。此类场景下应优先控制接近速度并扩大车距。",
+    "scene_type": "highD",
+    "event_type": "FOLLOWING_CRITICAL",
+    "pair_type": null,
+    "source": "scenario_rulebook",
+    "priority": 0.95
+  },
+  {
+    "id": "scenario_highd_cutin_pattern_001",
+    "kb_type": "scenario",
+    "title": "高速 CUTIN_CRITICAL 风险模式",
+    "text": "高速 cut-in 的典型风险模式包括：目标车道间隙不足、切入后 headway 突降、后车反应空间不足，以及驾驶风格偏激进导致的 gap acceptance 过小。此类场景应提高风险等级并限制变道激进性。",
+    "scene_type": "highD",
+    "event_type": "CUTIN_CRITICAL",
+    "pair_type": null,
+    "source": "scenario_rulebook",
+    "priority": 0.95
+  },
+    {
+    "id": "scenario_highd_rel_speed_dominance_002",
+    "kb_type": "scenario",
+    "title": "高速相对速度主导风险模式",
+    "text": "在高速场景中，相对速度是决定风险演化的关键因素。当closing speed为正且较大时，即使当前距离尚可，也可能在短时间内进入危险区间。",
+    "scene_type": "highD",
+    "event_type": null,
+    "pair_type": null,
+    "source": "scenario_rulebook",
+    "priority": 0.95
+  },
+  {
+    "id": "scenario_highd_headway_drop_pattern_002",
+    "kb_type": "scenario",
+    "title": "高速车头间距突降风险模式",
+    "text": "在cut-in场景中，headway会在短时间内显著下降，这种突变往往比缓慢变化更危险，应作为高风险触发信号。",
+    "scene_type": "highD",
+    "event_type": "CUTIN_CRITICAL",
+    "pair_type": null,
+    "source": "scenario_rulebook",
+    "priority": 0.95
+  },
+  {
+    "id": "scenario_highd_conservative_buffer_002",
+    "kb_type": "scenario",
+    "title": "保守驾驶的安全缓冲区策略",
+    "text": "保守驾驶策略应在高速场景中主动维持更大的安全缓冲区，包括更大车头间距和更低closing speed，以降低突发风险。",
+    "scene_type": "highD",
+    "event_type": null,
+    "pair_type": null,
+    "source": "scenario_rulebook",
+    "priority": 0.9
+  },
+  {
+    "id": "scenario_round_merge_pattern_001",
+    "kb_type": "scenario",
+    "title": "环岛汇入冲突风险模式",
+    "text": "环岛场景的主要风险来自进入、环内运行和驶出三类交互重叠。若车辆忽视已在环岛内对象的位置和速度，则容易出现低距离和高冲突概率的汇入风险。",
+    "scene_type": "rounD",
+    "event_type": null,
+    "pair_type": "vehicle_vehicle",
+    "source": "scenario_rulebook",
+    "priority": 0.95
+  },
+  {
+    "id": "scenario_round_cyclist_pattern_001",
+    "kb_type": "scenario",
+    "title": "环岛 vehicle-cyclist 交互风险模式",
+    "text": "机动车与骑行者在环岛交互时，应重点关注相对位置、出口和汇入点附近的穿插趋势，以及优先权关系。若存在抢先通行倾向，应立即提高风险等级并转向更保守策略。",
+    "scene_type": "rounD",
+    "event_type": null,
+    "pair_type": "vehicle_cyclist",
+    "source": "scenario_rulebook",
+    "priority": 1.0
+  },
+  {
+    "id": "scenario_preference_guardrail_001",
+    "kb_type": "scenario",
+    "title": "激进与保守驾驶偏好的安全护栏规则",
+    "text": "激进驾驶偏好可以提升效率，但不得突破最低安全约束。保守驾驶偏好应在低 TTC、低间距以及弱势道路参与者出现时显著提高安全权重，并优先采用减速、让行和延迟通行策略。",
+    "scene_type": "all",
+    "event_type": null,
+    "pair_type": null,
+    "source": "scenario_rulebook",
+    "priority": 1.0
+  },
+  {
+    "id": "scenario_round_multi_actor_complexity_002",
+    "kb_type": "scenario",
+    "title": "环岛多参与者复杂交互模式",
+    "text": "环岛场景中常存在多车辆与骑行者同时交互，风险来源于多个冲突方向叠加，应采用更保守策略处理多对象关系。",
+    "scene_type": "rounD",
+    "event_type": null,
+    "pair_type": null,
+    "source": "scenario_rulebook",
+    "priority": 0.95
+  },
+  {
+    "id": "scenario_round_exit_conflict_pattern_002",
+    "kb_type": "scenario",
+    "title": "环岛出口冲突强化模式",
+    "text": "出口区域同时涉及路径选择与速度调整，若存在骑行者或并行车辆，低距离冲突概率显著上升，应提前减速并避免抢先通行。",
+    "scene_type": "rounD",
+    "event_type": null,
+    "pair_type": null,
+    "source": "scenario_rulebook",
+    "priority": 0.95
+  },
+  {
+    "id": "scenario_round_aggressive_vs_conservative_002",
+    "kb_type": "scenario",
+    "title": "环岛激进与保守策略分歧模式",
+    "text": "激进策略倾向维持速度并抢先通过，而保守策略更倾向减速与让行。在高密度环岛交互中，应优先采用保守策略以避免冲突。",
+    "scene_type": "rounD",
+    "event_type": null,
+    "pair_type": null,
+    "source": "scenario_rulebook",
+    "priority": 1.0
+  }
+]

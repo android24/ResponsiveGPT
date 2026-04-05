@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Literal, Optional
 
 SceneType = Literal["highD", "inD", "rounD", "custom"]
@@ -52,3 +52,7 @@ class StepResult:
     profile: DriverProfile
     rules: list[RetrievedRule]
     decision: dict
+    triggers: list = field(default_factory=list)
+    guardrails: dict = field(default_factory=dict)
+    profile_update: dict = field(default_factory=dict)
+    evidence: dict = field(default_factory=dict)

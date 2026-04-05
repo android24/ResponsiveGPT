@@ -2,14 +2,12 @@ import os
 import json
 import csv
 import argparse
+from collections import Counter
 
-from ..domain.models import SceneState
 from ..application.service import ResponsiveGPTService
 from ..infrastructure.embed_ollama import OllamaEmbedder
-from ..infrastructure.vectorstore import SimpleVectorStore
 from ..infrastructure.llm_jiekou import JiekouChatModel
 from ..infrastructure.profile_repo import JsonProfileRepository
-from ..infrastructure.rules import highd_rules
 
 from ..evaluation.run_logger import RunLogger
 from ..evaluation.metrics import compute_step_metrics
@@ -18,11 +16,17 @@ from ..evaluation.classification import compute_confusion_and_scores
 from .adapters.highd_event_adapter import HighDEventAdapter
 from .adapters.highd_sequence_adapter import HighDSequenceAdapter
 
+from ..infrastructure.knowledge_base import KnowledgeBase
+from ..infrastructure.kb_seed import default_kb_docs
+from ..infrastructure.kb_json_loader import load_kb_json_dir
+from ..infrastructure.hybrid_retriever import HybridRetriever
+from ..evaluation.trigger_plotter import TriggerPlotter
 
 def load_env(path: str = ".env") -> dict:
     env = {}
     if not os.path.exists(path):
         return env
+
     with open(path, "r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
@@ -35,8 +39,8 @@ def load_env(path: str = ".env") -> dict:
 
 def derive_highd_risk_label(row: dict) -> bool:
     """
-    基于数据集指标构造一个简单高风险标签。
-    你后续可以按论文标准改阈值。
+    基于 highD 原始事件指标构造弱标签。
+    后续你可以改成论文正式阈值版本。
     """
     try:
         min_ttc = float(row["minTTC"]) if row.get("minTTC") else None
@@ -60,8 +64,15 @@ def build_service(env: dict) -> ResponsiveGPTService:
         base_url=env.get("OLLAMA_BASE_URL", "http://localhost:11434"),
         model=env.get("OLLAMA_EMBED_MODEL", "nomic-embed-text"),
     )
-    vs = SimpleVectorStore(embedder=embedder, docs=highd_rules())
-    vs.build()
+
+    kb_dir = env.get("KB_DIR", "data/kb")
+    if kb_dir and os.path.isdir(kb_dir):
+        docs = load_kb_json_dir(kb_dir)
+    else:
+        docs = default_kb_docs()
+
+    kb = KnowledgeBase(docs)
+    retriever = HybridRetriever(kb=kb, embedder=embedder)
 
     llm = JiekouChatModel(
         api_key=env.get("JIEKOU_API_KEY", ""),
@@ -70,12 +81,23 @@ def build_service(env: dict) -> ResponsiveGPTService:
     )
 
     repo = JsonProfileRepository(env.get("PROFILE_PATH", "driver_profile.json"))
-    return ResponsiveGPTService(vectorstore=vs, chat_model=llm, profile_repo=repo)
+
+    return ResponsiveGPTService(
+        retriever=retriever,
+        chat_model=llm,
+        profile_repo=repo,
+    )
 
 
 def append_jsonl(path: str, obj: dict):
     with open(path, "a", encoding="utf-8") as f:
         f.write(json.dumps(obj, ensure_ascii=False) + "\n")
+
+
+def safe_profile_dict(profile):
+    if hasattr(profile, "__dict__"):
+        return dict(profile.__dict__)
+    return {"value": str(profile)}
 
 
 def main():
@@ -107,12 +129,14 @@ def main():
             "OLLAMA_BASE_URL": env.get("OLLAMA_BASE_URL", "http://localhost:11434"),
             "OLLAMA_EMBED_MODEL": env.get("OLLAMA_EMBED_MODEL", "nomic-embed-text"),
             "PROFILE_PATH": env.get("PROFILE_PATH", "driver_profile.json"),
+            "KB_DIR": env.get("KB_DIR", "data/kb"),
         }
     })
 
     frame_metrics_path = os.path.join(logger.run_dir, "frame_metrics.csv")
     episode_summary_path = os.path.join(logger.run_dir, "episode_summary.jsonl")
 
+    # 每帧指标
     with open(frame_metrics_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerow([
@@ -124,6 +148,7 @@ def main():
             "frame_index",
             "ttc_s",
             "is_violation",
+            "trigger_count",
             "ego_speed_mps",
             "lead_speed_mps",
             "rel_speed_mps",
@@ -141,6 +166,9 @@ def main():
     all_y_true = []
     all_y_pred = []
 
+    # 全局 trigger 统计
+    global_trigger_counter = Counter()
+
     for idx, row in enumerate(event_adapter.iter_rows()):
         if args.limit > 0 and idx >= args.limit:
             break
@@ -156,13 +184,22 @@ def main():
         frame_records = []
         ttc_values = []
         violation_flags = []
+        recent_decisions = []
+
+        # 当前 episode trigger 统计
+        episode_trigger_counter = Counter()
 
         for scene in scenes:
             result = service.step(
                 scene=scene,
                 driver_type=args.driver_type,
-                feedback=args.feedback
+                feedback=args.feedback,
+                recent_decisions=recent_decisions,
             )
+
+            # 让 persistent trigger 生效
+            recent_decisions.append(result.decision)
+            recent_decisions = recent_decisions[-10:]
 
             m = compute_step_metrics(scene, result.decision)
 
@@ -171,16 +208,27 @@ def main():
             if m.is_violation is not None:
                 violation_flags.append(bool(m.is_violation))
 
+            # trigger 统计
+            for trig in result.triggers:
+                trig_type = trig.get("trigger_type", "unknown")
+                episode_trigger_counter[trig_type] += 1
+                global_trigger_counter[trig_type] += 1
+
             frame_record = {
                 "metadata": metadata,
                 "scene": scene.__dict__,
-                "profile": result.profile.__dict__,
+                "profile": safe_profile_dict(result.profile),
                 "decision": result.decision,
+                "triggers": result.triggers,
+                "guardrails": result.guardrails,
+                "profile_update": result.profile_update,
+                "evidence": result.evidence,
                 "step_metrics": {
                     "ttc_s": m.ttc_s,
                     "is_violation": m.is_violation,
                 },
             }
+
             frame_records.append(frame_record)
             logger.append_decision(frame_record)
 
@@ -195,6 +243,7 @@ def main():
                     scene.frame_index,
                     "" if m.ttc_s is None else round(m.ttc_s, 4),
                     "" if m.is_violation is None else int(m.is_violation),
+                    len(result.triggers),
                     scene.ego_speed_mps,
                     scene.lead_speed_mps,
                     scene.rel_speed_mps,
@@ -219,6 +268,8 @@ def main():
             "event_minTTC_raw": event_scene.min_ttc_raw,
             "event_minTHW_raw": event_scene.min_thw_raw,
             "event_minDHW_raw": event_scene.min_dhw_raw,
+            "episode_trigger_stats": dict(episode_trigger_counter),
+            "episode_total_triggers": sum(episode_trigger_counter.values()),
         }
         append_jsonl(episode_summary_path, episode_summary)
 
@@ -227,7 +278,7 @@ def main():
         summary["dataset_risk_true"] += int(dataset_risk)
         summary["episode_llm_violation_true"] += int(episode_llm_violation)
         summary["episode_agreement"] += int(episode_llm_violation == dataset_risk)
-        
+
         all_y_true.append(bool(dataset_risk))
         all_y_pred.append(bool(episode_llm_violation))
 
@@ -235,20 +286,25 @@ def main():
             f"[{idx}] eventType={metadata.get('eventType')} "
             f"frames={len(frame_records)} "
             f"dataset_risk={dataset_risk} "
-            f"episode_llm_violation={episode_llm_violation}"
+            f"episode_llm_violation={episode_llm_violation} "
+            f"triggers={sum(episode_trigger_counter.values())}"
         )
 
     summary["episode_agreement_rate"] = (
         summary["episode_agreement"] / summary["total_events"]
         if summary["total_events"] else 0.0
     )
-    
+
     cls = compute_confusion_and_scores(all_y_true, all_y_pred)
     summary.update(cls)
 
+    # 增加全局 trigger 分布
+    summary["trigger_stats"] = dict(global_trigger_counter)
+    summary["total_trigger_activations"] = sum(global_trigger_counter.values())
+
     with open(os.path.join(logger.run_dir, "summary.json"), "w", encoding="utf-8") as f:
         json.dump(summary, f, ensure_ascii=False, indent=2)
-        
+
     summary_csv_path = os.path.join(logger.run_dir, "summary.csv")
     with open(summary_csv_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
@@ -267,10 +323,28 @@ def main():
         writer.writerow(["recall", summary["recall"]])
         writer.writerow(["f1", summary["f1"]])
         writer.writerow(["accuracy", summary["accuracy"]])
+        writer.writerow(["total_trigger_activations", summary["total_trigger_activations"]])
+
+        for trig_type, count in summary["trigger_stats"].items():
+            writer.writerow([f"trigger_{trig_type}", count])
 
     print("\nRun saved to:", logger.run_dir)
     print(json.dumps(summary, ensure_ascii=False, indent=2))
+    
+    # --------------------------------------------------
+    # Trigger 可视化（论文图自动生成）
+    # --------------------------------------------------
+    try:
+        plotter = TriggerPlotter(run_dir=logger.run_dir)
+        fig_paths = plotter.plot_all()
 
+        print("\n📊 Trigger plots generated:")
+        for k, v in fig_paths.items():
+            if v:
+                print(f"{k}: {v}")
 
+    except Exception as e:
+        print("\n[WARN] Trigger plotting failed:", e)
+    
 if __name__ == "__main__":
     main()
