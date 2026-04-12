@@ -19,6 +19,7 @@ TriggerAction = Literal[
     "slowdown_bias",
     "profile_update",
 ]
+TargetLayer = Literal["global", "longitudinal", "lateral", "interaction", "temporal"]
 
 @dataclass(frozen=True)
 class TriggerEvent:
@@ -32,6 +33,11 @@ class TriggerEvent:
 
     action: TriggerAction
     action_value: float
+
+    target_layer: Optional[TargetLayer] = None
+    parameter_key: Optional[str] = None
+    priority: int = 0
+
     ttl_frames: int = 0
     ttl_episodes: int = 0
 

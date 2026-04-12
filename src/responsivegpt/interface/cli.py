@@ -5,10 +5,8 @@ import os
 from ..domain.models import SceneState
 from ..application.service import ResponsiveGPTService
 from ..infrastructure.embed_ollama import OllamaEmbedder
-from ..infrastructure.vectorstore import SimpleVectorStore
 from ..infrastructure.llm_jiekou import JiekouChatModel
 from ..infrastructure.profile_repo import JsonProfileRepository
-from ..infrastructure.rules import generic_rules
 from ..evaluation.run_logger import RunLogger
 from ..evaluation.metrics import compute_step_metrics
 from ..infrastructure.knowledge_base import KnowledgeBase
@@ -16,6 +14,9 @@ from ..infrastructure.kb_seed import default_kb_docs
 from ..infrastructure.kb_json_loader import load_kb_json_dir
 from ..infrastructure.hybrid_retriever import HybridRetriever
 from ..evaluation.trigger_plotter import TriggerPlotter
+from ..application.trigger_manager import TriggerManager
+from ..application.layered_profile_learner import LayeredProfileLearner
+from ..application.trigger_state import TriggerStateStore
 
 def load_env(path: str = ".env") -> dict:
     env = {}
@@ -68,10 +69,26 @@ def build_service(env: dict) -> ResponsiveGPTService:
 
     repo = JsonProfileRepository(env.get("PROFILE_PATH", "driver_profile.json"))
 
+    trigger_manager = TriggerManager(
+        ttc_threshold=float(env.get("TTC_THRESHOLD", 3.0)),
+        distance_threshold=float(env.get("DISTANCE_THRESHOLD", 2.0)),
+        persistent_risk_ratio_threshold=float(env.get("PERSISTENT_RISK_RATIO_THRESHOLD", 0.4)),
+        persistent_window=int(env.get("PERSISTENT_WINDOW", 5)),
+    )
+
+    profile_learner = LayeredProfileLearner(
+        lr=float(env.get("PROFILE_LEARNING_RATE", 0.2))
+    )
+
+    trigger_state_store = TriggerStateStore()
+
     return ResponsiveGPTService(
         retriever=retriever,
         chat_model=llm,
         profile_repo=repo,
+        trigger_manager=trigger_manager,
+        profile_learner=profile_learner,
+        trigger_state_store=trigger_state_store,
     )
 
 def main():
@@ -100,14 +117,22 @@ def main():
         "feedback": args.feedback,
     })
 
-    result = service.step(scene=scene, driver_type=args.driver_type, feedback=args.feedback)
+    result = service.step(
+        scene=scene,
+        driver_type=args.driver_type,
+        feedback=args.feedback,
+        recent_decisions=[],
+    )
     m = compute_step_metrics(scene, result.decision)
 
     logger.append_decision({
         "scene": scene.__dict__,
-        "profile": result.profile.__dict__,
+        "profile": result.profile,
         "decision": result.decision,
         "metrics": {"ttc_s": m.ttc_s, "is_violation": m.is_violation},
+        "triggers": [t.__dict__ for t in getattr(result, "triggers", [])],
+        "guardrails": getattr(result, "guardrails", None).__dict__ if getattr(result, "guardrails", None) else None,
+        "profile_update": getattr(result, "profile_update", {}),
     })
 
     print(f"Run saved to: {logger.run_dir}")

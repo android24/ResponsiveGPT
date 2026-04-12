@@ -119,8 +119,8 @@ class HybridRetriever:
             f"自车速度 {scene.ego_speed_mps:.2f} m/s。"
             f"与交互对象距离 {scene.headway_m:.2f} m。"
             f"相对速度 {scene.rel_speed_mps if scene.rel_speed_mps is not None else 'unknown'} m/s。"
-            f"驾驶风格为 {profile.driver_type}，"
-            f"安全权重 {profile.safety_weight:.2f}，效率权重 {profile.efficiency_weight:.2f}。"
+            f"驾驶风格为 {profile['driver_type']}，"
+            f"安全权重 {profile['global']['safety_weight']:.2f}，效率权重 {profile['global']['efficiency_weight']:.2f}。"
             f"请检索与该交通场景相关的法规、案例与风险模式，"
             f"用于判断是否存在潜在违规、高风险交互，以及推荐采取的驾驶策略。"
         )

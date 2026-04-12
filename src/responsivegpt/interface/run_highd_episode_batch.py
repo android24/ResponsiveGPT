@@ -3,8 +3,13 @@ import json
 import csv
 import argparse
 from collections import Counter
+from pathlib import Path
 
 from ..application.service import ResponsiveGPTService
+from ..application.trigger_manager import TriggerManager
+from ..application.layered_profile_learner import LayeredProfileLearner
+from ..application.trigger_state import TriggerStateStore
+
 from ..infrastructure.embed_ollama import OllamaEmbedder
 from ..infrastructure.llm_jiekou import JiekouChatModel
 from ..infrastructure.profile_repo import JsonProfileRepository
@@ -59,7 +64,41 @@ def derive_highd_risk_label(row: dict) -> bool:
     return False
 
 
-def build_service(env: dict) -> ResponsiveGPTService:
+def resolve_profile_template_path(profiles_dir: str, profile_name: str) -> str:
+    """
+    基于项目根目录解析 profile 模板路径。
+    你的目录是:
+    ResponsiveGPT/
+      src/
+        responsivegpt/
+          data/
+            profiles/
+              aggressive.json
+              balanced.json
+              conservative.json
+    """
+    current_file = Path(__file__).resolve()
+
+    # run_highd_episode_batch.py 位于:
+    # ResponsiveGPT/src/responsivegpt/interface/
+    # 所以 project_root 是往上 3 层
+    project_root = current_file.parents[3]
+
+    candidate = project_root / profiles_dir / f"{profile_name}.json"
+
+    if not candidate.exists():
+        raise FileNotFoundError(
+            f"\n❌ Profile template not found:\n"
+            f"  Tried: {candidate}\n\n"
+            f"👉 当前建议检查：\n"
+            f"1. profiles_dir 是否为: src/responsivegpt/data/profiles\n"
+            f"2. profile_name 是否为: aggressive / balanced / conservative\n"
+        )
+
+    return str(candidate)
+
+def build_service(env: dict, template_profile_path: str, runtime_profile_path: str,
+                  primary_model: str, fallback_model: str | None) -> ResponsiveGPTService:
     embedder = OllamaEmbedder(
         base_url=env.get("OLLAMA_BASE_URL", "http://localhost:11434"),
         model=env.get("OLLAMA_EMBED_MODEL", "nomic-embed-text"),
@@ -77,15 +116,34 @@ def build_service(env: dict) -> ResponsiveGPTService:
     llm = JiekouChatModel(
         api_key=env.get("JIEKOU_API_KEY", ""),
         base_url=env.get("JIEKOU_BASE_URL", "https://api.jiekou.ai/openai"),
-        model=env.get("JIEKOU_MODEL", "gpt-5.2"),
+        primary_model=primary_model,
+        fallback_model=fallback_model,
+        max_completion_tokens=int(env.get("LLM_MAX_COMPLETION_TOKENS", "2048")),
     )
 
-    repo = JsonProfileRepository(env.get("PROFILE_PATH", "driver_profile.json"))
+    # 关键：模板 + 运行态分离
+    repo = JsonProfileRepository(
+        template_path=template_profile_path,
+        runtime_path=runtime_profile_path,
+        auto_init=True,
+    )
+
+    trigger_manager = TriggerManager(
+        ttc_threshold=3.0,
+        distance_threshold=2.0,
+        persistent_risk_ratio_threshold=0.4,
+        persistent_window=5,
+    )
+    profile_learner = LayeredProfileLearner(lr=0.2)
+    trigger_state_store = TriggerStateStore()
 
     return ResponsiveGPTService(
         retriever=retriever,
         chat_model=llm,
         profile_repo=repo,
+        trigger_manager=trigger_manager,
+        profile_learner=profile_learner,
+        trigger_state_store=trigger_state_store,
     )
 
 
@@ -95,32 +153,111 @@ def append_jsonl(path: str, obj: dict):
 
 
 def safe_profile_dict(profile):
+    if isinstance(profile, dict):
+        return profile
     if hasattr(profile, "__dict__"):
         return dict(profile.__dict__)
     return {"value": str(profile)}
 
 
+def safe_guardrail_dict(guardrails):
+    if isinstance(guardrails, dict):
+        return guardrails
+    if hasattr(guardrails, "__dict__"):
+        return dict(guardrails.__dict__)
+    return {"value": str(guardrails)}
+
+
+def safe_trigger_dict(trigger):
+    if isinstance(trigger, dict):
+        return trigger
+    if hasattr(trigger, "__dict__"):
+        return dict(trigger.__dict__)
+    return {"value": str(trigger)}
+
+
+def safe_doc_dict(doc):
+    if isinstance(doc, dict):
+        return doc
+    if hasattr(doc, "__dict__"):
+        return dict(doc.__dict__)
+    return {"value": str(doc)}
+
+
 def main():
-    parser = argparse.ArgumentParser(description="Run highD full sequence batch.")
+    parser = argparse.ArgumentParser(description="Run highD full sequence batch with closed-loop trigger learning.")
     parser.add_argument("--csv_path", type=str, required=True, help="Path to highd_strong_interactions_full.csv")
+    parser.add_argument("--model_role", type=str, default="primary",
+                    choices=["primary", "fallback", "cheap"])
     parser.add_argument("--tag", type=str, default="highd_episode")
-    parser.add_argument("--driver_type", type=str, default="激进")
+    parser.add_argument("--driver_type", type=str, default="", help="留空则使用 profile 模板内的 driver_type")
     parser.add_argument("--feedback", type=str, default="保持效率，但避免明显危险操作")
     parser.add_argument("--limit", type=int, default=0, help="0 means all")
+
+    # 新增：profile 体系
+    parser.add_argument(
+        "--profile_name",
+        type=str,
+        default="aggressive",
+        choices=["aggressive", "balanced", "conservative"]
+    )
+    parser.add_argument(
+        "--profiles_dir",
+        type=str,
+        default="src/responsivegpt/data/profiles"
+    )
+
     args = parser.parse_args()
 
     env = load_env(".env")
     if not env.get("JIEKOU_API_KEY"):
         raise RuntimeError("Missing JIEKOU_API_KEY in .env")
 
-    service = build_service(env)
+    logger = RunLogger(runs_root="runs", tag=f"{args.tag}_{args.profile_name}")
+
+    # profile 模板路径 + 运行态路径
+    template_profile_path = resolve_profile_template_path(args.profiles_dir, args.profile_name)
+    runtime_profile_path = os.path.join(logger.run_dir, "runtime_profile.json")
+    initial_profile_copy_path = os.path.join(logger.run_dir, "initial_profile.json")
+    final_profile_path = os.path.join(logger.run_dir, "final_profile.json")
+
+    # 把模板拷一份到 runs 里，方便论文复现
+    with open(template_profile_path, "r", encoding="utf-8") as f:
+        initial_profile = json.load(f)
+    with open(initial_profile_copy_path, "w", encoding="utf-8") as f:
+        json.dump(initial_profile, f, ensure_ascii=False, indent=2)
+
+    # 如果 CLI 没给 driver_type，就用模板里的
+    effective_driver_type = args.driver_type or initial_profile.get("driver_type", "均衡")
+
+    selected_model = env.get("PRIMARY_MODEL", "gpt-5.2")
+    selected_fallback = env.get("FALLBACK_MODEL", "gpt-4.1")
+
+    if args.model_role == "fallback":
+        selected_model = env.get("FALLBACK_MODEL", "gpt-4.1")
+        selected_fallback = None
+    elif args.model_role == "cheap":
+        selected_model = env.get("CHEAP_MODEL", "gpt-4o-mini")
+        selected_fallback = None
+    service = build_service(
+        env=env,
+        template_profile_path=template_profile_path,
+        runtime_profile_path=runtime_profile_path,
+        primary_model=selected_model,
+        fallback_model=selected_fallback,
+    )
+
     event_adapter = HighDEventAdapter(args.csv_path)
     seq_adapter = HighDSequenceAdapter()
 
-    logger = RunLogger(runs_root="runs", tag=args.tag)
     logger.write_config({
         "csv_path": args.csv_path,
-        "driver_type": args.driver_type,
+        "profile_name": args.profile_name,
+        "profiles_dir": args.profiles_dir,
+        "template_profile_path": template_profile_path,
+        "runtime_profile_path": runtime_profile_path,
+        "initial_profile_copy_path": initial_profile_copy_path,
+        "driver_type": effective_driver_type,
         "feedback": args.feedback,
         "limit": args.limit,
         "env": {
@@ -128,15 +265,17 @@ def main():
             "JIEKOU_MODEL": env.get("JIEKOU_MODEL", "gpt-5.2"),
             "OLLAMA_BASE_URL": env.get("OLLAMA_BASE_URL", "http://localhost:11434"),
             "OLLAMA_EMBED_MODEL": env.get("OLLAMA_EMBED_MODEL", "nomic-embed-text"),
-            "PROFILE_PATH": env.get("PROFILE_PATH", "driver_profile.json"),
             "KB_DIR": env.get("KB_DIR", "data/kb"),
         }
     })
 
     frame_metrics_path = os.path.join(logger.run_dir, "frame_metrics.csv")
     episode_summary_path = os.path.join(logger.run_dir, "episode_summary.jsonl")
+    profile_trace_path = os.path.join(logger.run_dir, "profile_trace.jsonl")
+    trigger_trace_path = os.path.join(logger.run_dir, "trigger_trace.jsonl")
+    profile_delta_path = os.path.join(logger.run_dir, "profile_delta.jsonl")
+    guardrail_trace_path = os.path.join(logger.run_dir, "guardrail_trace.jsonl")
 
-    # 每帧指标
     with open(frame_metrics_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerow([
@@ -161,12 +300,12 @@ def main():
         "dataset_risk_true": 0,
         "episode_llm_violation_true": 0,
         "episode_agreement": 0,
+        "profile_name": args.profile_name,
+        "template_profile_path": template_profile_path,
     }
 
     all_y_true = []
     all_y_pred = []
-
-    # 全局 trigger 统计
     global_trigger_counter = Counter()
 
     for idx, row in enumerate(event_adapter.iter_rows()):
@@ -185,19 +324,16 @@ def main():
         ttc_values = []
         violation_flags = []
         recent_decisions = []
-
-        # 当前 episode trigger 统计
         episode_trigger_counter = Counter()
 
         for scene in scenes:
             result = service.step(
                 scene=scene,
-                driver_type=args.driver_type,
+                driver_type=effective_driver_type,
                 feedback=args.feedback,
                 recent_decisions=recent_decisions,
             )
 
-            # 让 persistent trigger 生效
             recent_decisions.append(result.decision)
             recent_decisions = recent_decisions[-10:]
 
@@ -208,8 +344,12 @@ def main():
             if m.is_violation is not None:
                 violation_flags.append(bool(m.is_violation))
 
-            # trigger 统计
-            for trig in result.triggers:
+            trigger_dicts = [safe_trigger_dict(t) for t in getattr(result, "triggers", [])]
+            guardrail_dict = safe_guardrail_dict(getattr(result, "guardrails", {}))
+            profile_dict = safe_profile_dict(result.profile)
+            evidence_docs = [safe_doc_dict(d) for d in getattr(result, "rules", [])]
+
+            for trig in trigger_dicts:
                 trig_type = trig.get("trigger_type", "unknown")
                 episode_trigger_counter[trig_type] += 1
                 global_trigger_counter[trig_type] += 1
@@ -217,12 +357,13 @@ def main():
             frame_record = {
                 "metadata": metadata,
                 "scene": scene.__dict__,
-                "profile": safe_profile_dict(result.profile),
+                "profile": profile_dict,
                 "decision": result.decision,
-                "triggers": result.triggers,
-                "guardrails": result.guardrails,
-                "profile_update": result.profile_update,
-                "evidence": result.evidence,
+                "triggers": trigger_dicts,
+                "trigger_count": len(trigger_dicts),
+                "guardrails": guardrail_dict,
+                "profile_update": getattr(result, "profile_update", {}),
+                "evidence": evidence_docs,
                 "step_metrics": {
                     "ttc_s": m.ttc_s,
                     "is_violation": m.is_violation,
@@ -231,6 +372,31 @@ def main():
 
             frame_records.append(frame_record)
             logger.append_decision(frame_record)
+
+            append_jsonl(profile_trace_path, {
+                "event_index": idx,
+                "frame_index": scene.frame_index,
+                "profile": profile_dict,
+            })
+
+            append_jsonl(profile_delta_path, {
+                "event_index": idx,
+                "frame_index": scene.frame_index,
+                "profile_update": getattr(result, "profile_update", {}),
+            })
+
+            append_jsonl(guardrail_trace_path, {
+                "event_index": idx,
+                "frame_index": scene.frame_index,
+                "guardrails": guardrail_dict,
+            })
+
+            for trig in trigger_dicts:
+                append_jsonl(trigger_trace_path, {
+                    "event_index": idx,
+                    "frame_index": scene.frame_index,
+                    "trigger": trig,
+                })
 
             with open(frame_metrics_path, "a", newline="", encoding="utf-8") as f:
                 writer = csv.writer(f)
@@ -243,7 +409,7 @@ def main():
                     scene.frame_index,
                     "" if m.ttc_s is None else round(m.ttc_s, 4),
                     "" if m.is_violation is None else int(m.is_violation),
-                    len(result.triggers),
+                    len(trigger_dicts),
                     scene.ego_speed_mps,
                     scene.lead_speed_mps,
                     scene.rel_speed_mps,
@@ -283,7 +449,8 @@ def main():
         all_y_pred.append(bool(episode_llm_violation))
 
         print(
-            f"[{idx}] eventType={metadata.get('eventType')} "
+            f"[{idx}] profile={args.profile_name} "
+            f"eventType={metadata.get('eventType')} "
             f"frames={len(frame_records)} "
             f"dataset_risk={dataset_risk} "
             f"episode_llm_violation={episode_llm_violation} "
@@ -298,9 +465,15 @@ def main():
     cls = compute_confusion_and_scores(all_y_true, all_y_pred)
     summary.update(cls)
 
-    # 增加全局 trigger 分布
     summary["trigger_stats"] = dict(global_trigger_counter)
     summary["total_trigger_activations"] = sum(global_trigger_counter.values())
+
+    # 保存最终学习后的 runtime profile
+    if os.path.exists(runtime_profile_path):
+        with open(runtime_profile_path, "r", encoding="utf-8") as f:
+            final_profile = json.load(f)
+        with open(final_profile_path, "w", encoding="utf-8") as f:
+            json.dump(final_profile, f, ensure_ascii=False, indent=2)
 
     with open(os.path.join(logger.run_dir, "summary.json"), "w", encoding="utf-8") as f:
         json.dump(summary, f, ensure_ascii=False, indent=2)
@@ -309,6 +482,7 @@ def main():
     with open(summary_csv_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerow(["metric", "value"])
+        writer.writerow(["profile_name", args.profile_name])
         writer.writerow(["total_events", summary["total_events"]])
         writer.writerow(["total_frames", summary["total_frames"]])
         writer.writerow(["dataset_risk_true", summary["dataset_risk_true"]])
@@ -330,10 +504,7 @@ def main():
 
     print("\nRun saved to:", logger.run_dir)
     print(json.dumps(summary, ensure_ascii=False, indent=2))
-    
-    # --------------------------------------------------
-    # Trigger 可视化（论文图自动生成）
-    # --------------------------------------------------
+
     try:
         plotter = TriggerPlotter(run_dir=logger.run_dir)
         fig_paths = plotter.plot_all()
@@ -345,6 +516,7 @@ def main():
 
     except Exception as e:
         print("\n[WARN] Trigger plotting failed:", e)
-    
+
+
 if __name__ == "__main__":
     main()

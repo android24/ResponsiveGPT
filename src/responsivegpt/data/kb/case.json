@@ -11,6 +11,17 @@
     "priority": 0.95
   },
   {
+    "id": "case_highd_following_persistent_low_ttc_001",
+    "kb_type": "case",
+    "title": "持续低TTC跟驰风险案例",
+    "text": "在高速跟驰场景中，后车持续以较高相对速度接近前车，导致TTC长期处于较低水平。此类行为显著增加追尾风险，应通过减速恢复安全间距。",
+    "scene_type": "highD",
+    "event_type": "FOLLOWING_CRITICAL",
+    "pair_type": null,
+    "source": "highd_dataset_casebook",
+    "priority": 0.95
+  },
+  {
     "id": "case_highd_cutin_rear_reaction_001",
     "kb_type": "case",
     "title": "高速 cut-in 后车反应不足案例",
@@ -20,6 +31,28 @@
     "pair_type": null,
     "source": "highd_dataset_casebook",
     "priority": 0.95
+  },
+  {
+    "id": "case_highd_cutin_insufficient_reaction_space_001",
+    "kb_type": "case",
+    "title": "cut-in后反应空间不足案例",
+    "text": "变道车辆在目标车道间隙不足的情况下强行切入，导致后车反应空间急剧压缩，形成低TTC高风险交互。",
+    "scene_type": "highD",
+    "event_type": "CUTIN_CRITICAL",
+    "pair_type": null,
+    "source": "highd_dataset_casebook",
+    "priority": 0.95
+  },
+  {
+    "id": "case_highd_cutin_small_gap_acceptance_001",
+    "kb_type": "case",
+    "title": "小间隙变道风险案例",
+    "text": "车辆在较小间隙条件下执行变道操作，导致前后车辆需紧急调整速度或轨迹，显著增加冲突概率。",
+    "scene_type": "highD",
+    "event_type": "CUTIN_CRITICAL",
+    "pair_type": null,
+    "source": "highd_dataset_casebook",
+    "priority": 0.9
   },
   {
     "id": "case_highd_short_headway_accumulation_002",
@@ -44,6 +77,17 @@
     "priority": 0.95
   },
   {
+    "id": "case_round_entry_merge_conflict_001",
+    "kb_type": "case",
+    "title": "环岛入口汇入冲突案例",
+    "text": "车辆在进入环岛时未对环岛内车辆进行充分让行，通过加速抢行汇入，导致低距离高风险交互。",
+    "scene_type": "rounD",
+    "event_type": null,
+    "pair_type": "vehicle_vehicle",
+    "source": "round_dataset_casebook",
+    "priority": 0.95
+  },
+  {
     "id": "case_round_vehicle_merge_conflict_001",
     "kb_type": "case",
     "title": "环岛车辆汇入冲突案例",
@@ -64,6 +108,39 @@
     "pair_type": "vehicle_cyclist",
     "source": "round_dataset_casebook",
     "priority": 0.95
+  },
+  {
+    "id": "case_round_exit_vehicle_cyclist_conflict_002",
+    "kb_type": "case",
+    "title": "环岛出口车辆与骑行者冲突案例",
+    "text": "在环岛出口区域，机动车尝试抢先驶出，与骑行者形成低距离交互，存在显著安全风险，应优先让行。",
+    "scene_type": "rounD",
+    "event_type": null,
+    "pair_type": "vehicle_cyclist",
+    "source": "round_dataset_casebook",
+    "priority": 1.0
+  },
+  {
+    "id": "case_round_parallel_close_interaction_001",
+    "kb_type": "case",
+    "title": "环岛并行近距离交互案例",
+    "text": "在环岛内部，多车辆并行运行时未保持足够间距，导致持续低距离交互，增加侧向冲突风险。",
+    "scene_type": "rounD",
+    "event_type": null,
+    "pair_type": "vehicle_vehicle",
+    "source": "round_dataset_casebook",
+    "priority": 0.9
+  },
+  {
+    "id": "case_general_multi_frame_low_margin_001",
+    "kb_type": "case",
+    "title": "多帧低安全裕度累积风险案例",
+    "text": "在连续多个时间帧中，车辆始终维持较低安全距离或低TTC，风险逐步累积，最终形成高危险状态。",
+    "scene_type": "all",
+    "event_type": null,
+    "pair_type": "all",
+    "source": "analysis_casebook",
+    "priority": 0.9
   },
   {
     "id": "case_round_vehicle_cyclist_close_001",
@@ -97,5 +174,16 @@
     "pair_type": "vehicle_cyclist",
     "source": "round_dataset_casebook",
     "priority": 0.95
+  },
+  {
+    "id": "case_general_efficiency_dominance_001",
+    "kb_type": "case",
+    "title": "效率优先导致安全不足案例",
+    "text": "车辆在追求通行效率时，通过压缩间距或抢行来提高速度，导致安全裕度显著下降，形成潜在违规行为。",
+    "scene_type": "all",
+    "event_type": null,
+    "pair_type": "all",
+    "source": "analysis_casebook",
+    "priority": 0.9
   }
 ]

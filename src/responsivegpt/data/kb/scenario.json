@@ -55,6 +55,50 @@
     "priority": 0.9
   },
   {
+    "id": "scenario_highd_positive_closing_speed_001",
+    "kb_type": "scenario",
+    "title": "正相对速度跟驰风险模式",
+    "text": "在高速跟驰中，当后车相对速度为正且车距持续减小时，系统应判定为风险上升状态，并优先采取减速策略。",
+    "scene_type": "highD",
+    "event_type": "FOLLOWING_CRITICAL",
+    "pair_type": null,
+    "source": "scenario_rulebook",
+    "priority": 0.95
+  },
+  {
+    "id": "scenario_highd_post_cutin_headway_drop_001",
+    "kb_type": "scenario",
+    "title": "cut-in后车距骤降模式",
+    "text": "在cut-in场景中，若变道后前后车距迅速减小，则表明变道行为存在潜在风险，应评估其合规性。",
+    "scene_type": "highD",
+    "event_type": "CUTIN_CRITICAL",
+    "pair_type": null,
+    "source": "scenario_rulebook",
+    "priority": 0.95
+  },
+  {
+    "id": "scenario_highd_aggressive_guardrail_001",
+    "kb_type": "scenario",
+    "title": "激进驾驶风格安全护栏",
+    "text": "在激进驾驶偏好下，系统允许较小间距与较高速度，但仍需满足最低安全阈值，不得突破关键安全边界。",
+    "scene_type": "highD",
+    "event_type": "all",
+    "pair_type": "all",
+    "source": "preference_rulebook",
+    "priority": 0.9
+  },
+  {
+    "id": "scenario_round_entry_conflict_pattern_001",
+    "kb_type": "scenario",
+    "title": "环岛入口冲突风险模式",
+    "text": "在环岛入口区域，车辆需在有限空间内完成汇入与让行决策，若优先级判断错误，容易形成低距离冲突。",
+    "scene_type": "rounD",
+    "event_type": null,
+    "pair_type": "vehicle_vehicle",
+    "source": "scenario_rulebook",
+    "priority": 0.95
+  },
+  {
     "id": "scenario_round_merge_pattern_001",
     "kb_type": "scenario",
     "title": "环岛汇入冲突风险模式",
@@ -110,6 +154,17 @@
     "priority": 0.95
   },
   {
+    "id": "scenario_round_exit_conflict_pattern_003",
+    "kb_type": "scenario",
+    "title": "环岛出口冲突风险模式",
+    "text": "在环岛出口阶段，车辆需同时处理驶出路径与周边对象避让，若仍以效率优先，容易产生危险交互。",
+    "scene_type": "rounD",
+    "event_type": null,
+    "pair_type": "all",
+    "source": "scenario_rulebook",
+    "priority": 0.95
+  },
+  {
     "id": "scenario_round_aggressive_vs_conservative_002",
     "kb_type": "scenario",
     "title": "环岛激进与保守策略分歧模式",
@@ -119,5 +174,38 @@
     "pair_type": null,
     "source": "scenario_rulebook",
     "priority": 1.0
+  },
+  {
+    "id": "scenario_round_vehicle_cyclist_pattern_002",
+    "kb_type": "scenario",
+    "title": "环岛车辆与骑行者交互风险模式",
+    "text": "在环岛中，当机动车与骑行者存在空间交叠或路径交叉时，应提高安全裕度并优先让行，否则容易形成高风险交互。",
+    "scene_type": "rounD",
+    "event_type": null,
+    "pair_type": "vehicle_cyclist",
+    "source": "scenario_rulebook",
+    "priority": 1.0
+  },
+  {
+    "id": "scenario_general_low_ttc_trigger_001",
+    "kb_type": "scenario",
+    "title": "低TTC风险触发模式",
+    "text": "当时间到碰撞（TTC）低于安全阈值时，应立即判定为高风险状态，并触发防御性驾驶策略。",
+    "scene_type": "all",
+    "event_type": null,
+    "pair_type": "all",
+    "source": "general_risk_model",
+    "priority": 1.0
+  },
+  {
+    "id": "scenario_general_temporal_risk_accumulation_001",
+    "kb_type": "scenario",
+    "title": "多帧风险累积模式",
+    "text": "当车辆在连续多个时间帧中维持低安全裕度状态时，应认为风险在时间维度上累积，而非单帧事件。",
+    "scene_type": "all",
+    "event_type": null,
+    "pair_type": "all",
+    "source": "general_risk_model",
+    "priority": 0.95
   }
 ]

@@ -1,0 +1,42 @@
+{
+  "driver_type": "激进",
+
+  "global": {
+    "risk_sensitivity": 0.2,
+    "safety_weight": 0.3,
+    "efficiency_weight": 0.7
+  },
+
+  "longitudinal": {
+    "preferred_time_headway": 1.2,
+    "min_time_headway": 0.8,
+    "brake_aggressiveness": 0.7,
+    "acceleration_aggressiveness": 0.8
+  },
+
+  "lateral": {
+    "lane_change_aggressiveness": 0.8,
+    "min_gap_acceptance": 0.8,
+    "cut_in_tolerance": 0.8
+  },
+
+  "interaction": {
+    "vehicle_vehicle_assertiveness": 0.8,
+    "vehicle_cyclist_yield_bias": 0.3,
+    "vehicle_pedestrian_yield_bias": 0.6
+  },
+
+  "scenario_bias": {
+    "highD": {
+      "risk_sensitivity": 0.2
+    },
+    "rounD": {
+      "risk_sensitivity": 0.4
+    }
+  },
+
+  "temporal": {
+    "risk_memory_decay": 0.95,
+    "recent_violation_penalty": 0.1
+  }
+}

@@ -3,6 +3,7 @@ import json
 import csv
 import argparse
 from collections import Counter
+from pathlib import Path
 
 from ..application.service import ResponsiveGPTService
 from ..application.trigger_manager import TriggerManager
@@ -16,11 +17,11 @@ from ..infrastructure.profile_repo import JsonProfileRepository
 from ..evaluation.run_logger import RunLogger
 from ..evaluation.metrics import compute_step_metrics
 from ..evaluation.classification import compute_confusion_and_scores
-from ..evaluation.round_labels import derive_round_risk_label_from_summary_row
+from ..evaluation.ind_labels import derive_ind_risk_label
 from ..evaluation.trigger_plotter import TriggerPlotter
 
-from .adapters.round_event_adapter import RoundEventAdapter
-from .adapters.round_clip_sequence_adapter import RoundClipSequenceAdapter
+from .adapters.ind_event_adapter import InDEventAdapter
+from .adapters.ind_scene_sequence_adapter import InDSceneSequenceAdapter
 
 from ..infrastructure.knowledge_base import KnowledgeBase
 from ..infrastructure.kb_seed import default_kb_docs
@@ -52,18 +53,35 @@ def append_jsonl(path: str, obj: dict):
         f.write(json.dumps(obj, ensure_ascii=False) + "\n")
 
 
-def resolve_clip_path(clips_root: str, clip_file: str) -> str:
-    clip_file = str(clip_file or "").replace("\\", "/").strip()
-    if clip_file.startswith("clips/"):
-        clip_file = clip_file[len("clips/"):]
-    return os.path.join(clips_root, clip_file)
+def resolve_scene_path(scenes_root: str, scene_file: str) -> str:
+    """
+    summary 里的 scene_file 类似:
+    output_ind_risk_v4/scenes/29_500_506_f26069_26196.csv
+
+    这里统一映射为 scenes_root/<basename(scene_file)>
+    """
+    scene_file = str(scene_file or "").replace("\\", "/").strip()
+    return os.path.join(scenes_root, os.path.basename(scene_file))
 
 
 def resolve_profile_template_path(profiles_dir: str, profile_name: str) -> str:
-    path = os.path.join(profiles_dir, f"{profile_name}.json")
-    if not os.path.exists(path):
-        raise FileNotFoundError(f"Profile template not found: {path}")
-    return path
+    """
+    与 highD 风格保持一致：从项目根目录解析 profile 模板
+    """
+    current_file = Path(__file__).resolve()
+    project_root = current_file.parents[3]
+    candidate = project_root / profiles_dir / f"{profile_name}.json"
+
+    if not candidate.exists():
+        raise FileNotFoundError(
+            f"\n❌ Profile template not found:\n"
+            f"  Tried: {candidate}\n\n"
+            f"👉 当前建议检查：\n"
+            f"1. profiles_dir 是否为: src/responsivegpt/data/profiles\n"
+            f"2. profile_name 是否为: aggressive / balanced / conservative\n"
+        )
+
+    return str(candidate)
 
 
 def safe_len(x) -> int:
@@ -150,7 +168,7 @@ def build_service(env: dict, template_profile_path: str, runtime_profile_path: s
 
     trigger_manager = TriggerManager(
         ttc_threshold=3.0,
-        distance_threshold=2.0,
+        distance_threshold=2.5,
         persistent_risk_ratio_threshold=0.4,
         persistent_window=5,
     )
@@ -171,24 +189,33 @@ def build_service(env: dict, template_profile_path: str, runtime_profile_path: s
 # main
 # ==================================================
 def main():
-    parser = argparse.ArgumentParser(description="Run rounD sequence batch with closed-loop trigger learning.")
+    parser = argparse.ArgumentParser(description="Run inD sequence batch with closed-loop trigger learning.")
 
     parser.add_argument("--summary_csv", type=str, required=True)
-    parser.add_argument("--clips_root", type=str, required=True)
+    parser.add_argument("--scenes_root", type=str, required=True)
     parser.add_argument("--model_role", type=str, default="primary",
                     choices=["primary", "fallback", "cheap"])
 
-    parser.add_argument("--tag", type=str, default="round_episode")
+    parser.add_argument("--tag", type=str, default="ind_episode")
     parser.add_argument("--driver_type", type=str, default="", help="留空则使用 profile 模板中的 driver_type")
-    parser.add_argument("--feedback", type=str, default="优先安全，避免与其他交通参与者发生近距离冲突")
+    parser.add_argument("--feedback", type=str, default="优先安全，避免在交叉口与其他交通参与者发生冲突")
 
-    parser.add_argument("--profile_name", type=str, default="conservative",
-                        choices=["aggressive", "balanced", "conservative"])
-    parser.add_argument("--profiles_dir", type=str, default="src/responsivegpt/data/profiles")
+    parser.add_argument(
+        "--profile_name",
+        type=str,
+        default="conservative",
+        choices=["aggressive", "balanced", "conservative"]
+    )
+    parser.add_argument(
+        "--profiles_dir",
+        type=str,
+        default="src/responsivegpt/data/profiles"
+    )
 
     parser.add_argument("--limit", type=int, default=0)
     parser.add_argument("--ttc_threshold", type=float, default=3.0)
-    parser.add_argument("--distance_threshold", type=float, default=2.0)
+    parser.add_argument("--distance_threshold", type=float, default=2.5)
+    parser.add_argument("--drac_threshold", type=float, default=8.0)
     parser.add_argument("--history_window", type=int, default=10, help="recent_decisions 长度")
 
     args = parser.parse_args()
@@ -232,11 +259,11 @@ def main():
         fallback_model=selected_fallback,
     )
 
-    event_adapter = RoundEventAdapter(args.summary_csv)
+    event_adapter = InDEventAdapter(args.summary_csv)
 
     logger.write_config({
         "summary_csv": args.summary_csv,
-        "clips_root": args.clips_root,
+        "scenes_root": args.scenes_root,
         "profile_name": args.profile_name,
         "profiles_dir": args.profiles_dir,
         "template_profile_path": template_profile_path,
@@ -247,6 +274,7 @@ def main():
         "limit": args.limit,
         "ttc_threshold": args.ttc_threshold,
         "distance_threshold": args.distance_threshold,
+        "drac_threshold": args.drac_threshold,
         "history_window": args.history_window,
         "env": {
             "JIEKOU_BASE_URL": env.get("JIEKOU_BASE_URL", "https://api.jiekou.ai/openai"),
@@ -267,14 +295,15 @@ def main():
     profile_delta_path = os.path.join(logger.run_dir, "profile_delta.jsonl")
     guardrail_trace_path = os.path.join(logger.run_dir, "guardrail_trace.jsonl")
 
-    # 帧级 CSV
     with open(frame_metrics_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerow([
             "event_index",
             "recordingId",
-            "event_id",
-            "pair_type",
+            "location_id",
+            "ego_track_id",
+            "class_1",
+            "class_2",
             "frame_index",
             "ttc_s",
             "is_violation",
@@ -295,7 +324,7 @@ def main():
         "dataset_risk_true": 0,
         "episode_llm_violation_true": 0,
         "episode_agreement": 0,
-        "missing_clips": 0,
+        "missing_scenes": 0,
         "profile_name": args.profile_name,
         "template_profile_path": template_profile_path,
     }
@@ -312,27 +341,28 @@ def main():
             break
 
         metadata = event_adapter.row_metadata(row)
-        clip_file = metadata.get("clip_file")
+        scene_file = metadata.get("scene_file")
 
-        if not clip_file:
-            summary["missing_clips"] += 1
+        if not scene_file:
+            summary["missing_scenes"] += 1
             continue
 
-        clip_path = resolve_clip_path(args.clips_root, clip_file)
-        if not os.path.exists(clip_path):
-            summary["missing_clips"] += 1
-            print(f"[WARN] clip not found: {clip_path}")
+        scene_path = resolve_scene_path(args.scenes_root, scene_file)
+        if not os.path.exists(scene_path):
+            summary["missing_scenes"] += 1
+            print(f"[WARN] scene not found: {scene_path}")
             continue
 
-        seq_adapter = RoundClipSequenceAdapter(clip_path)
+        seq_adapter = InDSceneSequenceAdapter(scene_path)
         scenes = list(seq_adapter.iter_scenes())
         if not scenes:
             continue
 
-        dataset_risk = derive_round_risk_label_from_summary_row(
+        dataset_risk = derive_ind_risk_label(
             row,
             ttc_threshold=args.ttc_threshold,
             distance_threshold=args.distance_threshold,
+            drac_threshold=args.drac_threshold,
         )
 
         ttc_values = []
@@ -367,7 +397,6 @@ def main():
             evidence_dict = getattr(result, "evidence", {})
             rules_list = [safe_doc_dict(r) for r in getattr(result, "rules", [])]
 
-            # trigger统计
             for trig in trigger_dicts:
                 t_type = safe_trigger_type(trig)
                 episode_trigger_stats[t_type] += 1
@@ -392,7 +421,6 @@ def main():
             }
             logger.append_decision(frame_record)
 
-            # 轨迹日志
             append_jsonl(profile_trace_path, {
                 "event_index": idx,
                 "frame_index": scene.frame_index,
@@ -423,8 +451,10 @@ def main():
                 writer.writerow([
                     idx,
                     metadata.get("recordingId"),
-                    metadata.get("event_id"),
-                    metadata.get("pair_type"),
+                    metadata.get("location_id"),
+                    metadata.get("ego_track_id"),
+                    metadata.get("class_1"),
+                    metadata.get("class_2"),
                     scene.frame_index,
                     "" if m.ttc_s is None else round(m.ttc_s, 4),
                     "" if m.is_violation is None else int(m.is_violation),
@@ -457,7 +487,8 @@ def main():
             "episode_min_ttc_estimated": min_ttc_est,
             "episode_avg_ttc_estimated": avg_ttc_est,
             "event_min_ttc_raw": metadata.get("min_ttc"),
-            "event_min_distance_raw": metadata.get("min_distance"),
+            "event_min_distance_raw": metadata.get("min_center_distance"),
+            "event_max_drac_raw": metadata.get("max_drac"),
             "trigger_count": episode_trigger_count,
             "trigger_distribution": dict(episode_trigger_stats),
         }
@@ -474,7 +505,8 @@ def main():
 
         print(
             f"[{idx}] profile={args.profile_name} "
-            f"event_id={metadata.get('event_id')} "
+            f"recordingId={metadata.get('recordingId')} "
+            f"ego={metadata.get('ego_track_id')} "
             f"frames={len(scenes)} "
             f"dataset_risk={dataset_risk} "
             f"episode_llm_violation={episode_llm_violation} "
@@ -517,7 +549,7 @@ def main():
         writer.writerow(["episode_llm_violation_true", summary["episode_llm_violation_true"]])
         writer.writerow(["episode_agreement", summary["episode_agreement"]])
         writer.writerow(["episode_agreement_rate", summary["episode_agreement_rate"]])
-        writer.writerow(["missing_clips", summary["missing_clips"]])
+        writer.writerow(["missing_scenes", summary["missing_scenes"]])
         writer.writerow(["tp", summary["confusion_matrix"]["tp"]])
         writer.writerow(["fp", summary["confusion_matrix"]["fp"]])
         writer.writerow(["fn", summary["confusion_matrix"]["fn"]])
@@ -537,7 +569,6 @@ def main():
         for trigger_type, count in sorted(global_trigger_stats.items(), key=lambda x: x[0]):
             writer.writerow([trigger_type, count])
 
-    # 保存最终学习后的 runtime profile
     if os.path.exists(runtime_profile_path):
         with open(runtime_profile_path, "r", encoding="utf-8") as f:
             final_profile = json.load(f)
@@ -547,9 +578,6 @@ def main():
     print("\nRun saved to:", logger.run_dir)
     print(json.dumps(summary, ensure_ascii=False, indent=2))
 
-    # --------------------------------------------------
-    # Trigger 可视化（论文图自动生成）
-    # --------------------------------------------------
     try:
         plotter = TriggerPlotter(run_dir=logger.run_dir)
         fig_paths = plotter.plot_all()

@@ -24,9 +24,11 @@ def _safe_float(v, default=None):
 
 class TriggerManager:
     """
-    论文级最小实现：
-    - 输入：scene / profile / llm decision / human feedback / recent history
-    - 输出：trigger list + 更新后的 guardrail state + profile delta proposal
+    闭环版：
+    - 检测 trigger
+    - 产生 guardrail state
+    - 输出 profile_update proposal
+    - 每个 trigger 带 target_layer / parameter_key / priority
     """
 
     def __init__(
@@ -81,6 +83,9 @@ class TriggerManager:
                 reason=f"high frame risk score={risk_score:.3f}, ttc={ttc}, headway={headway}",
                 action="increase_safety_weight",
                 action_value=0.1,
+                target_layer="global",
+                parameter_key="global.safety_weight",
+                priority=70,
                 ttl_frames=5,
                 scene_type=scene.scene_type,
                 event_type=scene.event_type,
@@ -105,6 +110,9 @@ class TriggerManager:
                 reason="LLM detected potential compliance violation",
                 action="apply_guardrail",
                 action_value=1.0,
+                target_layer="global",
+                parameter_key="global.risk_sensitivity",
+                priority=90,
                 ttl_frames=8,
                 scene_type=scene.scene_type,
                 event_type=scene.event_type,
@@ -113,6 +121,8 @@ class TriggerManager:
             )
             triggers.append(trig)
             guardrails = apply_guardrail_action(guardrails, "apply_guardrail", 1.0)
+
+            profile_update["risk_sensitivity_delta"] = profile_update.get("risk_sensitivity_delta", 0.0) + 0.1
 
             if scene.lane_change:
                 freeze = TriggerEvent(
@@ -125,6 +135,9 @@ class TriggerManager:
                     reason="Potential violation under lane change context",
                     action="freeze_lane_change",
                     action_value=1.0,
+                    target_layer="lateral",
+                    parameter_key="lateral.lane_change_aggressiveness",
+                    priority=95,
                     ttl_frames=5,
                     scene_type=scene.scene_type,
                     event_type=scene.event_type,
@@ -132,6 +145,10 @@ class TriggerManager:
                 )
                 triggers.append(freeze)
                 guardrails = apply_guardrail_action(guardrails, "freeze_lane_change", 1.0)
+
+                profile_update["lane_change_aggressiveness_delta"] = (
+                    profile_update.get("lane_change_aggressiveness_delta", 0.0) - 0.1
+                )
 
         # ---------- 3) VRU Trigger ----------
         if scene.vrus_present and risk_score >= 0.5:
@@ -145,6 +162,9 @@ class TriggerManager:
                 reason="VRU present under non-trivial risk",
                 action="slowdown_bias",
                 action_value=0.2,
+                target_layer="interaction",
+                parameter_key="interaction.vehicle_cyclist_yield_bias",
+                priority=100,
                 ttl_frames=10,
                 scene_type=scene.scene_type,
                 event_type=scene.event_type,
@@ -152,6 +172,13 @@ class TriggerManager:
             )
             triggers.append(trig)
             guardrails = apply_guardrail_action(guardrails, "slowdown_bias", 0.2)
+
+            profile_update["vehicle_cyclist_yield_bias_delta"] = (
+                profile_update.get("vehicle_cyclist_yield_bias_delta", 0.0) + 0.1
+            )
+            profile_update["vehicle_vehicle_assertiveness_delta"] = (
+                profile_update.get("vehicle_vehicle_assertiveness_delta", 0.0) - 0.05
+            )
 
         # ---------- 4) 持续高风险 Trigger ----------
         if recent_decisions:
@@ -174,13 +201,20 @@ class TriggerManager:
                         reason=f"persistent high-risk ratio={ratio:.3f} in recent window",
                         action="increase_risk_sensitivity",
                         action_value=0.1,
+                        target_layer="longitudinal",
+                        parameter_key="longitudinal.preferred_time_headway",
+                        priority=80,
                         ttl_episodes=1,
                         scene_type=scene.scene_type,
                         event_type=scene.event_type,
                         frame_index=scene.frame_index,
                     )
                     triggers.append(trig)
+
                     profile_update["risk_sensitivity_delta"] = profile_update.get("risk_sensitivity_delta", 0.0) + 0.1
+                    profile_update["preferred_time_headway_delta"] = (
+                        profile_update.get("preferred_time_headway_delta", 0.0) + 0.1
+                    )
 
         # ---------- 5) 人类反馈 Trigger ----------
         fb = (human_feedback or "").lower()
@@ -195,6 +229,9 @@ class TriggerManager:
                 reason="human feedback indicates safety dissatisfaction",
                 action="profile_update",
                 action_value=0.1,
+                target_layer="global",
+                parameter_key="global.risk_sensitivity",
+                priority=60,
                 ttl_episodes=3,
                 scene_type=scene.scene_type,
                 event_type=scene.event_type,
@@ -214,6 +251,9 @@ class TriggerManager:
                 reason="human feedback indicates efficiency dissatisfaction",
                 action="decrease_efficiency_weight",
                 action_value=-0.1,
+                target_layer="global",
+                parameter_key="global.efficiency_weight",
+                priority=50,
                 ttl_episodes=3,
                 scene_type=scene.scene_type,
                 event_type=scene.event_type,
@@ -223,6 +263,7 @@ class TriggerManager:
             profile_update["safety_weight_delta"] = profile_update.get("safety_weight_delta", 0.0) - 0.1
             profile_update["efficiency_weight_delta"] = profile_update.get("efficiency_weight_delta", 0.0) + 0.1
 
+        triggers = sorted(triggers, key=lambda x: x.priority, reverse=True)
         return triggers, guardrails, profile_update
 
     def _estimate_ttc(self, scene: SceneState):

@@ -1,34 +1,72 @@
 import json
-from .models import DriverProfile, SceneState
-from .evidence import EvidenceBundle
-
 
 def clamp(x: float, lo: float, hi: float) -> float:
     return max(lo, min(hi, x))
 
 
-def update_profile(profile: DriverProfile, driver_type: str, human_feedback: str) -> DriverProfile:
-    dt = driver_type.strip().lower()
-    fb = human_feedback.strip().lower()
+def update_profile(profile: dict, driver_type: str, human_feedback: str) -> dict:
+    """
+    dict 版本 profile 更新（完全替代旧 DriverProfile 版本）
+    """
 
-    profile.driver_type = driver_type
+    if not isinstance(profile, dict):
+        raise TypeError(f"Expected dict profile, got {type(profile)}")
+
+    dt = (driver_type or "").strip().lower()
+    fb = (human_feedback or "").strip().lower()
+
+    # ----------------------------
+    # 1️⃣ 基础结构保证
+    # ----------------------------
+    profile.setdefault("driver_type", "均衡")
+    profile.setdefault("global", {})
+
+    g = profile["global"]
+    g.setdefault("risk_sensitivity", 0.5)
+    g.setdefault("safety_weight", 0.6)
+    g.setdefault("efficiency_weight", 0.4)
+
+    # ----------------------------
+    # 2️⃣ driver_type 映射
+    # ----------------------------
+    if dt:
+        profile["driver_type"] = driver_type
 
     if dt in ["aggressive", "激进", "激进型"]:
-        profile.risk_sensitivity = clamp(profile.risk_sensitivity - 0.2, 0.0, 1.0)
+        g["risk_sensitivity"] = clamp(g["risk_sensitivity"] - 0.2, 0.0, 1.0)
+
     elif dt in ["conservative", "保守", "保守型"]:
-        profile.risk_sensitivity = clamp(profile.risk_sensitivity + 0.2, 0.0, 1.0)
+        g["risk_sensitivity"] = clamp(g["risk_sensitivity"] + 0.2, 0.0, 1.0)
 
-    if any(k in fb for k in ["太危险", "不安全", "slow down", "safer", "保守", "谨慎", "危险"]):
-        profile.risk_sensitivity = clamp(profile.risk_sensitivity + 0.1, 0.0, 1.0)
-    if any(k in fb for k in ["太慢", "效率", "快点", "hurry", "faster", "aggressive", "慢"]):
-        profile.risk_sensitivity = clamp(profile.risk_sensitivity - 0.1, 0.0, 1.0)
+    elif dt in ["balanced", "均衡"]:
+        # 可选：轻微回归中性
+        g["risk_sensitivity"] = clamp(
+            0.8 * g["risk_sensitivity"] + 0.2 * 0.5, 0.0, 1.0
+        )
 
-    rs = profile.risk_sensitivity
-    profile.safety_weight = round(0.3 + 0.7 * rs, 3)
-    profile.efficiency_weight = round(1.0 - profile.safety_weight, 3)
+    # ----------------------------
+    # 3️⃣ human feedback
+    # ----------------------------
+    if any(k in fb for k in ["危险", "不安全", "too dangerous", "unsafe"]):
+        g["risk_sensitivity"] = clamp(g["risk_sensitivity"] + 0.1, 0.0, 1.0)
+
+    if any(k in fb for k in ["太慢", "低效", "too slow", "效率"]):
+        g["risk_sensitivity"] = clamp(g["risk_sensitivity"] - 0.1, 0.0, 1.0)
+
+    # ----------------------------
+    # 4️⃣ 权重重计算（核心）
+    # ----------------------------
+    rs = g["risk_sensitivity"]
+
+    g["safety_weight"] = round(0.3 + 0.7 * rs, 3)
+    g["efficiency_weight"] = round(1.0 - g["safety_weight"], 3)
+
     return profile
 
 
+# ================================
+# 工具函数
+# ================================
 def _format_ranked_docs(title: str, docs) -> str:
     if not docs:
         return f"[{title}]\nNone\n"
@@ -42,12 +80,16 @@ def _format_ranked_docs(title: str, docs) -> str:
     return "\n".join(lines)
 
 
+# ================================
+# ✅ 新版 Prompt 构建（支持 dict profile）
+# ================================
 def make_evidence_prompts(
-    profile: DriverProfile,
-    scene: SceneState,
+    profile: dict,
+    scene,
     human_feedback: str,
-    evidence: EvidenceBundle,
+    evidence,
 ) -> tuple[str, str]:
+
     system = (
         "你是自动驾驶交互反馈系统 ResponsiveGPT 的 Safety and Regulation Agent。\n"
         "你必须结合当前场景、驾驶人偏好、交通法规知识、风险案例知识和场景规则，"
@@ -79,8 +121,9 @@ def make_evidence_prompts(
         _format_ranked_docs("Scenario-specific Rules", evidence.scenarios),
     ])
 
+    # ✅ 关键修复点：不再用 __dict__
     user = (
-        f"[Driver Profile]\n{json.dumps(profile.__dict__, ensure_ascii=False)}\n\n"
+        f"[Driver Profile]\n{json.dumps(profile, ensure_ascii=False)}\n\n"
         f"[Scene State]\n{json.dumps(scene.__dict__, ensure_ascii=False)}\n\n"
         f"[Human Feedback]\n{human_feedback}\n\n"
         f"{evidence_text}\n"
@@ -88,9 +131,13 @@ def make_evidence_prompts(
         "请基于上述证据判断当前场景是否存在潜在违规或高风险行为，"
         "并输出结构化 JSON。"
     )
+
     return system, user
 
 
+# ================================
+# JSON 修复（保留）
+# ================================
 def coerce_json(text: str) -> dict:
     text = text.strip()
     try:
