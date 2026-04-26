@@ -3,6 +3,7 @@ import math
 from typing import Dict, Any, Iterator, List, Optional
 
 from ...domain.models import SceneState
+from .base_sequence_adapter import BaseSequenceAdapter
 
 
 def _to_float(v, default=None):
@@ -39,7 +40,7 @@ def _dist(x1: float, y1: float, x2: float, y2: float) -> float:
     return math.sqrt(dx * dx + dy * dy)
 
 
-class InDSceneSequenceAdapter:
+class InDSceneSequenceAdapter(BaseSequenceAdapter):
     """
     读取单个 inD scene CSV，并按 frame 逐帧产出 SceneState。
     每帧选择一个最关键交互对象：
@@ -150,7 +151,7 @@ class InDSceneSequenceAdapter:
                 min_dhw_raw=headway,
             )
 
-    def scene_metadata(self) -> dict:
+    def sequence_metadata(self) -> dict:
         rows = self._load_rows()
         if not rows:
             return {}

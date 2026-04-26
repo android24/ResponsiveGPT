@@ -1,7 +1,7 @@
 import argparse
 
 from .run_batch_template import run_batch
-from .adapters.highd_event_adapter import HighDEventAdapter
+from ..adapters.highd_event_adapter import HighDEventAdapter
 
 
 def derive_highd_risk_label(row: dict) -> bool:

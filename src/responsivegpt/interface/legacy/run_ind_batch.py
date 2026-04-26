@@ -1,8 +1,8 @@
 import argparse
 
 from .run_batch_template import run_batch
-from .adapters.ind_event_adapter import InDEventAdapter
-from ..evaluation.ind_labels import derive_ind_risk_label
+from ..adapters.ind_event_adapter import InDEventAdapter
+from ...evaluation.ind_labels import derive_ind_risk_label
 
 
 def main():

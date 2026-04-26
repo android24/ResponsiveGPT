@@ -1,8 +1,8 @@
 import argparse
 
 from .run_batch_template import run_batch
-from .adapters.round_event_adapter import RoundEventAdapter
-from ..evaluation.round_labels import derive_round_risk_label_from_summary_row
+from ..adapters.round_event_adapter import RoundEventAdapter
+from ...evaluation.round_labels import derive_round_risk_label_from_summary_row
 
 
 def main():

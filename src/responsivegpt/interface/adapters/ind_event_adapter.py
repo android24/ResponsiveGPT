@@ -1,6 +1,7 @@
 import csv
 from typing import Iterator, Dict, Any
 from ...domain.models import SceneState
+from .base_event_adapter import BaseEventAdapter
 
 
 def _to_float(v, default=None):
@@ -21,7 +22,7 @@ def _to_int(v, default=None):
         return default
 
 
-class InDEventAdapter:
+class InDEventAdapter(BaseEventAdapter):
     """
     把 inD 风险事件 summary 每一行映射成一个事件级 SceneState。
     """
@@ -74,6 +75,7 @@ class InDEventAdapter:
 
     def row_metadata(self, row: Dict[str, Any]) -> Dict[str, Any]:
         return {
+            "dataset": "inD",
             "recording_prefix": _to_int(row.get("recording_prefix")),
             "recordingId": _to_int(row.get("recordingId")),
             "location_id": _to_int(row.get("location_id")),
@@ -109,3 +111,19 @@ class InDEventAdapter:
             "ego_end_y": _to_float(row.get("ego_end_y")),
             "scene_file": row.get("scene_file"),
         }
+    
+    def derive_risk_label(self, row: Dict[str, Any]) -> bool:
+        min_ttc = _to_float(row.get("min_ttc"))
+        min_dist = _to_float(row.get("min_center_distance"))
+        max_drac = _to_float(row.get("max_drac"))
+
+        if min_ttc is not None and min_ttc < 3.0:
+            return True
+        if min_dist is not None and min_dist < 2.5:
+            return True
+        if max_drac is not None and max_drac > 8.0:
+            return True
+        return False
+
+    def get_sequence_ref(self, metadata: dict) -> str | None:
+        return metadata.get("scene_file")

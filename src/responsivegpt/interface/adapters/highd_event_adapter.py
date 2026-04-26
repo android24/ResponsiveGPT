@@ -1,6 +1,9 @@
+# src/responsivegpt/interface/adapters/highd_event_adapter.py
+
 import csv
 from typing import Iterator, Dict, Any
 from ...domain.models import SceneState
+from .base_event_adapter import BaseEventAdapter
 
 
 def _to_float(v, default=None):
@@ -27,17 +30,12 @@ def _to_bool(v):
     return str(v).strip().lower() in ["true", "1", "yes"]
 
 
-class HighDEventAdapter:
-    """
-    把 highD 强交互 CSV 的每一行，映射成一个事件级 SceneState。
-    适合先快速批量跑通。
-    """
-
+class HighDEventAdapter(BaseEventAdapter):
     def __init__(self, csv_path: str):
         self.csv_path = csv_path
 
     def iter_rows(self) -> Iterator[dict]:
-        with open(self.csv_path, "r", encoding="utf-8") as f:
+        with open(self.csv_path, "r", encoding="utf-8-sig") as f:
             reader = csv.DictReader(f)
             for row in reader:
                 yield row
@@ -50,7 +48,6 @@ class HighDEventAdapter:
             lane_change=_to_bool(row.get("isLaneChangeEvent")),
             lane_change_direction=row.get("laneChangeDirection"),
 
-            # highD 是高速公路数据，这些字段给默认值
             dist_to_intersection_m=9999.0,
             traffic_light="none",
             vrus_present=False,
@@ -74,13 +71,17 @@ class HighDEventAdapter:
 
     def row_metadata(self, row: Dict[str, Any]) -> Dict[str, Any]:
         return {
+            "dataset": "highD",
             "recordingId": _to_int(row.get("recordingId")),
             "egoId": _to_int(row.get("egoId")),
             "otherId": _to_int(row.get("otherId")),
             "locationId": _to_int(row.get("locationId")),
             "eventType": row.get("eventType"),
+            "clipPath": row.get("clipPath"),
             "startFrame": _to_int(row.get("startFrame")),
             "endFrame": _to_int(row.get("endFrame")),
+            "clipStartFrame": _to_int(row.get("clipStartFrame")),
+            "clipEndFrame": _to_int(row.get("clipEndFrame")),
             "startTime_s": _to_float(row.get("startTime_s")),
             "endTime_s": _to_float(row.get("endTime_s")),
             "duration_s": _to_float(row.get("duration_s")),
@@ -96,3 +97,16 @@ class HighDEventAdapter:
             "minRelSpeed": _to_float(row.get("minRelSpeed")),
             "relSpeedMean": _to_float(row.get("relSpeedMean")),
         }
+
+    def derive_risk_label(self, row: Dict[str, Any]) -> bool:
+        min_ttc = _to_float(row.get("minTTC"))
+        min_thw = _to_float(row.get("minTHW"))
+
+        if min_ttc is not None and min_ttc < 3.0:
+            return True
+        if min_thw is not None and min_thw < 0.5:
+            return True
+        return False
+
+    def get_sequence_ref(self, metadata: dict) -> str | None:
+        return metadata.get("clipPath")

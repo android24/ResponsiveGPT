@@ -1,6 +1,7 @@
 import csv
 from typing import Iterator, Dict, Any
 from ...domain.models import SceneState
+from .base_event_adapter import BaseEventAdapter
 
 
 def _to_float(v, default=None):
@@ -21,7 +22,7 @@ def _to_int(v, default=None):
         return default
 
 
-class RoundEventAdapter:
+class RoundEventAdapter(BaseEventAdapter):
     """
     把 rounD 高风险事件 summary 的每一行映射成一个事件级 SceneState。
     """
@@ -69,6 +70,7 @@ class RoundEventAdapter:
 
     def row_metadata(self, row: Dict[str, Any]) -> Dict[str, Any]:
         return {
+            "dataset": "rounD",
             "prefix": _to_int(row.get("prefix")),
             "recordingId": _to_int(row.get("recordingId")),
             "trackId_1": _to_int(row.get("trackId_1")),
@@ -104,3 +106,16 @@ class RoundEventAdapter:
             "num_context_objects": _to_int(row.get("num_context_objects")),
             "num_primary_objects": _to_int(row.get("num_primary_objects")),
         }
+    
+    def derive_risk_label(self, row: Dict[str, Any]) -> bool:
+        min_ttc = _to_float(row.get("min_ttc"))
+        min_distance = _to_float(row.get("min_distance"))
+
+        if min_ttc is not None and min_ttc < 3.0:
+            return True
+        if min_distance is not None and min_distance < 2.0:
+            return True
+        return False
+
+    def get_sequence_ref(self, metadata: dict) -> str | None:
+        return metadata.get("clip_file")

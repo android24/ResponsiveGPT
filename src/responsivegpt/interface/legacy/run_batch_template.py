@@ -3,23 +3,23 @@ import json
 import csv
 from pathlib import Path
 
-from ..application.service import ResponsiveGPTService
-from ..application.trigger_manager import TriggerManager
-from ..application.layered_profile_learner import LayeredProfileLearner
-from ..application.trigger_state import TriggerStateStore
+from ...application.service import ResponsiveGPTService
+from ...application.trigger_manager import TriggerManager
+from ...application.layered_profile_learner import LayeredProfileLearner
+from ...application.trigger_state import TriggerStateStore
 
-from ..infrastructure.embed_ollama import OllamaEmbedder
-from ..infrastructure.llm_jiekou import JiekouChatModel
-from ..infrastructure.profile_repo import JsonProfileRepository
+from ...infrastructure.embed_ollama import OllamaEmbedder
+from ...infrastructure.llm_jiekou import JiekouChatModel
+from ...infrastructure.profile_repo import JsonProfileRepository
 
-from ..evaluation.run_logger import RunLogger
-from ..evaluation.metrics import compute_step_metrics
-from ..evaluation.classification import compute_confusion_and_scores
+from ...evaluation.run_logger import RunLogger
+from ...evaluation.metrics import compute_step_metrics
+from ...evaluation.classification import compute_confusion_and_scores
 
-from ..infrastructure.knowledge_base import KnowledgeBase
-from ..infrastructure.kb_seed import default_kb_docs
-from ..infrastructure.kb_json_loader import load_kb_json_dir
-from ..infrastructure.hybrid_retriever import HybridRetriever
+from ...infrastructure.knowledge_base import KnowledgeBase
+from ...infrastructure.kb_seed import default_kb_docs
+from ...infrastructure.kb_json_loader import load_kb_json_dir
+from ...infrastructure.hybrid_retriever import HybridRetriever
 
 
 def load_env(path: str = ".env") -> dict:
@@ -41,18 +41,50 @@ def append_jsonl(path: str, obj: dict):
         f.write(json.dumps(obj, ensure_ascii=False) + "\n")
 
 
+from pathlib import Path
+import os
+
+
 def resolve_profile_template_path(profiles_dir: str, profile_name: str) -> str:
-    current_file = Path(__file__).resolve()
-    project_root = current_file.parents[3]
-    candidate = project_root / profiles_dir / f"{profile_name}.json"
+    """
+    兼容 legacy 目录移动后的 profile 路径解析。
+    支持：
+    1. 绝对路径
+    2. 相对项目根目录路径：src/responsivegpt/data/profiles
+    3. 相对当前工作目录路径
+    """
 
-    if not candidate.exists():
-        raise FileNotFoundError(
-            f"Profile template not found: {candidate}\n"
-            f"Check profiles_dir and profile_name."
-        )
-    return str(candidate)
+    filename = f"{profile_name}.json"
 
+    # 1. profiles_dir 是绝对路径
+    p = Path(profiles_dir)
+    if p.is_absolute():
+        candidate = p / filename
+        if candidate.exists():
+            return str(candidate)
+
+    # 2. 相对当前工作目录
+    candidate = Path.cwd() / profiles_dir / filename
+    if candidate.exists():
+        return str(candidate)
+
+    # 3. 从当前文件向上寻找项目根目录：包含 pyproject.toml 或 src/responsivegpt
+    current = Path(__file__).resolve()
+    for parent in current.parents:
+        candidate = parent / profiles_dir / filename
+        if candidate.exists():
+            return str(candidate)
+
+        candidate = parent / "src" / "responsivegpt" / "data" / "profiles" / filename
+        if candidate.exists():
+            return str(candidate)
+
+    raise FileNotFoundError(
+        f"Profile template not found for profile_name={profile_name}\n"
+        f"profiles_dir={profiles_dir}\n"
+        f"cwd={Path.cwd()}\n"
+        f"checked legacy-compatible paths."
+    )
 
 def select_models(env: dict, model_role: str) -> tuple[str, str | None]:
     primary_model = env.get("PRIMARY_MODEL", "gpt-5.2")

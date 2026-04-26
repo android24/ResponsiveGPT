@@ -3,6 +3,7 @@ import os
 from typing import Dict, Any, Iterator, List, Optional
 
 from ...domain.models import SceneState
+from .base_sequence_adapter import BaseSequenceAdapter
 
 
 def _to_float(v, default=None):
@@ -29,7 +30,7 @@ def _to_bool(v):
     return str(v).strip().lower() in ["true", "1", "yes"]
 
 
-class RoundClipSequenceAdapter:
+class RoundClipSequenceAdapter(BaseSequenceAdapter):
     """
     读取单个 rounD clip CSV，并按 frame 逐帧产出 SceneState。
     每帧选择一个最关键交互对象：
@@ -110,7 +111,7 @@ class RoundClipSequenceAdapter:
                 min_dhw_raw=_to_float(target.get("event_min_distance")),
             )
 
-    def clip_metadata(self) -> dict:
+    def sequence_metadata(self) -> dict:
         rows = self._load_rows()
         if not rows:
             return {}

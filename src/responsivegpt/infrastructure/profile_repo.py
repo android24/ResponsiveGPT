@@ -106,14 +106,23 @@ class JsonProfileRepository:
         with open(self.template_path, "r", encoding="utf-8") as f:
             return self._normalize_profile(json.load(f))
 
-    def _normalize_profile(self, data: dict) -> dict:
+    def _normalize_profile(self, data):
+        # ✅ 自动修复 list → dict
+        if isinstance(data, list):
+            if len(data) == 0:
+                data = {}
+            else:
+                data = data[0]
+        
+        if not isinstance(data, dict):
+            raise ValueError(f"Invalid profile data type: {type(data)}")
+        
         """
         兼容旧格式（只有 risk_sensitivity 等）
         """
         if "global" in data:
             return data
 
-        # 旧版转新版
         return {
             "driver_type": data.get("driver_type", "均衡"),
             "global": {
@@ -121,9 +130,9 @@ class JsonProfileRepository:
                 "safety_weight": float(data.get("safety_weight", 0.6)),
                 "efficiency_weight": float(data.get("efficiency_weight", 0.4)),
             },
-            "longitudinal": {},
-            "lateral": {},
-            "interaction": {},
-            "scenario_bias": {},
-            "temporal": {},
+            "longitudinal": data.get("longitudinal", {}),
+            "lateral": data.get("lateral", {}),
+            "interaction": data.get("interaction", {}),
+            "scenario_bias": data.get("scenario_bias", {}),
+            "temporal": data.get("temporal", {}),
         }
