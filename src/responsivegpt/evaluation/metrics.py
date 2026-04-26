@@ -1,49 +1,40 @@
-from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional
-from ..domain.models import SceneState
+from .safety_metrics import SafetyThresholds, compute_frame_safety_metrics
+
+
+DEFAULT_THRESHOLDS = SafetyThresholds()
 
 
 @dataclass
 class StepMetrics:
     ttc_s: Optional[float]
+    thw_s: Optional[float]
+    drac_mps2: Optional[float]
+    dcpa_m: Optional[float]
+    ttca_s: Optional[float]
+    predicted_ttc_s: Optional[float]
+    min_future_distance_m: Optional[float]
+    physical_risk_index: Optional[float]
+    physical_risk_level: str
     is_violation: Optional[bool]
 
 
-def compute_ttc(scene: SceneState) -> Optional[float]:
-    """
-    简化 TTC:
-    - 优先用 rel_speed_mps 作为 closing speed
-    - 否则用 ego_speed - lead_speed
-    """
-    if scene.headway_m is None:
-        return None
+def compute_step_metrics(scene, decision: dict, thresholds: SafetyThresholds = DEFAULT_THRESHOLDS) -> StepMetrics:
+    physical = compute_frame_safety_metrics(scene, thresholds)
 
-    closing = None
-    if scene.rel_speed_mps is not None:
-        closing = scene.rel_speed_mps
-    elif scene.lead_speed_mps is not None:
-        closing = scene.ego_speed_mps - scene.lead_speed_mps
-
-    if closing is None:
-        return None
-    if closing <= 0:
-        return None
-    if scene.headway_m <= 0:
-        return 0.0
-
-    return scene.headway_m / closing
-
-
-def compute_violation(decision: dict) -> Optional[bool]:
     v = decision.get("is_potential_violation", None)
-    if isinstance(v, bool):
-        return v
-    return None
+    is_violation = v if isinstance(v, bool) else None
 
-
-def compute_step_metrics(scene: SceneState, decision: dict) -> StepMetrics:
     return StepMetrics(
-        ttc_s=compute_ttc(scene),
-        is_violation=compute_violation(decision),
+        ttc_s=physical.ttc_s,
+        thw_s=physical.thw_s,
+        drac_mps2=physical.drac_mps2,
+        dcpa_m=physical.dcpa_m,
+        ttca_s=physical.ttca_s,
+        predicted_ttc_s=physical.predicted_ttc_s,
+        min_future_distance_m=physical.min_future_distance_m,
+        physical_risk_index=physical.physical_risk_index,
+        physical_risk_level=physical.physical_risk_level,
+        is_violation=is_violation,
     )

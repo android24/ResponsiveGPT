@@ -35,15 +35,19 @@ class HighDEventAdapter(BaseEventAdapter):
         self.csv_path = csv_path
 
     def iter_rows(self) -> Iterator[dict]:
-        with open(self.csv_path, "r", encoding="utf-8-sig") as f:
+        with open(self.csv_path, "r", encoding="utf-8") as f:
             reader = csv.DictReader(f)
             for row in reader:
                 yield row
 
     def row_to_scene(self, row: Dict[str, Any]) -> SceneState:
+        ego_speed = _to_float(row.get("egoSpeedMean"), 0.0)
+        other_speed = _to_float(row.get("otherSpeedMean"))
+        rel_speed = _to_float(row.get("relSpeedMean"))
+
         return SceneState(
             scene_type="highD",
-            ego_speed_mps=_to_float(row.get("egoSpeedMean"), 0.0),
+            ego_speed_mps=ego_speed,
             headway_m=_to_float(row.get("minDHW"), 0.0),
             lane_change=_to_bool(row.get("isLaneChangeEvent")),
             lane_change_direction=row.get("laneChangeDirection"),
@@ -52,13 +56,19 @@ class HighDEventAdapter(BaseEventAdapter):
             traffic_light="none",
             vrus_present=False,
 
-            lead_speed_mps=_to_float(row.get("otherSpeedMean")),
-            rel_speed_mps=_to_float(row.get("relSpeedMean")),
+            lead_speed_mps=other_speed,
+            rel_speed_mps=rel_speed,
 
             ego_x=_to_float(row.get("egoXStart")),
             ego_y=_to_float(row.get("egoYStart")),
             other_x=_to_float(row.get("otherXStart")),
             other_y=_to_float(row.get("otherYStart")),
+
+            # 新增：event-level 近似速度分量
+            ego_vx=ego_speed,
+            ego_vy=0.0,
+            other_vx=other_speed,
+            other_vy=0.0,
 
             event_type=row.get("eventType"),
             frame_index=None,

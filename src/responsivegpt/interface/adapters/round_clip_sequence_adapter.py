@@ -1,6 +1,5 @@
 import csv
-import os
-from typing import Dict, Any, Iterator, List, Optional
+from typing import Dict, Iterator, List, Optional
 
 from ...domain.models import SceneState
 from .base_sequence_adapter import BaseSequenceAdapter
@@ -36,6 +35,11 @@ class RoundClipSequenceAdapter(BaseSequenceAdapter):
     每帧选择一个最关键交互对象：
       1) 优先 primary actor 且非 ego
       2) 否则选 distance_to_ego 最小的非 ego 对象
+
+    重要：
+    rounD clip 的每一行非 ego 对象通常已经包含 ego 镜像字段：
+      ego_xCenter, ego_yCenter, ego_xVelocity, ego_yVelocity
+    因此不需要像 highD 那样合并 ego / other 两行。
     """
 
     def __init__(self, clip_csv_path: str):
@@ -81,7 +85,22 @@ class RoundClipSequenceAdapter(BaseSequenceAdapter):
                 continue
 
             pair_type = target.get("pair_type", "")
-            vrus_present = ("pedestrian" in pair_type) or ("cyclist" in pair_type)
+            pair_type_l = str(pair_type).lower()
+            vrus_present = (
+                "pedestrian" in pair_type_l
+                or "cyclist" in pair_type_l
+                or "bicycle" in pair_type_l
+            )
+
+            ego_x = _to_float(target.get("ego_xCenter"))
+            ego_y = _to_float(target.get("ego_yCenter"))
+            other_x = _to_float(target.get("xCenter"))
+            other_y = _to_float(target.get("yCenter"))
+
+            ego_vx = _to_float(target.get("ego_xVelocity"))
+            ego_vy = _to_float(target.get("ego_yVelocity"))
+            other_vx = _to_float(target.get("xVelocity"))
+            other_vy = _to_float(target.get("yVelocity"))
 
             yield SceneState(
                 scene_type="rounD",
@@ -97,10 +116,15 @@ class RoundClipSequenceAdapter(BaseSequenceAdapter):
                 lead_speed_mps=None,
                 rel_speed_mps=_to_float(target.get("rel_speed_to_ego")),
 
-                ego_x=_to_float(target.get("ego_xCenter")),
-                ego_y=_to_float(target.get("ego_yCenter")),
-                other_x=_to_float(target.get("xCenter")),
-                other_y=_to_float(target.get("yCenter")),
+                ego_x=ego_x,
+                ego_y=ego_y,
+                other_x=other_x,
+                other_y=other_y,
+
+                ego_vx=ego_vx,
+                ego_vy=ego_vy,
+                other_vx=other_vx,
+                other_vy=other_vy,
 
                 event_type=pair_type,
                 frame_index=_to_int(target.get("frame")),

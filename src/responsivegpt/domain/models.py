@@ -24,6 +24,12 @@ class SceneState:
     other_x: Optional[float] = None
     other_y: Optional[float] = None
 
+    # 强烈建议补这几个字段，用于 DCPA/TCPA
+    ego_vx: Optional[float] = None
+    ego_vy: Optional[float] = None
+    other_vx: Optional[float] = None
+    other_vy: Optional[float] = None
+
     event_type: Optional[str] = None
     frame_index: Optional[int] = None
     duration_s: Optional[float] = None

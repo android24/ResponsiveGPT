@@ -38,11 +38,19 @@ class RoundEventAdapter(BaseEventAdapter):
 
     def row_to_scene(self, row: Dict[str, Any]) -> SceneState:
         pair_type = row.get("pair_type", "")
-        vrus_present = pair_type == "vehicle_cyclist"
+        pair_type_l = str(pair_type).lower()
+        vrus_present = (
+            "cyclist" in pair_type_l
+            or "pedestrian" in pair_type_l
+            or "bicycle" in pair_type_l
+        )
+
+        ego_speed = _to_float(row.get("ego_speed_at_peak_mps"), 0.0)
+        rel_speed = _to_float(row.get("other_rel_speed_to_ego_at_peak"))
 
         return SceneState(
             scene_type="rounD",
-            ego_speed_mps=_to_float(row.get("ego_speed_at_peak_mps"), 0.0),
+            ego_speed_mps=ego_speed,
             headway_m=_to_float(row.get("min_distance"), 0.0),
             lane_change=False,
 
@@ -52,12 +60,18 @@ class RoundEventAdapter(BaseEventAdapter):
             vrus_present=vrus_present,
 
             lead_speed_mps=None,
-            rel_speed_mps=_to_float(row.get("other_rel_speed_to_ego_at_peak")),
+            rel_speed_mps=rel_speed,
 
             ego_x=None,
             ego_y=None,
             other_x=None,
             other_y=None,
+
+            # batch/event-level 没有二维方向时，只给 ego 速度近似
+            ego_vx=ego_speed,
+            ego_vy=0.0,
+            other_vx=None,
+            other_vy=None,
 
             event_type=row.get("pair_type"),
             frame_index=None,

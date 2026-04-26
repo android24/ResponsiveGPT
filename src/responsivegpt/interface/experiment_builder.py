@@ -210,6 +210,12 @@ def build_experiment_context(args):
             "use_profile_learner": bool(args.use_profile_learner),
             "use_retriever": bool(args.use_retriever),
         },
+        "safety_metrics": {
+            "version": "full_v1",
+            "prediction_horizon_s": 5.0,
+            "prediction_dt_s": 0.2,
+            "risk_index": "UPRI_v1",
+        },
         "env": {
             "JIEKOU_BASE_URL": env.get("JIEKOU_BASE_URL", "https://api.jiekou.ai/openai"),
             "PRIMARY_MODEL": env.get("PRIMARY_MODEL"),

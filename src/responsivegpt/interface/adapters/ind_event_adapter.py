@@ -39,19 +39,24 @@ class InDEventAdapter(BaseEventAdapter):
     def row_to_scene(self, row: Dict[str, Any]) -> SceneState:
         cls1 = str(row.get("class_1", "")).lower()
         cls2 = str(row.get("class_2", "")).lower()
-        vrus_present = ("pedestrian" in [cls1, cls2]) or ("bicycle" in [cls1, cls2]) or ("cyclist" in [cls1, cls2])
+        vrus_present = (
+            "pedestrian" in [cls1, cls2]
+            or "bicycle" in [cls1, cls2]
+            or "cyclist" in [cls1, cls2]
+        )
 
         duration_frames = _to_float(row.get("duration_frames"), 0.0)
         fps = _to_float(row.get("fps"), 25.0)
         duration_s = (duration_frames / fps) if fps else None
 
+        ego_speed = _to_float(row.get("ego_mean_speed"), 0.0)
+
         return SceneState(
             scene_type="inD",
-            ego_speed_mps=_to_float(row.get("ego_mean_speed"), 0.0),
+            ego_speed_mps=ego_speed,
             headway_m=_to_float(row.get("min_center_distance"), 0.0),
             lane_change=False,
 
-            # inD 是交叉口场景
             dist_to_intersection_m=0.0,
             traffic_light="unknown",
             vrus_present=vrus_present,
@@ -63,6 +68,12 @@ class InDEventAdapter(BaseEventAdapter):
             ego_y=_to_float(row.get("ego_start_y")),
             other_x=None,
             other_y=None,
+
+            # batch/event-level 近似
+            ego_vx=ego_speed,
+            ego_vy=0.0,
+            other_vx=None,
+            other_vy=None,
 
             event_type=f"{row.get('class_1')}_{row.get('class_2')}",
             frame_index=None,

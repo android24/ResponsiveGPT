@@ -3,9 +3,19 @@ import json
 import csv
 from collections import Counter
 
+from dataclasses import asdict
+
 from ..evaluation.metrics import compute_step_metrics
 from ..evaluation.classification import compute_confusion_and_scores
 from ..evaluation.trigger_plotter import TriggerPlotter
+
+from ..evaluation.safety_metrics import (
+    thresholds_for_dataset,
+    compute_frame_safety_metrics,
+    aggregate_episode_safety_metrics,
+    compute_llm_physics_alignment,
+    compute_behavior_safety_metrics,
+)
 
 from .adapters.adapter_factory import build_event_adapter, build_sequence_adapter
 from ..evaluation.round_labels import derive_round_risk_label_from_summary_row
@@ -116,6 +126,7 @@ def run_interaction_experiment(args, ctx):
     effective_driver_type = ctx["effective_driver_type"]
 
     event_adapter = build_event_adapter(args.dataset, args.summary_csv)
+    thresholds = thresholds_for_dataset(args.dataset)
 
     frame_metrics_path = os.path.join(logger.run_dir, "frame_metrics.csv")
     episode_summary_path = os.path.join(logger.run_dir, "episode_summary.jsonl")
@@ -136,7 +147,17 @@ def run_interaction_experiment(args, ctx):
             "ego_id",
             "other_id",
             "frame_index",
+
             "ttc_s",
+            "thw_s",
+            "drac_mps2",
+            "dcpa_m",
+            "ttca_s",
+            "predicted_ttc_s",
+            "min_future_distance_m",
+            "physical_risk_index",
+            "physical_risk_level",
+
             "is_violation",
             "ego_speed_mps",
             "rel_speed_mps",
@@ -157,13 +178,15 @@ def run_interaction_experiment(args, ctx):
     all_y_true = []
     all_y_pred = []
     global_trigger_stats = Counter()
+    global_episode_safety_records = []
+    global_alignment_records = []
+    global_behavior_records = []
 
     for idx, row in enumerate(event_adapter.iter_rows()):
-        summary["rows_seen"] += 1
-
         if args.limit > 0 and idx >= args.limit:
             break
 
+        summary["rows_seen"] += 1
         metadata = event_adapter.row_metadata(row)
 
         if args.mode == "batch":
@@ -206,6 +229,10 @@ def run_interaction_experiment(args, ctx):
         episode_trigger_stats = Counter()
         episode_trigger_count = 0
 
+        frame_safety_metrics_list = []
+        decision_list = []
+        trigger_list_by_frame = {}
+
         for scene in scenes:
             result = service.step(
                 scene=scene,
@@ -214,7 +241,11 @@ def run_interaction_experiment(args, ctx):
                 recent_decisions=recent_decisions,
             )
 
-            m = compute_step_metrics(scene, result.decision)
+            frame_safety = compute_frame_safety_metrics(scene, thresholds)
+            frame_safety_metrics_list.append(frame_safety)
+            decision_list.append(result.decision)
+
+            m = compute_step_metrics(scene, result.decision, thresholds=thresholds)
 
             if m.ttc_s is not None:
                 ttc_values.append(m.ttc_s)
@@ -228,6 +259,9 @@ def run_interaction_experiment(args, ctx):
                 recent_decisions = []
 
             trigger_dicts = safe_list_dict(getattr(result, "triggers", []))
+            frame_pos = len(decision_list) - 1
+            if trigger_dicts:
+                trigger_list_by_frame[frame_pos] = trigger_dicts
             guardrail_dict = safe_dict(getattr(result, "guardrails", {}))
             profile_dict = safe_dict(result.profile)
             evidence_dict = getattr(result, "evidence", {}) or {}
@@ -254,8 +288,17 @@ def run_interaction_experiment(args, ctx):
                 "rules": rules_list,
                 "step_metrics": {
                     "ttc_s": m.ttc_s,
+                    "thw_s": m.thw_s,
+                    "drac_mps2": m.drac_mps2,
+                    "dcpa_m": m.dcpa_m,
+                    "ttca_s": m.ttca_s,
+                    "predicted_ttc_s": m.predicted_ttc_s,
+                    "min_future_distance_m": m.min_future_distance_m,
+                    "physical_risk_index": m.physical_risk_index,
+                    "physical_risk_level": m.physical_risk_level,
                     "is_violation": m.is_violation,
                 },
+                "frame_safety": asdict(frame_safety),
                 "dataset_risk_label": dataset_risk,
             }
             logger.append_decision(frame_record)
@@ -298,6 +341,15 @@ def run_interaction_experiment(args, ctx):
                     metadata.get("otherId") or metadata.get("otherTrackId") or metadata.get("trackId_2"),
                     scene.frame_index,
                     "" if m.ttc_s is None else round(m.ttc_s, 4),
+                    "" if m.thw_s is None else round(m.thw_s, 4),
+                    "" if m.drac_mps2 is None else round(m.drac_mps2, 4),
+                    "" if m.dcpa_m is None else round(m.dcpa_m, 4),
+                    "" if m.ttca_s is None else round(m.ttca_s, 4),
+                    "" if m.predicted_ttc_s is None else round(m.predicted_ttc_s, 4),
+                    "" if m.min_future_distance_m is None else round(m.min_future_distance_m, 4),
+                    "" if m.physical_risk_index is None else round(m.physical_risk_index, 4),
+                    m.physical_risk_level,
+
                     "" if m.is_violation is None else int(m.is_violation),
                     scene.ego_speed_mps,
                     scene.rel_speed_mps,
@@ -307,10 +359,22 @@ def run_interaction_experiment(args, ctx):
                     safe_len(rules_list),
                     safe_len(evidence_dict.get("laws", [])),
                     safe_len(evidence_dict.get("cases", [])),
-                    safe_len(evidence_dict.get("scenarios", [])),
+                    safe_len(evidence_dict.get("scenarios", []))
                 ])
 
         episode_llm_violation = (sum(violation_flags) > 0) if violation_flags else False
+        episode_safety = aggregate_episode_safety_metrics(frame_safety_metrics_list)
+
+        alignment = compute_llm_physics_alignment(
+            frame_safety_metrics_list,
+            decision_list,
+        )
+
+        behavior = compute_behavior_safety_metrics(
+            frame_safety_metrics_list,
+            decision_list,
+            trigger_list_by_frame=trigger_list_by_frame,
+        )
         min_ttc_est = min(ttc_values) if ttc_values else None
         avg_ttc_est = (sum(ttc_values) / len(ttc_values)) if ttc_values else None
         violation_rate = (
@@ -318,6 +382,9 @@ def run_interaction_experiment(args, ctx):
             if violation_flags else None
         )
 
+        global_episode_safety_records.append(asdict(episode_safety))
+        global_alignment_records.append(asdict(alignment))
+        global_behavior_records.append(asdict(behavior))
         episode_summary = {
             "event_index": idx,
             "dataset": args.dataset,
@@ -330,6 +397,11 @@ def run_interaction_experiment(args, ctx):
             "episode_violation_rate": violation_rate,
             "episode_min_ttc_estimated": min_ttc_est,
             "episode_avg_ttc_estimated": avg_ttc_est,
+
+            "episode_safety": asdict(episode_safety),
+            "llm_physics_alignment": asdict(alignment),
+            "behavior_safety": asdict(behavior),
+
             "trigger_count": episode_trigger_count,
             "trigger_distribution": dict(episode_trigger_stats),
         }
@@ -371,6 +443,40 @@ def run_interaction_experiment(args, ctx):
         summary["total_triggers"] / summary["total_frames"]
         if summary["total_frames"] else 0.0
     )
+
+    def _avg(records, key):
+        vals = [r.get(key) for r in records if isinstance(r.get(key), (int, float))]
+        return sum(vals) / len(vals) if vals else None
+
+    summary["global_safety"] = {
+        "avg_min_ttc_s": _avg(global_episode_safety_records, "min_ttc_s"),
+        "avg_avg_ttc_s": _avg(global_episode_safety_records, "avg_ttc_s"),
+        "avg_max_drac_mps2": _avg(global_episode_safety_records, "max_drac_mps2"),
+        "avg_min_dcpa_m": _avg(global_episode_safety_records, "min_dcpa_m"),
+        "avg_min_future_distance_m": _avg(global_episode_safety_records, "min_future_distance_m"),
+        "avg_unsafe_ttc_ratio": _avg(global_episode_safety_records, "unsafe_ttc_ratio"),
+        "avg_unsafe_thw_ratio": _avg(global_episode_safety_records, "unsafe_thw_ratio"),
+        "avg_unsafe_drac_ratio": _avg(global_episode_safety_records, "unsafe_drac_ratio"),
+        "avg_unsafe_dcpa_ratio": _avg(global_episode_safety_records, "unsafe_dcpa_ratio"),
+        "avg_unsafe_future_distance_ratio": _avg(global_episode_safety_records, "unsafe_future_distance_ratio"),
+        "avg_physical_risk_exposure": _avg(global_episode_safety_records, "physical_risk_exposure"),
+        "avg_max_physical_risk_index": _avg(global_episode_safety_records, "max_physical_risk_index"),
+    }
+
+    summary["global_alignment"] = {
+        "avg_alignment_accuracy": _avg(global_alignment_records, "alignment_accuracy"),
+        "avg_overreaction_rate": _avg(global_alignment_records, "overreaction_rate"),
+        "avg_underreaction_rate": _avg(global_alignment_records, "underreaction_rate"),
+        "avg_mean_risk_level_error": _avg(global_alignment_records, "mean_risk_level_error"),
+        "avg_llm_violation_rate": _avg(global_alignment_records, "llm_violation_rate"),
+    }
+
+    summary["global_behavior"] = {
+        "avg_reaction_delay_frames": _avg(global_behavior_records, "reaction_delay_frames"),
+        "avg_trigger_delay_frames": _avg(global_behavior_records, "trigger_delay_frames"),
+        "avg_decision_flip_rate": _avg(global_behavior_records, "decision_flip_rate"),
+        "avg_risk_level_variance": _avg(global_behavior_records, "risk_level_variance"),
+    }
 
     with open(os.path.join(logger.run_dir, "summary.json"), "w", encoding="utf-8") as f:
         json.dump(summary, f, ensure_ascii=False, indent=2)

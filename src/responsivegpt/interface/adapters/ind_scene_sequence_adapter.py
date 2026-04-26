@@ -1,6 +1,6 @@
 import csv
 import math
-from typing import Dict, Any, Iterator, List, Optional
+from typing import Dict, Iterator, List, Optional
 
 from ...domain.models import SceneState
 from .base_sequence_adapter import BaseSequenceAdapter
@@ -29,8 +29,16 @@ def _to_bool(v):
         return v
     return str(v).strip().lower() in ["true", "1", "yes"]
 
+def _first_float(row: dict, keys: List[str], default=None):
+    for k in keys:
+        val = _to_float(row.get(k), None)
+        if val is not None:
+            return val
+    return default
 
 def _speed_norm(vx: float, vy: float) -> float:
+    vx = vx or 0.0
+    vy = vy or 0.0
     return math.sqrt(vx * vx + vy * vy)
 
 
@@ -46,6 +54,10 @@ class InDSceneSequenceAdapter(BaseSequenceAdapter):
     每帧选择一个最关键交互对象：
       1) 优先 primary actor 且非 ego
       2) 否则选距离 ego 最近的非 ego 对象
+
+    支持两类字段格式：
+      A. xCenter / yCenter / xVelocity / yVelocity
+      B. x / y / vx / vy + ego_x / ego_y / ego_vx / ego_vy
     """
 
     def __init__(self, scene_csv_path: str):
@@ -75,15 +87,13 @@ class InDSceneSequenceAdapter(BaseSequenceAdapter):
         if not non_ego:
             return None
 
-        ego_x = _to_float(ego_row.get("xCenter"), 0.0)
-        ego_y = _to_float(ego_row.get("yCenter"), 0.0)
+        ego_x = _first_float(ego_row, ["xCenter", "x", "ego_x"], 0.0)
+        ego_y = _first_float(ego_row, ["yCenter", "y", "ego_y"], 0.0)
 
         def row_distance(r):
-            return _dist(
-                ego_x, ego_y,
-                _to_float(r.get("xCenter"), 0.0),
-                _to_float(r.get("yCenter"), 0.0),
-            )
+            tx = _first_float(r, ["xCenter", "x"], 0.0)
+            ty = _first_float(r, ["yCenter", "y"], 0.0)
+            return _dist(ego_x, ego_y, tx, ty)
 
         primary = [r for r in non_ego if _to_bool(r.get("is_primary_actor"))]
         if primary:
@@ -107,22 +117,34 @@ class InDSceneSequenceAdapter(BaseSequenceAdapter):
             if target is None:
                 continue
 
-            ego_x = _to_float(ego_row.get("xCenter"), 0.0)
-            ego_y = _to_float(ego_row.get("yCenter"), 0.0)
-            ego_vx = _to_float(ego_row.get("xVelocity"), 0.0)
-            ego_vy = _to_float(ego_row.get("yVelocity"), 0.0)
+            ego_x = _first_float(ego_row, ["xCenter", "x", "ego_x"], 0.0)
+            ego_y = _first_float(ego_row, ["yCenter", "y", "ego_y"], 0.0)
+            ego_vx = _first_float(ego_row, ["xVelocity", "vx", "ego_vx"], 0.0)
+            ego_vy = _first_float(ego_row, ["yVelocity", "vy", "ego_vy"], 0.0)
 
-            tgt_x = _to_float(target.get("xCenter"), 0.0)
-            tgt_y = _to_float(target.get("yCenter"), 0.0)
-            tgt_vx = _to_float(target.get("xVelocity"), 0.0)
-            tgt_vy = _to_float(target.get("yVelocity"), 0.0)
+            tgt_x = _first_float(target, ["xCenter", "x"], 0.0)
+            tgt_y = _first_float(target, ["yCenter", "y"], 0.0)
+            tgt_vx = _first_float(target, ["xVelocity", "vx"], 0.0)
+            tgt_vy = _first_float(target, ["yVelocity", "vy"], 0.0)
 
-            headway = _dist(ego_x, ego_y, tgt_x, tgt_y)
-            rel_speed = _speed_norm(ego_vx - tgt_vx, ego_vy - tgt_vy)
+            headway = _first_float(target, ["distance_to_ego", "distance"], None)
+            if headway is None:
+                headway = _dist(ego_x, ego_y, tgt_x, tgt_y)
+
+            rel_speed = _first_float(target, ["rel_speed_to_ego", "rel_speed"], None)
+            if rel_speed is None:
+                rel_speed = _speed_norm(ego_vx - tgt_vx, ego_vy - tgt_vy)
 
             ego_cls = str(ego_row.get("class", "")).lower()
             tgt_cls = str(target.get("class", "")).lower()
-            vrus_present = (tgt_cls in ["pedestrian", "bicycle"]) or ("cyclist" in tgt_cls)
+            vrus_present = (
+                "pedestrian" in tgt_cls
+                or "bicycle" in tgt_cls
+                or "cyclist" in tgt_cls
+            )
+
+            raw_ttc = _first_float(target, ["ttc", "event_min_ttc"], None)
+            raw_dist = _first_float(target, ["distance_to_ego", "distance", "event_min_distance"], headway)
 
             yield SceneState(
                 scene_type="inD",
@@ -142,13 +164,19 @@ class InDSceneSequenceAdapter(BaseSequenceAdapter):
                 other_x=tgt_x,
                 other_y=tgt_y,
 
+                # 关键：二维速度分量
+                ego_vx=ego_vx,
+                ego_vy=ego_vy,
+                other_vx=tgt_vx,
+                other_vy=tgt_vy,
+
                 event_type=f"{ego_cls}_{tgt_cls}",
                 frame_index=frame,
                 duration_s=None,
 
-                min_ttc_raw=None,
+                min_ttc_raw=raw_ttc,
                 min_thw_raw=None,
-                min_dhw_raw=headway,
+                min_dhw_raw=raw_dist,
             )
 
     def sequence_metadata(self) -> dict:
