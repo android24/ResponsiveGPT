@@ -187,6 +187,25 @@ class HighDClipSequenceAdapter(BaseSequenceAdapter):
         if other_x >= ego_x:
             return ego_vx - other_vx
         return other_vx - ego_vx
+    
+    def validate_schema(self):
+        from .schema_validation import require_fields, require_any_group
+
+        require_fields(
+            self.clip_csv_path,
+            ["frame", "role", "x", "y"],
+            context="highD clip",
+        )
+
+        require_any_group(
+            self.clip_csv_path,
+            [
+                ["xVelocity"],
+                ["vx"],
+                ["ego_vx", "other_vx"],
+            ],
+            context="highD velocity fields",
+        )
 
     def iter_scenes(self) -> Iterator[SceneState]:
         rows = self._load_rows()

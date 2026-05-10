@@ -8,6 +8,7 @@ from dataclasses import asdict
 from ..evaluation.metrics import compute_step_metrics
 from ..evaluation.classification import compute_confusion_and_scores
 from ..evaluation.trigger_plotter import TriggerPlotter
+from .llm_call_policy import should_call_llm, fallback_decision_from_physics
 
 from ..evaluation.safety_metrics import (
     thresholds_for_dataset,
@@ -99,6 +100,8 @@ def init_summary(args, template_profile_path: str):
     return {
         "dataset": args.dataset,
         "mode": args.mode,
+        "dry_run": bool(getattr(args, "dry_run", False)),
+        "inspect_only": bool(getattr(args, "inspect_only", False)),
         "total_events": 0,
         "total_frames": 0,
         "dataset_risk_true": 0,
@@ -109,6 +112,12 @@ def init_summary(args, template_profile_path: str):
         "missing_scenes": 0,
         "empty_sequences": 0,
         "rows_seen": 0,
+        
+        # LLM 调用统计
+        "llm_calls": 0,
+        "non_llm_frames": 0,
+        "llm_call_rate": 0.0,
+
         "profile_name": args.profile_name,
         "template_profile_path": template_profile_path,
         "ablation": {
@@ -125,6 +134,8 @@ def run_interaction_experiment(args, ctx):
     service = ctx["service"]
     effective_driver_type = ctx["effective_driver_type"]
 
+    inspect_only = bool(getattr(args, "inspect_only", False))
+    dry_run = bool(getattr(args, "dry_run", False))
     event_adapter = build_event_adapter(args.dataset, args.summary_csv)
     thresholds = thresholds_for_dataset(args.dataset)
 
@@ -199,6 +210,14 @@ def run_interaction_experiment(args, ctx):
                 args=args,
             )
 
+            if hasattr(seq_adapter, "validate_schema"):
+                try:
+                    seq_adapter.validate_schema()
+                except Exception as e:
+                    summary["missing_files"] += 1
+                    print("[SCHEMA ERROR]", e)
+                    continue
+
             if seq_adapter is None:
                 summary["missing_files"] += 1
                 if missing_key:
@@ -233,39 +252,161 @@ def run_interaction_experiment(args, ctx):
         decision_list = []
         trigger_list_by_frame = {}
 
-        for scene in scenes:
-            result = service.step(
-                scene=scene,
-                driver_type=effective_driver_type,
-                feedback=args.feedback,
-                recent_decisions=recent_decisions,
+        # ============================================================
+        # inspect_only:
+        # 只检查 summary → sequence path → scenes 是否能打通
+        # 不计算完整 safety metrics
+        # 不调用 LLM
+        # ============================================================
+        if inspect_only:
+            append_jsonl(episode_summary_path, {
+                "event_index": idx,
+                "dataset": args.dataset,
+                "mode": args.mode,
+                "metadata": metadata,
+                "sequence_path": sequence_path,
+                "dataset_risk_label": dataset_risk,
+                "episode_num_frames": len(scenes),
+                "inspect_only": True,
+                "dry_run": False,
+            })
+
+            summary["total_events"] += 1
+            summary["total_frames"] += len(scenes)
+            summary["dataset_risk_true"] += int(dataset_risk)
+            summary["precision"] = None
+            summary["recall"] = None
+            summary["f1"] = None
+            summary["accuracy"] = None
+
+            print(
+                f"[INSPECT] event={idx} "
+                f"dataset={args.dataset} "
+                f"mode={args.mode} "
+                f"frames={len(scenes)} "
+                f"risk={dataset_risk} "
+                f"sequence_path={sequence_path}"
             )
 
+            continue
+
+
+        # ============================================================
+        # dry_run:
+        # 计算完整 safety metrics
+        # 不调用 LLM
+        # ============================================================
+        if dry_run:
+            frame_safety_metrics_list = []
+
+            for scene in scenes:
+                frame_safety = compute_frame_safety_metrics(scene, thresholds)
+                frame_safety_metrics_list.append(frame_safety)
+
+            episode_safety = aggregate_episode_safety_metrics(frame_safety_metrics_list)
+
+            # dry-run 下也进入 global safety 汇总
+            global_episode_safety_records.append(asdict(episode_safety))
+
+            append_jsonl(episode_summary_path, {
+                "event_index": idx,
+                "dataset": args.dataset,
+                "mode": args.mode,
+                "metadata": metadata,
+                "sequence_path": sequence_path,
+                "dataset_risk_label": dataset_risk,
+                "episode_num_frames": len(scenes),
+                "inspect_only": False,
+                "dry_run": True,
+                "episode_safety": asdict(episode_safety),
+            })
+
+            summary["total_events"] += 1
+            summary["total_frames"] += len(scenes)
+            summary["dataset_risk_true"] += int(dataset_risk)
+
+            print(
+                f"[DRY-RUN] event={idx} "
+                f"dataset={args.dataset} "
+                f"frames={len(scenes)} "
+                f"risk={dataset_risk} "
+                f"min_ttc={episode_safety.min_ttc_s} "
+                f"max_drac={episode_safety.max_drac_mps2} "
+                f"min_dcpa={episode_safety.min_dcpa_m} "
+                f"risk_exposure={episode_safety.physical_risk_exposure}"
+            )
+
+            continue
+
+        for frame_pos, scene in enumerate(scenes):
             frame_safety = compute_frame_safety_metrics(scene, thresholds)
             frame_safety_metrics_list.append(frame_safety)
-            decision_list.append(result.decision)
 
-            m = compute_step_metrics(scene, result.decision, thresholds=thresholds)
+            call_llm = should_call_llm(
+                policy=args.llm_policy,
+                frame_pos=frame_pos,
+                frame_safety=frame_safety,
+                stride=args.llm_stride,
+            )
+
+            if call_llm:
+                result = service.step(
+                    scene=scene,
+                    driver_type=effective_driver_type,
+                    feedback=args.feedback,
+                    recent_decisions=recent_decisions,
+                )
+                decision = result.decision
+                decision_source = "llm"
+                summary["llm_calls"] += 1
+            else:
+                if args.reuse_last_decision and recent_decisions:
+                    decision = dict(recent_decisions[-1])
+                    decision["source"] = "reused_last_decision"
+                else:
+                    decision = fallback_decision_from_physics(frame_safety)
+
+                result = None
+                decision_source = decision.get("source", "physics_fallback")
+                summary["non_llm_frames"] += 1
+
+            decision_list.append(decision)
+
+            m = compute_step_metrics(scene, decision, thresholds=thresholds)
+
+            if result is not None:
+                trigger_dicts = safe_list_dict(getattr(result, "triggers", []))
+                guardrail_dict = safe_dict(getattr(result, "guardrails", {}))
+                profile_dict = safe_dict(result.profile)
+                evidence_dict = getattr(result, "evidence", {}) or {}
+                rules_list = safe_list_dict(getattr(result, "rules", []))
+                profile_update = getattr(result, "profile_update", {})
+            else:
+                trigger_dicts = []
+                guardrail_dict = {}
+                profile_dict = {}
+                evidence_dict = {}
+                rules_list = []
+                profile_update = {}
+
+            if trigger_dicts:
+                trigger_list_by_frame[frame_pos] = trigger_dicts
+            frame_safety = compute_frame_safety_metrics(scene, thresholds)
+            frame_safety_metrics_list.append(frame_safety)
+            decision_list.append(decision)
+
+            m = compute_step_metrics(scene, decision, thresholds=thresholds)
 
             if m.ttc_s is not None:
                 ttc_values.append(m.ttc_s)
             if m.is_violation is not None:
                 violation_flags.append(bool(m.is_violation))
 
-            recent_decisions.append(result.decision)
+            recent_decisions.append(decision)
             if args.mode == "episode" and args.history_window > 0:
                 recent_decisions = recent_decisions[-args.history_window:]
             elif args.mode == "batch":
                 recent_decisions = []
-
-            trigger_dicts = safe_list_dict(getattr(result, "triggers", []))
-            frame_pos = len(decision_list) - 1
-            if trigger_dicts:
-                trigger_list_by_frame[frame_pos] = trigger_dicts
-            guardrail_dict = safe_dict(getattr(result, "guardrails", {}))
-            profile_dict = safe_dict(result.profile)
-            evidence_dict = getattr(result, "evidence", {}) or {}
-            rules_list = safe_list_dict(getattr(result, "rules", []))
 
             for trig in trigger_dicts:
                 t_type = safe_trigger_type(trig)
@@ -279,11 +420,12 @@ def run_interaction_experiment(args, ctx):
                 "sequence_path": sequence_path,
                 "scene": scene.__dict__,
                 "profile": profile_dict,
-                "decision": result.decision,
+                "decision": decision,
+                "decision_source": decision_source,
                 "triggers": trigger_dicts,
                 "trigger_count": len(trigger_dicts),
                 "guardrails": guardrail_dict,
-                "profile_update": getattr(result, "profile_update", {}),
+                "profile_update": profile_update,
                 "evidence": evidence_dict,
                 "rules": rules_list,
                 "step_metrics": {
@@ -312,7 +454,7 @@ def run_interaction_experiment(args, ctx):
             append_jsonl(profile_delta_path, {
                 "event_index": idx,
                 "frame_index": scene.frame_index,
-                "profile_update": getattr(result, "profile_update", {}),
+                "profile_update": profile_update,
             })
 
             append_jsonl(guardrail_trace_path, {
@@ -425,13 +567,33 @@ def run_interaction_experiment(args, ctx):
             f"triggers={episode_trigger_count}"
         )
 
-    summary["episode_agreement_rate"] = (
-        summary["episode_agreement"] / summary["total_events"]
-        if summary["total_events"] else 0.0
-    )
+    if dry_run or inspect_only:
+        summary["classification_skipped"] = True
+        summary["classification_skip_reason"] = (
+            "dry_run/inspect_only does not call LLM, so no valid model predictions exist."
+        )
 
-    cls = compute_confusion_and_scores(all_y_true, all_y_pred)
-    summary.update(cls)
+        summary["episode_llm_violation_true"] = None
+        summary["episode_agreement"] = None
+        summary["episode_agreement_rate"] = None
+
+        summary["confusion_matrix"] = None
+        summary["precision"] = None
+        summary["recall"] = None
+        summary["f1"] = None
+        summary["accuracy"] = None
+        summary["total"] = 0
+
+    else:
+        summary["classification_skipped"] = False
+
+        summary["episode_agreement_rate"] = (
+            summary["episode_agreement"] / summary["total_events"]
+            if summary["total_events"] else 0.0
+        )
+
+        cls = compute_confusion_and_scores(all_y_true, all_y_pred)
+        summary.update(cls)
 
     summary["trigger_distribution"] = dict(global_trigger_stats)
     summary["total_triggers"] = sum(global_trigger_stats.values())
@@ -441,6 +603,11 @@ def run_interaction_experiment(args, ctx):
     )
     summary["avg_triggers_per_frame"] = (
         summary["total_triggers"] / summary["total_frames"]
+        if summary["total_frames"] else 0.0
+    )
+
+    summary["llm_call_rate"] = (
+        summary["llm_calls"] / summary["total_frames"]
         if summary["total_frames"] else 0.0
     )
 

@@ -102,6 +102,18 @@ class InDSceneSequenceAdapter(BaseSequenceAdapter):
 
         non_ego.sort(key=row_distance)
         return non_ego[0]
+    
+    def validate_schema(self):
+        from .schema_validation import require_any_group
+
+        require_any_group(
+            self.scene_csv_path,
+            [
+                ["frame", "is_ego", "xCenter", "yCenter", "xVelocity", "yVelocity"],
+                ["frame", "is_ego", "x", "y", "vx", "vy"],
+            ],
+            context="inD scene",
+        )
 
     def iter_scenes(self) -> Iterator[SceneState]:
         rows = self._load_rows()

@@ -73,6 +73,27 @@ class RoundClipSequenceAdapter(BaseSequenceAdapter):
 
         non_ego.sort(key=lambda r: _to_float(r.get("distance_to_ego"), 1e18))
         return non_ego[0]
+    
+    def validate_schema(self):
+        from .schema_validation import require_fields
+
+        require_fields(
+            self.clip_csv_path,
+            [
+                "frame",
+                "is_ego",
+                "xCenter",
+                "yCenter",
+                "xVelocity",
+                "yVelocity",
+                "ego_xCenter",
+                "ego_yCenter",
+                "ego_xVelocity",
+                "ego_yVelocity",
+                "distance_to_ego",
+            ],
+            context="rounD clip",
+        )
 
     def iter_scenes(self) -> Iterator[SceneState]:
         rows = self._load_rows()

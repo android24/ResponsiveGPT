@@ -20,11 +20,28 @@ def main():
         help="highD: root containing clips_multi_fixed_window; rounD: clips root; inD: scenes root",
     )
 
+    parser.add_argument("--dry_run", type=int, default=0)
+    parser.add_argument("--inspect_only", type=int, default=0)
+
     parser.add_argument("--model_role", type=str, default="primary", choices=["primary", "fallback", "cheap"])
     parser.add_argument("--tag", type=str, default="ablation")
     parser.add_argument("--driver_type", type=str, default="")
     parser.add_argument("--feedback", type=str, default="优先安全，避免明显危险操作")
     parser.add_argument("--limit", type=int, default=0)
+
+    # LLM 策略
+    # always      每帧调用
+    # stride      每 N 帧调用
+    # risk_only   只在物理风险帧调用
+    # hybrid      风险帧 + 每 N 帧刷新
+    parser.add_argument(
+        "--llm_policy",
+        type=str,
+        default="always",
+        choices=["always", "stride", "risk_only", "hybrid"],
+    )
+    parser.add_argument("--llm_stride", type=int, default=5)
+    parser.add_argument("--reuse_last_decision", type=int, default=1)
 
     parser.add_argument("--profile_name", type=str, default="balanced", choices=["aggressive", "balanced", "conservative"])
     parser.add_argument("--profiles_dir", type=str, default="src/responsivegpt/data/profiles")
@@ -39,6 +56,12 @@ def main():
     parser.add_argument("--drac_threshold", type=float, default=8.0)
 
     args = parser.parse_args()
+    args.dry_run = bool(args.dry_run)
+    args.inspect_only = bool(args.inspect_only)
+    args.reuse_last_decision = bool(args.reuse_last_decision)
+
+    if args.inspect_only and args.dry_run:
+        raise ValueError("inspect_only and dry_run should not both be enabled.")
 
     # batch 模式强制无历史，避免 batch 误变 episode
     if args.mode == "batch":
