@@ -23,12 +23,6 @@ def main():
     parser.add_argument("--dry_run", type=int, default=0)
     parser.add_argument("--inspect_only", type=int, default=0)
 
-    parser.add_argument("--model_role", type=str, default="primary", choices=["primary", "fallback", "cheap"])
-    parser.add_argument("--tag", type=str, default="ablation")
-    parser.add_argument("--driver_type", type=str, default="")
-    parser.add_argument("--feedback", type=str, default="优先安全，避免明显危险操作")
-    parser.add_argument("--limit", type=int, default=0)
-
     # LLM 策略
     # always      每帧调用
     # stride      每 N 帧调用
@@ -37,12 +31,26 @@ def main():
     parser.add_argument(
         "--llm_policy",
         type=str,
-        default="always",
-        choices=["always", "stride", "risk_only", "hybrid"],
+        default="hybrid",
+        choices=["always", "stride", "risk_only", "hybrid", "none"],
     )
     parser.add_argument("--llm_stride", type=int, default=5)
+    parser.add_argument("--llm_risk_threshold", type=float, default=0.35)
     parser.add_argument("--reuse_last_decision", type=int, default=1)
 
+    parser.add_argument("--use_planning_thread", type=int, default=0)
+    parser.add_argument("--planning_interval", type=int, default=20)
+    parser.add_argument("--planning_min_gap", type=int, default=10)
+    parser.add_argument("--planning_risk_threshold", type=float, default=0.45)
+    parser.add_argument("--planning_time_horizon_s", type=float, default=3.0)
+    parser.add_argument("--planning_max_history", type=int, default=12)
+    parser.add_argument("--planning_quality_horizon", type=int, default=10)
+
+    parser.add_argument("--model_role", type=str, default="primary", choices=["primary", "fallback", "cheap"])
+    parser.add_argument("--tag", type=str, default="ablation")
+    parser.add_argument("--driver_type", type=str, default="")
+    parser.add_argument("--feedback", type=str, default="优先安全，避免明显危险操作")
+    parser.add_argument("--limit", type=int, default=0)
     parser.add_argument("--profile_name", type=str, default="balanced", choices=["aggressive", "balanced", "conservative"])
     parser.add_argument("--profiles_dir", type=str, default="src/responsivegpt/data/profiles")
 

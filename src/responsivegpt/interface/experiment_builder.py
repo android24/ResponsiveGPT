@@ -225,6 +225,27 @@ def build_experiment_context(args):
             "OLLAMA_EMBED_MODEL": env.get("OLLAMA_EMBED_MODEL", "nomic-embed-text"),
             "KB_DIR": env.get("KB_DIR", "data/kb"),
         },
+        "llm_call_policy": {
+            "policy": args.llm_policy,
+            "stride": args.llm_stride,
+            "risk_threshold": args.llm_risk_threshold,
+            "reuse_last_decision": bool(args.reuse_last_decision),
+        },
+        "planning_thread": {
+            "enabled": bool(args.use_planning_thread),
+            "interval": args.planning_interval,
+            "min_gap": args.planning_min_gap,
+            "risk_threshold": args.planning_risk_threshold,
+            "time_horizon_s": args.planning_time_horizon_s,
+            "max_history": args.planning_max_history,
+            "quality_horizon": args.planning_quality_horizon,
+        },
+        "token_time_abstraction": {
+            "reactive_thread": "frame-level bounded reasoning",
+            "planning_thread": "low-frequency long-horizon reasoning",
+            "planning_hint_injection": True,
+            "stale_planning_protection": True,
+        },
     })
 
     return {

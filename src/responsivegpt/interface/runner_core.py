@@ -22,6 +22,16 @@ from .adapters.adapter_factory import build_event_adapter, build_sequence_adapte
 from ..evaluation.round_labels import derive_round_risk_label_from_summary_row
 from ..evaluation.ind_labels import derive_ind_risk_label
 
+from ..application.planning_memory import PlanningMemory
+from ..application.planning_service import PlanningService
+from ..application.planning_formatter import (
+    summarize_scene,
+    summarize_safety,
+    summarize_decision,
+    compact_json,
+)
+from ..evaluation.planning_quality import compute_planning_quality
+
 
 def append_jsonl(path: str, obj: dict):
     os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -118,6 +128,9 @@ def init_summary(args, template_profile_path: str):
         "non_llm_frames": 0,
         "llm_call_rate": 0.0,
 
+        "planning_calls": 0,
+        "planning_failures": 0,
+
         "profile_name": args.profile_name,
         "template_profile_path": template_profile_path,
         "ablation": {
@@ -134,10 +147,16 @@ def run_interaction_experiment(args, ctx):
     service = ctx["service"]
     effective_driver_type = ctx["effective_driver_type"]
 
+    planning_interval = getattr(args, "planning_interval", 20)
+    planning_risk_threshold = getattr(args, "planning_risk_threshold", 0.45)
+    planning_time_horizon_s = getattr(args, "planning_time_horizon_s", 3.0)
+    use_planning_thread = bool(getattr(args, "use_planning_thread", 1))
+
     inspect_only = bool(getattr(args, "inspect_only", False))
     dry_run = bool(getattr(args, "dry_run", False))
     event_adapter = build_event_adapter(args.dataset, args.summary_csv)
     thresholds = thresholds_for_dataset(args.dataset)
+    planning_service = PlanningService(service.llm)
 
     frame_metrics_path = os.path.join(logger.run_dir, "frame_metrics.csv")
     episode_summary_path = os.path.join(logger.run_dir, "episode_summary.jsonl")
@@ -145,6 +164,7 @@ def run_interaction_experiment(args, ctx):
     trigger_trace_path = os.path.join(logger.run_dir, "trigger_trace.jsonl")
     profile_delta_path = os.path.join(logger.run_dir, "profile_delta.jsonl")
     guardrail_trace_path = os.path.join(logger.run_dir, "guardrail_trace.jsonl")
+    planning_trace_path = os.path.join(logger.run_dir, "planning_trace.jsonl")
 
     with open(frame_metrics_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
@@ -179,12 +199,21 @@ def run_interaction_experiment(args, ctx):
             "num_law_evidence",
             "num_case_evidence",
             "num_scenario_evidence",
+
+            "llm_called",
+            "decision_source",
+            "planning_active",
+            "planning_age_frames",
+            "planning_risk_level",
+            "planning_strategy",
         ])
 
     summary = init_summary(
         args,
         template_profile_path=ctx.get("template_profile_path", ""),
     )
+    summary.setdefault("planning_calls", 0)
+    summary.setdefault("planning_enabled", bool(getattr(args, "use_planning_thread", 0)))
 
     all_y_true = []
     all_y_pred = []
@@ -192,6 +221,8 @@ def run_interaction_experiment(args, ctx):
     global_episode_safety_records = []
     global_alignment_records = []
     global_behavior_records = []
+    global_planning_records = []
+    global_planning_quality_records = []
 
     for idx, row in enumerate(event_adapter.iter_rows()):
         if args.limit > 0 and idx >= args.limit:
@@ -251,6 +282,14 @@ def run_interaction_experiment(args, ctx):
         frame_safety_metrics_list = []
         decision_list = []
         trigger_list_by_frame = {}
+        
+        planning_memory = PlanningMemory()
+        planning_records = []
+
+        scene_history_for_planning = []
+        safety_history_for_planning = []
+
+        last_planning_frame_pos = None
 
         # ============================================================
         # inspect_only:
@@ -303,6 +342,48 @@ def run_interaction_experiment(args, ctx):
                 frame_safety = compute_frame_safety_metrics(scene, thresholds)
                 frame_safety_metrics_list.append(frame_safety)
 
+                with open(frame_metrics_path, "a", newline="", encoding="utf-8") as f:
+                    writer = csv.writer(f)
+                    writer.writerow([
+                        idx,
+                        metadata.get("recordingId"),
+                        metadata.get("event_id"),
+                        metadata.get("eventType"),
+                        metadata.get("pair_type"),
+                        metadata.get("location_id"),
+                        metadata.get("egoId") or metadata.get("egoTrackId") or metadata.get("ego_track_id"),
+                        metadata.get("otherId") or metadata.get("otherTrackId") or metadata.get("trackId_2"),
+                        scene.frame_index,
+
+                        "" if frame_safety.ttc_s is None else round(frame_safety.ttc_s, 4),
+                        "" if frame_safety.thw_s is None else round(frame_safety.thw_s, 4),
+                        "" if frame_safety.drac_mps2 is None else round(frame_safety.drac_mps2, 4),
+                        "" if frame_safety.dcpa_m is None else round(frame_safety.dcpa_m, 4),
+                        "" if frame_safety.ttca_s is None else round(frame_safety.ttca_s, 4),
+                        "" if frame_safety.predicted_ttc_s is None else round(frame_safety.predicted_ttc_s, 4),
+                        "" if frame_safety.min_future_distance_m is None else round(frame_safety.min_future_distance_m, 4),
+                        "" if frame_safety.physical_risk_index is None else round(frame_safety.physical_risk_index, 4),
+                        frame_safety.physical_risk_level,
+
+                        "",  # is_violation
+                        scene.ego_speed_mps,
+                        scene.rel_speed_mps,
+                        scene.headway_m,
+                        int(scene.vrus_present),
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+
+                        0,              # llm_called
+                        "dry_run",      # decision_source
+                        0,              # planning_active
+                        "",             # planning_age_frames
+                        "",             # planning_risk_level
+                        "",             # planning_strategy
+                    ])
+
             episode_safety = aggregate_episode_safety_metrics(frame_safety_metrics_list)
 
             # dry-run 下也进入 global safety 汇总
@@ -339,39 +420,169 @@ def run_interaction_experiment(args, ctx):
             continue
 
         for frame_pos, scene in enumerate(scenes):
+            # ============================================================
+            # 1. 先计算当前帧物理安全指标
+            # ============================================================
             frame_safety = compute_frame_safety_metrics(scene, thresholds)
             frame_safety_metrics_list.append(frame_safety)
 
-            call_llm = should_call_llm(
-                policy=args.llm_policy,
-                frame_pos=frame_pos,
-                frame_safety=frame_safety,
-                stride=args.llm_stride,
+            scene_history_for_planning.append(summarize_scene(scene))
+            safety_history_for_planning.append(summarize_safety(frame_safety))
+
+            # ============================================================
+            # 2. Planning Thread 调度
+            # ============================================================
+            planning_enabled = bool(getattr(args, "use_planning_thread", 0))
+            planning_interval = int(getattr(args, "planning_interval", 20))
+            planning_min_gap = int(getattr(args, "planning_min_gap", 10))
+            planning_risk_threshold = float(getattr(args, "planning_risk_threshold", 0.45))
+            planning_time_horizon_s = float(getattr(args, "planning_time_horizon_s", 3.0))
+            planning_max_history = int(getattr(args, "planning_max_history", 12))
+
+            current_frame_id = scene.frame_index if scene.frame_index is not None else frame_pos
+
+            should_plan = False
+
+            if planning_enabled and not dry_run and not inspect_only:
+                if frame_pos == 0:
+                    should_plan = True
+                elif planning_interval > 0 and frame_pos % planning_interval == 0:
+                    should_plan = True
+                elif (
+                    frame_safety.physical_risk_index is not None
+                    and frame_safety.physical_risk_index >= planning_risk_threshold
+                ):
+                    should_plan = True
+                elif planning_memory.is_stale(current_frame_id):
+                    should_plan = True
+
+            can_plan_by_gap = (
+                last_planning_frame_pos is None
+                or frame_pos - last_planning_frame_pos >= planning_min_gap
             )
 
-            if call_llm:
-                result = service.step(
-                    scene=scene,
+            if should_plan and can_plan_by_gap:
+                planning_output = planning_service.plan(
+                    dataset=args.dataset,
                     driver_type=effective_driver_type,
                     feedback=args.feedback,
-                    recent_decisions=recent_decisions,
+                    planning_interval=planning_interval,
+                    current_frame=current_frame_id,
+                    time_horizon_s=planning_time_horizon_s,
+                    recent_scene_summaries=compact_json(
+                        scene_history_for_planning,
+                        max_items=planning_max_history,
+                    ),
+                    recent_safety_summaries=compact_json(
+                        safety_history_for_planning,
+                        max_items=planning_max_history,
+                    ),
+                    recent_decision_summaries=compact_json(
+                        [summarize_decision(d) for d in decision_list],
+                        max_items=planning_max_history,
+                    ),
+                    current_safety_snapshot=compact_json(
+                        [summarize_safety(frame_safety)],
+                        max_items=1,
+                    ),
                 )
-                decision = result.decision
-                decision_source = "llm"
-                summary["llm_calls"] += 1
+
+                planning_memory.update(planning_output, current_frame_id)
+                last_planning_frame_pos = frame_pos
+
+                if planning_output.get("diagnostics", {}).get("fallback"):
+                    summary["planning_failures"] = summary.get("planning_failures", 0) + 1
+
+                planning_record = {
+                    "event_index": idx,
+                    "frame_pos": frame_pos,
+                    "frame_index": scene.frame_index,
+                    "planning": planning_output,
+                }
+
+                planning_records.append(planning_record)
+                global_planning_records.append(planning_record)
+
+                summary["planning_calls"] = summary.get("planning_calls", 0) + 1
+                append_jsonl(planning_trace_path, planning_record)
+
+            # ============================================================
+            # 2.1 Planning Hint 给 Reactive Thread
+            # ============================================================
+            planning_hint = ""
+            planning_metadata = {}
+
+            if planning_enabled and planning_memory.last_update_frame is not None:
+                planning_hint = planning_memory.to_reactive_hint(
+                    current_frame=current_frame_id
+                )
+                planning_metadata = {
+                    "planning_age_frames": current_frame_id - planning_memory.last_update_frame,
+                    "last_update_frame": planning_memory.last_update_frame,
+                }
+
+            # ============================================================
+            # 3. Reactive Thread / LLM 调用策略
+            # ============================================================
+            call_llm = should_call_llm(
+                policy=getattr(args, "llm_policy", "hybrid"),
+                frame_pos=frame_pos,
+                frame_safety=frame_safety,
+                stride=int(getattr(args, "llm_stride", 5)),
+                risk_threshold=float(getattr(args, "llm_risk_threshold", 0.35)),
+            )
+
+            # dry_run / inspect_only 理论上前面已经 continue，这里再防御一次
+            if dry_run or inspect_only:
+                call_llm = False
+
+            if call_llm:
+                try:
+                    result = service.step(
+                        scene=scene,
+                        driver_type=effective_driver_type,
+                        feedback=args.feedback,
+                        recent_decisions=recent_decisions,
+                        planning_hint=planning_hint,
+                        planning_metadata=planning_metadata,
+                        frame_safety=frame_safety,
+                    )
+                    decision = result.decision
+                    decision_source = "llm"
+                    summary["llm_calls"] += 1
+
+                except Exception as e:
+                    print(
+                        f"[WARN] service.step failed: "
+                        f"event={idx}, frame={scene.frame_index}, error={e}"
+                    )
+                    result = None
+                    decision = fallback_decision_from_physics(frame_safety)
+                    decision_source = "physics_fallback_after_llm_error"
+                    summary["non_llm_frames"] += 1
+
             else:
-                if args.reuse_last_decision and recent_decisions:
+                result = None
+
+                if bool(getattr(args, "reuse_last_decision", 1)) and recent_decisions:
                     decision = dict(recent_decisions[-1])
                     decision["source"] = "reused_last_decision"
                 else:
                     decision = fallback_decision_from_physics(frame_safety)
 
-                result = None
                 decision_source = decision.get("source", "physics_fallback")
                 summary["non_llm_frames"] += 1
 
+            # 给 decision 统一补充来源字段，后续 planning quality / CSV 会用到
+            decision["_source"] = decision_source
+            decision["_planning_hint_used"] = bool(planning_hint)
+            decision["_planning_age_frames"] = planning_metadata.get("planning_age_frames")
+
             decision_list.append(decision)
 
+            # ============================================================
+            # 4. 基于 decision + scene 计算 step metrics
+            # ============================================================
             m = compute_step_metrics(scene, decision, thresholds=thresholds)
 
             if result is not None:
@@ -391,11 +602,6 @@ def run_interaction_experiment(args, ctx):
 
             if trigger_dicts:
                 trigger_list_by_frame[frame_pos] = trigger_dicts
-            frame_safety = compute_frame_safety_metrics(scene, thresholds)
-            frame_safety_metrics_list.append(frame_safety)
-            decision_list.append(decision)
-
-            m = compute_step_metrics(scene, decision, thresholds=thresholds)
 
             if m.ttc_s is not None:
                 ttc_values.append(m.ttc_s)
@@ -422,6 +628,8 @@ def run_interaction_experiment(args, ctx):
                 "profile": profile_dict,
                 "decision": decision,
                 "decision_source": decision_source,
+                "planning_hint": planning_hint,
+                "planning_memory": planning_memory.get() if bool(getattr(args, "use_planning_thread", 0)) else None,
                 "triggers": trigger_dicts,
                 "trigger_count": len(trigger_dicts),
                 "guardrails": guardrail_dict,
@@ -501,22 +709,39 @@ def run_interaction_experiment(args, ctx):
                     safe_len(rules_list),
                     safe_len(evidence_dict.get("laws", [])),
                     safe_len(evidence_dict.get("cases", [])),
-                    safe_len(evidence_dict.get("scenarios", []))
+                    safe_len(evidence_dict.get("scenarios", [])),
+
+                    int(call_llm),
+                    decision_source,
+                    int(planning_memory.last_update_frame is not None),
+                    "" if planning_memory.last_update_frame is None else current_frame_id - planning_memory.last_update_frame,
+                    planning_memory.get()
+                        .get("risk_forecast", {})
+                        .get("risk_level"),
+                    planning_memory.get()
+                        .get("recommended_strategy", {})
+                        .get("strategy"),
                 ])
 
         episode_llm_violation = (sum(violation_flags) > 0) if violation_flags else False
         episode_safety = aggregate_episode_safety_metrics(frame_safety_metrics_list)
-
         alignment = compute_llm_physics_alignment(
             frame_safety_metrics_list,
             decision_list,
         )
-
         behavior = compute_behavior_safety_metrics(
             frame_safety_metrics_list,
             decision_list,
             trigger_list_by_frame=trigger_list_by_frame,
         )
+        planning_quality = compute_planning_quality(
+            planning_records,
+            frame_safety_metrics_list,
+            decision_list,
+            horizon=int(getattr(args, "planning_quality_horizon", 10)),
+        )
+
+        global_planning_quality_records.append(planning_quality)
         min_ttc_est = min(ttc_values) if ttc_values else None
         avg_ttc_est = (sum(ttc_values) / len(ttc_values)) if ttc_values else None
         violation_rate = (
@@ -544,8 +769,11 @@ def run_interaction_experiment(args, ctx):
             "llm_physics_alignment": asdict(alignment),
             "behavior_safety": asdict(behavior),
 
+            "planning_quality": planning_quality,
+            "planning_call_count": len(planning_records),
+
             "trigger_count": episode_trigger_count,
-            "trigger_distribution": dict(episode_trigger_stats),
+            "trigger_distribution": dict(episode_trigger_stats)
         }
         append_jsonl(episode_summary_path, episode_summary)
 
@@ -643,6 +871,78 @@ def run_interaction_experiment(args, ctx):
         "avg_trigger_delay_frames": _avg(global_behavior_records, "trigger_delay_frames"),
         "avg_decision_flip_rate": _avg(global_behavior_records, "decision_flip_rate"),
         "avg_risk_level_variance": _avg(global_behavior_records, "risk_level_variance"),
+    }
+    summary["token_time_efficiency"] = {
+        "llm_calls": summary.get("llm_calls", 0),
+        "planning_calls": summary.get("planning_calls", 0),
+        "non_llm_frames": summary.get("non_llm_frames", 0),
+        "dry_run_frames": summary.get("dry_run_frames", 0),
+        "reactive_frames": summary.get("reactive_frames", 0),
+        "total_frames": summary.get("total_frames", 0),
+
+        "reactive_llm_call_rate": (
+            summary.get("llm_calls", 0) / summary["reactive_frames"]
+            if summary.get("reactive_frames", 0) else 0.0
+        ),
+        "planning_call_rate": (
+            summary.get("planning_calls", 0) / summary["reactive_frames"]
+            if summary.get("reactive_frames", 0) else 0.0
+        ),
+        "non_llm_frame_rate": (
+            summary.get("non_llm_frames", 0) / summary["reactive_frames"]
+            if summary.get("reactive_frames", 0) else 0.0
+        ),
+    }
+    planning_enabled = bool(getattr(args, "use_planning_thread", 0))
+    planning_quality_available = (
+        planning_enabled
+        and not dry_run
+        and not inspect_only
+        and len(global_planning_quality_records) > 0
+    )
+
+    if dry_run:
+        planning_skip_reason = "dry_run skips Planning Thread and Reactive decisions"
+    elif inspect_only:
+        planning_skip_reason = "inspect_only only validates data loading"
+    elif not planning_enabled:
+        planning_skip_reason = "planning thread disabled"
+    elif not global_planning_quality_records:
+        planning_skip_reason = "no planning quality records generated"
+    else:
+        planning_skip_reason = None
+
+    summary["global_planning"] = {
+        "planning_enabled": planning_enabled,
+        "planning_quality_available": planning_quality_available,
+        "planning_skip_reason": planning_skip_reason,
+
+        "total_planning_calls": summary.get("planning_calls", 0),
+        "planning_failures": summary.get("planning_failures", 0),
+
+        "avg_planning_calls_per_event": (
+            summary.get("planning_calls", 0) / summary["total_events"]
+            if summary["total_events"] else 0.0
+        ),
+
+        "num_planning_quality_records": len(global_planning_quality_records),
+
+        "avg_planning_hit_rate": (
+            _avg(global_planning_quality_records, "planning_hit_rate")
+            if planning_quality_available else None
+        ),
+        "avg_planning_miss_rate": (
+            _avg(global_planning_quality_records, "planning_miss_rate")
+            if planning_quality_available else None
+        ),
+        "avg_planning_false_alarm_rate": (
+            _avg(global_planning_quality_records, "planning_false_alarm_rate")
+            if planning_quality_available else None
+        ),
+        "avg_planning_reactive_consistency": (
+            _avg(global_planning_quality_records, "planning_reactive_consistency")
+            if planning_quality_available else None
+        ),
     }
 
     with open(os.path.join(logger.run_dir, "summary.json"), "w", encoding="utf-8") as f:

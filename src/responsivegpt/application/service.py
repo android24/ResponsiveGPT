@@ -45,6 +45,9 @@ class ResponsiveGPTService:
         driver_type: str,
         feedback: str,
         recent_decisions=None,
+        planning_hint: str = "",
+        planning_metadata: dict | None = None,
+        frame_safety=None,
     ) -> StepResult:
 
         if recent_decisions is None:
@@ -74,11 +77,69 @@ class ResponsiveGPTService:
         # 5️⃣ LLM decision
         # ==================================================
         system, user = make_evidence_prompts(
-            profile=scene_profile,   # ⚠️用 scene_profile
+            profile=scene_profile,          # ⚠️用 scene_profile
             scene=scene,
             human_feedback=feedback,
             evidence=evidence,
+            planning_hint=planning_hint,
+            planning_metadata=planning_metadata,
+            frame_safety=frame_safety,
+            token_budget_class="reactive_low",
         )
+        # ==================================================
+        # 5.1️⃣ Planning Hint Injection（新增）
+        # ==================================================
+        if planning_hint:
+            user += f"""
+
+        [Planning Thread Insight]
+
+        The following planning insight comes from a slower long-horizon reasoning thread.
+
+        Important constraints:
+        - Planning may be stale.
+        - Always prioritize the latest observation and physical safety metrics.
+        - Use planning only as advisory guidance.
+        - If planning conflicts with current scene risk, follow current scene risk.
+
+        Planning insight:
+        {planning_hint}
+        """
+
+        if planning_metadata:
+            planning_age = planning_metadata.get("planning_age_frames")
+            last_update_frame = planning_metadata.get("last_update_frame")
+
+            user += f"""
+
+        Planning metadata:
+        - planning_age_frames: {planning_age}
+        - last_update_frame: {last_update_frame}
+
+        If planning_age_frames is large, reduce reliance on planning insight.
+        """
+
+        user += """
+
+        Reactive reasoning constraints:
+        - You are the fast Reactive Thread.
+        - Operate under strict real-time constraints.
+        - Prefer a safe feasible decision quickly.
+        - The decision does not need to be globally optimal.
+        - Return only valid JSON.
+        """
+
+        # ==================================================
+        # 5.2️⃣ Reactive reasoning constraints（新增）
+        # ==================================================
+        user += """
+
+        Reactive reasoning constraints:
+        - Operate under strict real-time constraints.
+        - Prefer concise and robust reasoning.
+        - Produce a safe feasible decision quickly.
+        - The decision does not need to be globally optimal.
+        """
 
         decision = self.llm.complete_json(system, user)
 
