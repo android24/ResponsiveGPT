@@ -32,13 +32,27 @@ class PlanningMemory:
         if current_frame is not None and self.last_update_frame is not None:
             age = current_frame - self.last_update_frame
 
+        rf = p.get("risk_forecast", {})
+        rs = p.get("recommended_strategy", {})
+        rg = p.get("reactive_guidance", {})
+        sc = p.get("staleness_control", {})
+
         hint = {
             "planning_age_frames": age,
-            "risk_forecast": p.get("risk_forecast", {}),
-            "recommended_strategy": p.get("recommended_strategy", {}),
-            "reactive_guidance": p.get("reactive_guidance", {}),
+            "risk_level": rf.get("risk_level"),
+            "risk_trend": rf.get("risk_trend"),
+            "main_risk_factors": rf.get("main_risk_factors", []),
+            "metric_evidence": rf.get("metric_evidence", {}),
+            "strategy": rs.get("strategy"),
+            "priority": rs.get("priority"),
+            "must_check": rg.get("must_check", []),
+            "avoid_actions": rg.get("avoid_actions", []),
+            "preferred_actions": rg.get("preferred_actions", []),
+            "safety_constraints": rg.get("safety_constraints", []),
+            "fast_rule_hint": rg.get("fast_rule_hint", ""),
+            "valid_for_frames": sc.get("valid_for_frames"),
+            "staleness_risk": sc.get("staleness_risk"),
             "confidence": p.get("confidence", 0.0),
-            "validity": p.get("validity", {}),
         }
 
         text = json.dumps(hint, ensure_ascii=False)
@@ -48,8 +62,16 @@ class PlanningMemory:
 
     def is_stale(self, current_frame: int) -> bool:
         p = self.current or {}
-        validity = p.get("validity", {}) if isinstance(p, dict) else {}
-        valid_for = validity.get("valid_for_frames", 10)
+        staleness = (
+            p.get("staleness_control", {})
+            if isinstance(p, dict)
+            else {}
+        )
+        valid_for = staleness.get("valid_for_frames", 10)
+        try:
+            valid_for = max(0, int(valid_for))
+        except (TypeError, ValueError):
+            valid_for = 10
 
         if self.last_update_frame is None:
             return True

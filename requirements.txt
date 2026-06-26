@@ -1,2 +1,5 @@
-openai
-requests
+httpx==0.27.0
+matplotlib==3.8.4
+openai==2.21.0
+pandas==2.2.2
+requests==2.32.2

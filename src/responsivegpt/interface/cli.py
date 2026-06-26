@@ -64,7 +64,11 @@ def build_service(env: dict) -> ResponsiveGPTService:
     llm = JiekouChatModel(
         api_key=env.get("JIEKOU_API_KEY", ""),
         base_url=env.get("JIEKOU_BASE_URL", "https://api.jiekou.ai/openai"),
-        model=env.get("JIEKOU_MODEL", "gpt-5.2"),
+        primary_model=env.get("JIEKOU_MODEL", env.get("PRIMARY_MODEL", "gpt-5.2")),
+        fallback_model=env.get("FALLBACK_MODEL"),
+        max_completion_tokens=int(env.get("LLM_MAX_COMPLETION_TOKENS", "2048")),
+        timeout_s=float(env.get("LLM_TIMEOUT_S", "120")),
+        max_retries=int(env.get("LLM_MAX_RETRIES", "1")),
     )
 
     repo = JsonProfileRepository(env.get("PROFILE_PATH", "driver_profile.json"))

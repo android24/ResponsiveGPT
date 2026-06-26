@@ -1,0 +1,20 @@
+{
+  "highd": {
+    "summary_csv": "data/highD/highd_strong_interactions_summary.csv",
+    "sequence_root": "data/highD/clips_multi_fixed_window",
+    "split_key": "recordingId",
+    "dataset_name": "highD"
+  },
+  "round": {
+    "summary_csv": "data/rounD/all_high_risk_events_summary.csv",
+    "sequence_root": "data/rounD/output_high_risk",
+    "split_key": "recordingId",
+    "dataset_name": "rounD"
+  },
+  "ind": {
+    "summary_csv": "data/inD/all_risk_events_v4.csv",
+    "sequence_root": "data/inD/output_ind_risk_v4",
+    "split_key": "recordingId",
+    "dataset_name": "inD"
+  }
+}

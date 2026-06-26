@@ -5,8 +5,9 @@ from typing import Any
 from ..domain.evidence import KnowledgeDoc
 
 
-REQUIRED_FIELDS = ["id", "kb_type", "title", "text"]
-ALLOWED_KB_TYPES = {"law", "case", "scenario"}
+ALLOWED_KB_TYPES = {"law", "case", "scenario", "policy", "safety"}
+KB_FILE_ORDER = ("law", "case", "scenario", "policy", "safety")
+DEFAULT_KB_DIR = "src/responsivegpt/data/kb"
 
 
 def _to_str_or_none(v):
@@ -23,32 +24,103 @@ def _to_float(v, default=1.0):
         return default
 
 
-def validate_doc(raw: dict[str, Any], file_path: str, idx: int) -> None:
-    for field in REQUIRED_FIELDS:
-        if field not in raw:
-            raise ValueError(
-                f"Missing required field '{field}' in {file_path} at item index {idx}"
-            )
+def _to_list(v) -> list[str]:
+    if v is None:
+        return []
+    if isinstance(v, list):
+        return [str(x).strip() for x in v if str(x).strip()]
+    s = str(v).strip()
+    return [s] if s else []
 
-    kb_type = str(raw["kb_type"]).strip()
+
+def _legacy_value(raw: dict[str, Any], key: str):
+    for container_name in ("legacy_fields", "legacy"):
+        container = raw.get(container_name)
+        if not isinstance(container, dict):
+            continue
+        for candidate in (key, f"old_{key}"):
+            if candidate in container:
+                return container.get(candidate)
+    return None
+
+
+def _doc_id(raw: dict[str, Any]):
+    return (
+        raw.get("id")
+        or raw.get("chunk_id")
+        or raw.get("doc_id")
+        or _legacy_value(raw, "id")
+    )
+
+
+def _doc_type(raw: dict[str, Any]):
+    return (
+        raw.get("kb_type")
+        or raw.get("doc_type")
+        or _legacy_value(raw, "kb_type")
+    )
+
+
+def validate_doc(raw: dict[str, Any], file_path: str, idx: int) -> None:
+    if not _doc_id(raw):
+        raise ValueError(
+            f"Missing required field 'id/chunk_id' in {file_path} at item index {idx}"
+        )
+
+    if "title" not in raw:
+        raise ValueError(
+            f"Missing required field 'title' in {file_path} at item index {idx}"
+        )
+
+    if "text" not in raw:
+        raise ValueError(
+            f"Missing required field 'text' in {file_path} at item index {idx}"
+        )
+
+    kb_type = str(_doc_type(raw) or "").strip()
     if kb_type not in ALLOWED_KB_TYPES:
         raise ValueError(
-            f"Invalid kb_type='{kb_type}' in {file_path} at item index {idx}; "
+            f"Invalid kb_type/doc_type='{kb_type}' in {file_path} at item index {idx}; "
             f"allowed={sorted(ALLOWED_KB_TYPES)}"
         )
 
 
 def raw_to_doc(raw: dict[str, Any]) -> KnowledgeDoc:
+    priority = (
+        raw.get("priority")
+        or raw.get("priority_weight")
+        or raw.get("original_priority_score")
+        or 1.0
+    )
+
+    metadata = {}
+    for key in ("legacy_fields", "legacy"):
+        if isinstance(raw.get(key), dict):
+            metadata[key] = raw.get(key)
+    if raw.get("evidence_purpose"):
+        metadata["evidence_purpose"] = raw.get("evidence_purpose")
+
     return KnowledgeDoc(
-        id=str(raw["id"]).strip(),
-        kb_type=str(raw["kb_type"]).strip(),
+        id=str(_doc_id(raw)).strip(),
+        kb_type=str(_doc_type(raw)).strip(),
         title=str(raw["title"]).strip(),
         text=str(raw["text"]).strip(),
-        scene_type=_to_str_or_none(raw.get("scene_type")),
-        event_type=_to_str_or_none(raw.get("event_type")),
-        pair_type=_to_str_or_none(raw.get("pair_type")),
+        scene_type=_to_str_or_none(raw.get("scene_type") or _legacy_value(raw, "scene_type")),
+        event_type=_to_str_or_none(raw.get("event_type") or _legacy_value(raw, "event_type")),
+        pair_type=_to_str_or_none(raw.get("pair_type") or _legacy_value(raw, "pair_type")),
         source=_to_str_or_none(raw.get("source")),
-        priority=_to_float(raw.get("priority", 1.0), default=1.0),
+        priority=_to_float(priority, default=1.0),
+        dataset_tags=_to_list(raw.get("dataset_tags")),
+        scenario_tags=_to_list(raw.get("scenario_tags")),
+        metric_tags=_to_list(raw.get("metric_tags")),
+        risk_tags=_to_list(raw.get("risk_tags")),
+        condition=raw.get("condition") if isinstance(raw.get("condition"), dict) else {},
+        risk_mechanism=_to_str_or_none(raw.get("risk_mechanism")),
+        recommended_action=_to_list(raw.get("recommended_action")),
+        forbidden_action=_to_list(raw.get("forbidden_action")),
+        severity=_to_str_or_none(raw.get("severity")),
+        jurisdiction=_to_str_or_none(raw.get("jurisdiction")),
+        metadata=metadata,
     )
 
 
@@ -87,11 +159,13 @@ def load_kb_json_dir(kb_dir: str) -> list[KnowledgeDoc]:
       - law.json
       - case.json
       - scenario.json
+      - policy.json
+      - safety.json
     """
     files = [
-        os.path.join(kb_dir, "law.json"),
-        os.path.join(kb_dir, "case.json"),
-        os.path.join(kb_dir, "scenario.json"),
+        os.path.join(kb_dir, f"{name}.json")
+        for name in KB_FILE_ORDER
+        if os.path.exists(os.path.join(kb_dir, f"{name}.json"))
     ]
 
     all_docs = []
@@ -105,4 +179,24 @@ def load_kb_json_dir(kb_dir: str) -> list[KnowledgeDoc]:
             global_ids.add(d.id)
             all_docs.append(d)
 
+    if not all_docs:
+        raise FileNotFoundError(f"No KB JSON files found in directory: {kb_dir}")
+
     return all_docs
+
+
+def resolve_kb_dir(kb_dir: str | None = None) -> str | None:
+    candidates = []
+    if kb_dir:
+        candidates.append(kb_dir)
+    candidates.extend([DEFAULT_KB_DIR, "data/kb"])
+
+    seen = set()
+    for candidate in candidates:
+        if not candidate or candidate in seen:
+            continue
+        seen.add(candidate)
+        if os.path.isdir(candidate):
+            return candidate
+
+    return None

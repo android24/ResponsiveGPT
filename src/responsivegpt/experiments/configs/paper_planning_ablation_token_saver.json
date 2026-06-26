@@ -1,0 +1,73 @@
+{
+  "name": "paper_planning_ablation_token_saver",
+  "dataset_registry_path": "datasets.json",
+  "datasets": [
+    "highd",
+    "ind",
+    "round"
+  ],
+  "defaults": {
+    "mode": "episode",
+    "limit": 0,
+    "job_timeout_s": 21600,
+    "model_role": "cheap",
+    "feedback": "Prioritize safety, legal compliance, and interaction smoothness while avoiding clearly dangerous operations.",
+    "llm_stride": 30,
+    "llm_risk_threshold": 0.45,
+    "extra_args": {
+      "reuse_last_decision": 1,
+      "use_trigger": 1,
+      "use_profile_learner": 1,
+      "history_window": 10,
+      "rag_budget": "reactive_low",
+      "rag_top_k": 8,
+      "trace_detail": 0,
+      "llm_max_stale_frames": 30,
+      "llm_risk_delta_threshold": 0.15,
+      "planning_interval": 100,
+      "planning_min_gap": 100,
+      "planning_risk_threshold": 0.60,
+      "planning_max_history": 8
+    }
+  },
+  "matrix": {
+    "datasets": [
+      "highd",
+      "ind",
+      "round"
+    ],
+    "profiles": [
+      "aggressive",
+      "balanced",
+      "conservative"
+    ],
+    "rag_variants": [
+      {
+        "name": "full_rag_grounded",
+        "use_retriever": 1,
+        "rag_mode": "full",
+        "require_grounded_decision": 1
+      }
+    ],
+    "planning": [
+      {
+        "name": "planning_off",
+        "use_planning_thread": 0,
+        "planning_mode": "off"
+      },
+      {
+        "name": "planning_on_interval",
+        "use_planning_thread": 1,
+        "planning_mode": "interval"
+      }
+    ],
+    "llm_policies": [
+      {
+        "name": "event_triggered_compact",
+        "llm_policy": "event_triggered",
+        "llm_stride": 30,
+        "llm_risk_threshold": 0.45
+      }
+    ]
+  }
+}

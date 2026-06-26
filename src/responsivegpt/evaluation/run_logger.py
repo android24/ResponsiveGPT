@@ -3,10 +3,17 @@ import os
 from datetime import datetime
 
 class RunLogger:
-    def __init__(self, runs_root: str = "runs", tag: str = "run"):
+    def __init__(
+        self,
+        runs_root: str = "runs",
+        tag: str = "run",
+        run_dir: str | None = None,
+    ):
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
         safe_tag = "".join([c if c.isalnum() or c in "-_." else "_" for c in tag])[:64]
-        self.run_dir = os.path.join(runs_root, f"{ts}_{safe_tag}")
+        self.run_dir = run_dir or os.path.join(
+            runs_root, f"{ts}_{safe_tag}"
+        )
         os.makedirs(self.run_dir, exist_ok=True)
         self.decisions_path = os.path.join(self.run_dir, "decisions.jsonl")
         self.config_path = os.path.join(self.run_dir, "config.json")

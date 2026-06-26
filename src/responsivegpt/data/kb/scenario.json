@@ -1,211 +1,2848 @@
 [
   {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "scenario_highd_following_pattern_001",
     "id": "scenario_highd_following_pattern_001",
+    "doc_type": "scenario",
     "kb_type": "scenario",
-    "title": "高速 FOLLOWING_CRITICAL 风险模式",
-    "text": "高速关键跟驰的典型风险模式包括：小车头间距、正向 closing speed、前车减速空间不足，以及驾驶策略未及时提高安全裕度。此类场景下应优先控制接近速度并扩大车距。",
+    "title": "Highway FOLLOWING_CRITICAL risk pattern",
+    "dataset_tags": [
+      "highd"
+    ],
+    "scenario_tags": [
+      "car_following",
+      "highway_car_following",
+      "highway_interaction"
+    ],
+    "metric_tags": [
+      "TTC",
+      "THW",
+      "headway",
+      "relative_speed"
+    ],
+    "risk_tags": [
+      "closing_speed",
+      "hard_braking",
+      "rear_end",
+      "short_headway"
+    ],
     "scene_type": "highD",
-    "event_type": "FOLLOWING_CRITICAL",
-    "pair_type": null,
+    "event_type": "car_following",
+    "pair_type": "vehicle_vehicle",
+    "condition": {
+      "ttc_lt": 3.0,
+      "thw_lt": 1.2,
+      "closing_speed_gt": 0.0
+    },
+    "risk_mechanism": "In highway following, low time headway and positive closing speed rapidly reduce reaction time and available braking distance.",
+    "recommended_action": [
+      "increase_headway",
+      "decelerate",
+      "monitor_lead_vehicle"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "keep_close_following"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "priority_score": 0.92,
     "source": "scenario_rulebook",
-    "priority": 0.95
+    "jurisdiction": "internal",
+    "text": "Typical risks in critical highway following include short headway, positive closing speed, insufficient braking space behind the lead vehicle, and delayed expansion of the safety margin. In such scenarios, the vehicle should prioritize controlling closing speed and increasing following distance. Risk mechanism: In highway following, low time headway and positive closing speed rapidly reduce reaction time and available braking distance. Trigger conditions: {\"ttc_lt\": 3.0, \"thw_lt\": 1.2, \"closing_speed_gt\": 0.0}. Relevant metrics: TTC, THW, headway, relative_speed. Risk tags: closing_speed, hard_braking, rear_end, short_headway. Recommended actions: increase_headway, decelerate, monitor_lead_vehicle. Forbidden actions: accelerate, keep_close_following. Applicable scenario tags: car_following, highway_car_following, highway_interaction.",
+    "legacy": {
+      "legacy_id": "scenario_highd_following_pattern_001",
+      "legacy_kb_type": "scenario",
+      "legacy_priority": 0.92
+    }
   },
   {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "scenario_highd_cutin_pattern_001",
     "id": "scenario_highd_cutin_pattern_001",
+    "doc_type": "scenario",
     "kb_type": "scenario",
-    "title": "高速 CUTIN_CRITICAL 风险模式",
-    "text": "高速 cut-in 的典型风险模式包括：目标车道间隙不足、切入后 headway 突降、后车反应空间不足，以及驾驶风格偏激进导致的 gap acceptance 过小。此类场景应提高风险等级并限制变道激进性。",
+    "title": "Highway CUTIN_CRITICAL risk pattern",
+    "dataset_tags": [
+      "highd"
+    ],
+    "scenario_tags": [
+      "cut_in",
+      "highway_cut_in",
+      "highway_interaction",
+      "highway_lane_change"
+    ],
+    "metric_tags": [
+      "THW",
+      "min_future_distance",
+      "headway"
+    ],
+    "risk_tags": [
+      "cut_in",
+      "preference_guardrail",
+      "rear_end",
+      "short_headway"
+    ],
     "scene_type": "highD",
-    "event_type": "CUTIN_CRITICAL",
-    "pair_type": null,
+    "event_type": "cut_in",
+    "pair_type": "vehicle_vehicle",
+    "condition": {
+      "cut_in_detected": true,
+      "thw_lt": 1.2,
+      "headway_drop_gt": 0.3,
+      "min_future_distance_lt": 2.5
+    },
+    "risk_mechanism": "A cut-in can suddenly compress the target-lane gap, leaving the following vehicle with insufficient reaction space and increasing rear-end collision risk.",
+    "recommended_action": [
+      "decelerate",
+      "increase_headway",
+      "monitor_adjacent_vehicle"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "aggressive_lane_change",
+      "force_merge"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "priority_score": 0.92,
     "source": "scenario_rulebook",
-    "priority": 0.95
+    "jurisdiction": "internal",
+    "text": "Typical risks in highway cut-in scenarios include insufficient target-lane gap, a sudden headway drop after the cut-in, insufficient reaction space for the following vehicle, and overly small gap acceptance caused by aggressive driving style. Such scenarios should raise the risk level and constrain aggressive lane-changing behavior. Risk mechanism: A cut-in can suddenly compress the target-lane gap, leaving the following vehicle with insufficient reaction space and increasing rear-end collision risk. Trigger conditions: {\"cut_in_detected\": true, \"thw_lt\": 1.2, \"headway_drop_gt\": 0.3, \"min_future_distance_lt\": 2.5}. Relevant metrics: THW, min_future_distance, headway. Risk tags: cut_in, preference_guardrail, rear_end, short_headway. Recommended actions: decelerate, increase_headway, monitor_adjacent_vehicle. Forbidden actions: accelerate, aggressive_lane_change, force_merge. Applicable scenario tags: cut_in, highway_cut_in, highway_interaction, highway_lane_change.",
+    "legacy": {
+      "legacy_id": "scenario_highd_cutin_pattern_001",
+      "legacy_kb_type": "scenario",
+      "legacy_priority": 0.92
+    }
   },
-    {
+  {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "scenario_highd_rel_speed_dominance_002",
     "id": "scenario_highd_rel_speed_dominance_002",
+    "doc_type": "scenario",
     "kb_type": "scenario",
-    "title": "高速相对速度主导风险模式",
-    "text": "在高速场景中，相对速度是决定风险演化的关键因素。当closing speed为正且较大时，即使当前距离尚可，也可能在短时间内进入危险区间。",
+    "title": "Highway relative-speed-dominant risk pattern",
+    "dataset_tags": [
+      "highd"
+    ],
+    "scenario_tags": [
+      "car_following",
+      "highway_car_following",
+      "highway_interaction"
+    ],
+    "metric_tags": [
+      "TTC",
+      "headway",
+      "relative_speed"
+    ],
+    "risk_tags": [
+      "closing_speed",
+      "rear_end"
+    ],
     "scene_type": "highD",
-    "event_type": null,
-    "pair_type": null,
+    "event_type": "car_following",
+    "pair_type": "vehicle_vehicle",
+    "condition": {
+      "closing_speed_gt": 0.0,
+      "ttc_lt": 5.0
+    },
+    "risk_mechanism": "In highway scenes, positive closing speed can cause risk to accumulate quickly, even when the current distance is not yet critically small.",
+    "recommended_action": [
+      "monitor_relative_speed",
+      "decelerate",
+      "increase_headway"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "keep_close_following"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "priority_score": 0.92,
     "source": "scenario_rulebook",
-    "priority": 0.95
+    "jurisdiction": "internal",
+    "text": "In highway scenarios, relative speed is a key factor in risk evolution. When closing speed is positive and large, the vehicle may enter a dangerous state within a short time even if the current distance is still acceptable. Risk mechanism: In highway scenes, positive closing speed can cause risk to accumulate quickly, even when the current distance is not yet critically small. Trigger conditions: {\"closing_speed_gt\": 0.0, \"ttc_lt\": 5.0}. Relevant metrics: TTC, headway, relative_speed. Risk tags: closing_speed, rear_end. Recommended actions: monitor_relative_speed, decelerate, increase_headway. Forbidden actions: accelerate, keep_close_following. Applicable scenario tags: car_following, highway_car_following, highway_interaction.",
+    "legacy": {
+      "legacy_id": "scenario_highd_rel_speed_dominance_002",
+      "legacy_kb_type": "scenario",
+      "legacy_priority": 0.92
+    }
   },
   {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "scenario_highd_headway_drop_pattern_002",
     "id": "scenario_highd_headway_drop_pattern_002",
+    "doc_type": "scenario",
     "kb_type": "scenario",
-    "title": "高速车头间距突降风险模式",
-    "text": "在cut-in场景中，headway会在短时间内显著下降，这种突变往往比缓慢变化更危险，应作为高风险触发信号。",
+    "title": "Highway sudden headway-drop risk pattern",
+    "dataset_tags": [
+      "highd"
+    ],
+    "scenario_tags": [
+      "cut_in",
+      "highway_cut_in",
+      "highway_interaction",
+      "highway_lane_change"
+    ],
+    "metric_tags": [
+      "THW",
+      "headway"
+    ],
+    "risk_tags": [
+      "cut_in",
+      "short_headway"
+    ],
     "scene_type": "highD",
-    "event_type": "CUTIN_CRITICAL",
-    "pair_type": null,
+    "event_type": "cut_in",
+    "pair_type": "vehicle_vehicle",
+    "condition": {
+      "cut_in_detected": true,
+      "headway_drop_gt": 0.3,
+      "thw_lt": 1.5
+    },
+    "risk_mechanism": "A short-term headway drop after a cut-in creates a stronger sudden risk than a stable but small headway.",
+    "recommended_action": [
+      "decelerate",
+      "increase_headway",
+      "monitor_cut_in_vehicle"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "keep_close_following"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "priority_score": 0.92,
     "source": "scenario_rulebook",
-    "priority": 0.95
+    "jurisdiction": "internal",
+    "text": "In cut-in scenarios, headway can decrease significantly within a short time. This abrupt change is often more dangerous than gradual variation and should be treated as a high-risk trigger. Risk mechanism: A short-term headway drop after a cut-in creates a stronger sudden risk than a stable but small headway. Trigger conditions: {\"cut_in_detected\": true, \"headway_drop_gt\": 0.3, \"thw_lt\": 1.5}. Relevant metrics: THW, headway. Risk tags: cut_in, short_headway. Recommended actions: decelerate, increase_headway, monitor_cut_in_vehicle. Forbidden actions: accelerate, keep_close_following. Applicable scenario tags: cut_in, highway_cut_in, highway_interaction, highway_lane_change.",
+    "legacy": {
+      "legacy_id": "scenario_highd_headway_drop_pattern_002",
+      "legacy_kb_type": "scenario",
+      "legacy_priority": 0.92
+    }
   },
   {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "scenario_highd_conservative_buffer_002",
     "id": "scenario_highd_conservative_buffer_002",
+    "doc_type": "scenario",
     "kb_type": "scenario",
-    "title": "保守驾驶的安全缓冲区策略",
-    "text": "保守驾驶策略应在高速场景中主动维持更大的安全缓冲区，包括更大车头间距和更低closing speed，以降低突发风险。",
+    "title": "Safety-buffer strategy for conservative driving",
+    "dataset_tags": [
+      "highd"
+    ],
+    "scenario_tags": [
+      "highway_car_following",
+      "highway_interaction"
+    ],
+    "metric_tags": [
+      "TTC",
+      "THW",
+      "headway",
+      "relative_speed"
+    ],
+    "risk_tags": [
+      "closing_speed",
+      "short_headway",
+      "temporal_risk_accumulation"
+    ],
     "scene_type": "highD",
-    "event_type": null,
-    "pair_type": null,
+    "event_type": "all",
+    "pair_type": "vehicle_vehicle",
+    "condition": {
+      "high_speed": true,
+      "ttc_lt": 5.0,
+      "thw_lt": 2.0,
+      "closing_speed_gt": 0.0
+    },
+    "risk_mechanism": "A conservative strategy should expand the safety buffer early under high-speed or low-margin conditions to prevent further risk accumulation.",
+    "recommended_action": [
+      "increase_headway",
+      "decelerate",
+      "monitor_lead_vehicle"
+    ],
+    "forbidden_action": [
+      "keep_close_following",
+      "accelerate_under_low_margin"
+    ],
+    "severity": "medium",
+    "priority": 2,
+    "priority_score": 0.9,
     "source": "scenario_rulebook",
-    "priority": 0.9
+    "jurisdiction": "internal",
+    "text": "A conservative driving strategy should proactively maintain a larger safety buffer in highway scenarios, including a larger headway and lower closing speed, to reduce sudden risk. Risk mechanism: A conservative strategy should expand the safety buffer early under high-speed or low-margin conditions to prevent further risk accumulation. Trigger conditions: {\"high_speed\": true, \"ttc_lt\": 5.0, \"thw_lt\": 2.0, \"closing_speed_gt\": 0.0}. Relevant metrics: TTC, THW, headway, relative_speed. Risk tags: closing_speed, short_headway, temporal_risk_accumulation. Recommended actions: increase_headway, decelerate, monitor_lead_vehicle. Forbidden actions: keep_close_following, accelerate_under_low_margin. Applicable scenario tags: highway_car_following, highway_interaction.",
+    "legacy": {
+      "legacy_id": "scenario_highd_conservative_buffer_002",
+      "legacy_kb_type": "scenario",
+      "legacy_priority": 0.9
+    }
   },
   {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "scenario_highd_positive_closing_speed_001",
     "id": "scenario_highd_positive_closing_speed_001",
+    "doc_type": "scenario",
     "kb_type": "scenario",
-    "title": "正相对速度跟驰风险模式",
-    "text": "在高速跟驰中，当后车相对速度为正且车距持续减小时，系统应判定为风险上升状态，并优先采取减速策略。",
+    "title": "Positive relative-speed following risk pattern",
+    "dataset_tags": [
+      "highd"
+    ],
+    "scenario_tags": [
+      "car_following",
+      "highway_car_following",
+      "highway_interaction"
+    ],
+    "metric_tags": [
+      "TTC",
+      "headway",
+      "relative_speed",
+      "acceleration"
+    ],
+    "risk_tags": [
+      "closing_speed",
+      "hard_braking",
+      "rear_end"
+    ],
     "scene_type": "highD",
-    "event_type": "FOLLOWING_CRITICAL",
-    "pair_type": null,
+    "event_type": "car_following",
+    "pair_type": "vehicle_vehicle",
+    "condition": {
+      "closing_speed_gt": 0.0,
+      "distance_decreasing": true,
+      "ttc_lt": 5.0
+    },
+    "risk_mechanism": "When the following vehicle continues to approach the lead vehicle, available braking time decreases and following risk increases.",
+    "recommended_action": [
+      "decelerate",
+      "increase_headway",
+      "monitor_lead_vehicle"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "keep_close_following"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "priority_score": 0.92,
     "source": "scenario_rulebook",
-    "priority": 0.95
+    "jurisdiction": "internal",
+    "text": "In highway following, when the following vehicle has positive relative speed and the distance keeps decreasing, the system should classify the state as increasing risk and prioritize deceleration. Risk mechanism: When the following vehicle continues to approach the lead vehicle, available braking time decreases and following risk increases. Trigger conditions: {\"closing_speed_gt\": 0.0, \"distance_decreasing\": true, \"ttc_lt\": 5.0}. Relevant metrics: TTC, headway, relative_speed, acceleration. Risk tags: closing_speed, hard_braking, rear_end. Recommended actions: decelerate, increase_headway, monitor_lead_vehicle. Forbidden actions: accelerate, keep_close_following. Applicable scenario tags: car_following, highway_car_following, highway_interaction.",
+    "legacy": {
+      "legacy_id": "scenario_highd_positive_closing_speed_001",
+      "legacy_kb_type": "scenario",
+      "legacy_priority": 0.92
+    }
   },
   {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "scenario_highd_post_cutin_headway_drop_001",
     "id": "scenario_highd_post_cutin_headway_drop_001",
+    "doc_type": "scenario",
     "kb_type": "scenario",
-    "title": "cut-in后车距骤降模式",
-    "text": "在cut-in场景中，若变道后前后车距迅速减小，则表明变道行为存在潜在风险，应评估其合规性。",
+    "title": "Post-cut-in sudden distance-drop pattern",
+    "dataset_tags": [
+      "highd"
+    ],
+    "scenario_tags": [
+      "cut_in",
+      "highway_cut_in",
+      "highway_interaction",
+      "highway_lane_change"
+    ],
+    "metric_tags": [
+      "THW",
+      "min_future_distance",
+      "headway"
+    ],
+    "risk_tags": [
+      "cut_in",
+      "rear_end"
+    ],
     "scene_type": "highD",
-    "event_type": "CUTIN_CRITICAL",
-    "pair_type": null,
+    "event_type": "cut_in",
+    "pair_type": "vehicle_vehicle",
+    "condition": {
+      "cut_in_detected": true,
+      "post_cutin_thw_lt": 1.2,
+      "min_future_distance_lt": 2.5
+    },
+    "risk_mechanism": "A rapid decrease in front-rear distance after a lane change indicates insufficient gap acceptance and may trigger a close-distance conflict.",
+    "recommended_action": [
+      "decelerate",
+      "increase_headway",
+      "monitor_cut_in_vehicle"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "aggressive_lane_change",
+      "force_merge"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "priority_score": 0.92,
     "source": "scenario_rulebook",
-    "priority": 0.95
+    "jurisdiction": "internal",
+    "text": "In cut-in scenarios, if the front-rear distance decreases rapidly after the lane change, the lane-changing behavior indicates potential risk and should be evaluated for compliance. Risk mechanism: A rapid decrease in front-rear distance after a lane change indicates insufficient gap acceptance and may trigger a close-distance conflict. Trigger conditions: {\"cut_in_detected\": true, \"post_cutin_thw_lt\": 1.2, \"min_future_distance_lt\": 2.5}. Relevant metrics: THW, min_future_distance, headway. Risk tags: cut_in, rear_end. Recommended actions: decelerate, increase_headway, monitor_cut_in_vehicle. Forbidden actions: accelerate, aggressive_lane_change, force_merge. Applicable scenario tags: cut_in, highway_cut_in, highway_interaction, highway_lane_change.",
+    "legacy": {
+      "legacy_id": "scenario_highd_post_cutin_headway_drop_001",
+      "legacy_kb_type": "scenario",
+      "legacy_priority": 0.92
+    }
   },
   {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "scenario_highd_aggressive_guardrail_001",
     "id": "scenario_highd_aggressive_guardrail_001",
+    "doc_type": "scenario",
     "kb_type": "scenario",
-    "title": "激进驾驶风格安全护栏",
-    "text": "在激进驾驶偏好下，系统允许较小间距与较高速度，但仍需满足最低安全阈值，不得突破关键安全边界。",
+    "title": "Safety guardrail for aggressive driving style",
+    "dataset_tags": [
+      "highd"
+    ],
+    "scenario_tags": [
+      "highway_car_following",
+      "highway_interaction"
+    ],
+    "metric_tags": [
+      "TTC",
+      "THW",
+      "min_future_distance",
+      "headway"
+    ],
+    "risk_tags": [
+      "preference_guardrail",
+      "short_headway",
+      "spatial_conflict"
+    ],
     "scene_type": "highD",
     "event_type": "all",
     "pair_type": "all",
+    "condition": {
+      "ttc_lt": 3.0,
+      "thw_lt": 1.2,
+      "min_future_distance_lt": 2.0
+    },
+    "risk_mechanism": "Aggressive preferences may optimize efficiency only within safety boundaries; low TTC, low headway, or low future distance should override driving preference.",
+    "recommended_action": [
+      "respect_safety_boundary",
+      "decelerate",
+      "increase_headway"
+    ],
+    "forbidden_action": [
+      "override_safety_boundary",
+      "accelerate",
+      "aggressive_lane_change",
+      "force_merge"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "priority_score": 0.9,
     "source": "preference_rulebook",
-    "priority": 0.9
+    "jurisdiction": "internal",
+    "text": "Under an aggressive driving preference, the system may allow smaller gaps and higher speeds, but it must still satisfy minimum safety thresholds and must not violate critical safety boundaries. Risk mechanism: Aggressive preferences may optimize efficiency only within safety boundaries; low TTC, low headway, or low future distance should override driving preference. Trigger conditions: {\"ttc_lt\": 3.0, \"thw_lt\": 1.2, \"min_future_distance_lt\": 2.0}. Relevant metrics: TTC, THW, min_future_distance, headway. Risk tags: preference_guardrail, short_headway, spatial_conflict. Recommended actions: respect_safety_boundary, decelerate, increase_headway. Forbidden actions: override_safety_boundary, accelerate, aggressive_lane_change, force_merge. Applicable scenario tags: highway_car_following, highway_interaction.",
+    "legacy": {
+      "legacy_id": "scenario_highd_aggressive_guardrail_001",
+      "legacy_kb_type": "scenario",
+      "legacy_priority": 0.9
+    }
   },
   {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "scenario_round_entry_conflict_pattern_001",
     "id": "scenario_round_entry_conflict_pattern_001",
+    "doc_type": "scenario",
     "kb_type": "scenario",
-    "title": "环岛入口冲突风险模式",
-    "text": "在环岛入口区域，车辆需在有限空间内完成汇入与让行决策，若优先级判断错误，容易形成低距离冲突。",
+    "title": "Roundabout entry conflict risk pattern",
+    "dataset_tags": [
+      "round"
+    ],
+    "scenario_tags": [
+      "roundabout_merging",
+      "roundabout_vehicle_interaction"
+    ],
+    "metric_tags": [
+      "DCPA",
+      "min_future_distance",
+      "headway"
+    ],
+    "risk_tags": [
+      "merging_conflict",
+      "spatial_conflict",
+      "yielding"
+    ],
     "scene_type": "rounD",
-    "event_type": null,
+    "event_type": "roundabout_merging",
     "pair_type": "vehicle_vehicle",
+    "condition": {
+      "dcpa_lt": 2.0,
+      "min_future_distance_lt": 2.5,
+      "priority_conflict": true
+    },
+    "risk_mechanism": "Roundabout entry requires handling both yielding and conflict-point occupation; incorrect priority judgment can create low-distance conflicts.",
+    "recommended_action": [
+      "yield",
+      "decelerate",
+      "monitor_conflict_point"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "force_merge",
+      "ignore_priority"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "priority_score": 0.92,
     "source": "scenario_rulebook",
-    "priority": 0.95
+    "jurisdiction": "internal",
+    "text": "At roundabout entry areas, the vehicle must make merging and yielding decisions within limited space. If priority is judged incorrectly, a low-distance conflict can easily occur. Risk mechanism: Roundabout entry requires handling both yielding and conflict-point occupation; incorrect priority judgment can create low-distance conflicts. Trigger conditions: {\"dcpa_lt\": 2.0, \"min_future_distance_lt\": 2.5, \"priority_conflict\": true}. Relevant metrics: DCPA, min_future_distance, headway. Risk tags: merging_conflict, spatial_conflict, yielding. Recommended actions: yield, decelerate, monitor_conflict_point. Forbidden actions: accelerate, force_merge, ignore_priority. Applicable scenario tags: roundabout_merging, roundabout_vehicle_interaction.",
+    "legacy": {
+      "legacy_id": "scenario_round_entry_conflict_pattern_001",
+      "legacy_kb_type": "scenario",
+      "legacy_priority": 0.92
+    }
   },
   {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "scenario_round_merge_pattern_001",
     "id": "scenario_round_merge_pattern_001",
+    "doc_type": "scenario",
     "kb_type": "scenario",
-    "title": "环岛汇入冲突风险模式",
-    "text": "环岛场景的主要风险来自进入、环内运行和驶出三类交互重叠。若车辆忽视已在环岛内对象的位置和速度，则容易出现低距离和高冲突概率的汇入风险。",
+    "title": "Roundabout merging conflict risk pattern",
+    "dataset_tags": [
+      "round"
+    ],
+    "scenario_tags": [
+      "roundabout_exit",
+      "roundabout_merging",
+      "roundabout_vehicle_interaction"
+    ],
+    "metric_tags": [
+      "DCPA",
+      "min_future_distance",
+      "headway"
+    ],
+    "risk_tags": [
+      "merging_conflict",
+      "spatial_conflict"
+    ],
     "scene_type": "rounD",
-    "event_type": null,
+    "event_type": "roundabout_merging",
     "pair_type": "vehicle_vehicle",
+    "condition": {
+      "dcpa_lt": 2.0,
+      "min_future_distance_lt": 2.5,
+      "conflict_point_overlap": true
+    },
+    "risk_mechanism": "When entry, circulation, and exit interactions overlap, future spatial proximity and closest approach distance dominate merging conflict risk.",
+    "recommended_action": [
+      "yield",
+      "decelerate",
+      "monitor_conflict_point"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "force_merge",
+      "ignore_conflict_vehicle"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "priority_score": 0.92,
     "source": "scenario_rulebook",
-    "priority": 0.95
+    "jurisdiction": "internal",
+    "text": "The main risks in roundabout scenarios arise from overlapping entry, circulating, and exit interactions. If the vehicle ignores the position and speed of actors already inside the roundabout, low-distance and high-conflict-probability merging risks may occur. Risk mechanism: When entry, circulation, and exit interactions overlap, future spatial proximity and closest approach distance dominate merging conflict risk. Trigger conditions: {\"dcpa_lt\": 2.0, \"min_future_distance_lt\": 2.5, \"conflict_point_overlap\": true}. Relevant metrics: DCPA, min_future_distance, headway. Risk tags: merging_conflict, spatial_conflict. Recommended actions: yield, decelerate, monitor_conflict_point. Forbidden actions: accelerate, force_merge, ignore_conflict_vehicle. Applicable scenario tags: roundabout_exit, roundabout_merging, roundabout_vehicle_interaction.",
+    "legacy": {
+      "legacy_id": "scenario_round_merge_pattern_001",
+      "legacy_kb_type": "scenario",
+      "legacy_priority": 0.92
+    }
   },
   {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "scenario_round_cyclist_pattern_001",
     "id": "scenario_round_cyclist_pattern_001",
+    "doc_type": "scenario",
     "kb_type": "scenario",
-    "title": "环岛 vehicle-cyclist 交互风险模式",
-    "text": "机动车与骑行者在环岛交互时，应重点关注相对位置、出口和汇入点附近的穿插趋势，以及优先权关系。若存在抢先通行倾向，应立即提高风险等级并转向更保守策略。",
+    "title": "Roundabout vehicle-cyclist interaction risk pattern",
+    "dataset_tags": [
+      "round"
+    ],
+    "scenario_tags": [
+      "car_bicycle",
+      "roundabout_vehicle_interaction",
+      "roundabout_vru_interaction"
+    ],
+    "metric_tags": [
+      "DCPA",
+      "min_future_distance",
+      "headway",
+      "VRU"
+    ],
+    "risk_tags": [
+      "intersection_crossing",
+      "merging_conflict",
+      "spatial_conflict",
+      "vru_conflict",
+      "yielding"
+    ],
     "scene_type": "rounD",
-    "event_type": null,
+    "event_type": "car_bicycle",
     "pair_type": "vehicle_cyclist",
+    "condition": {
+      "vrus_present": true,
+      "dcpa_lt": 1.5,
+      "min_future_distance_lt": 2.0
+    },
+    "risk_mechanism": "Cyclists may shift laterally near roundabout exits and merging points, and low lateral clearance amplifies collision risk.",
+    "recommended_action": [
+      "yield",
+      "decelerate",
+      "monitor_vru"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "force_merge",
+      "aggressive_lane_change"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "priority_score": 0.92,
     "source": "scenario_rulebook",
-    "priority": 1.0
+    "jurisdiction": "internal",
+    "text": "When motor vehicles interact with cyclists in roundabouts, the system should focus on relative position, crossing or weaving trends near exits and merging points, and right-of-way relationships. If there is a tendency to force priority, the risk level should be raised immediately and the strategy should become more conservative. Risk mechanism: Cyclists may shift laterally near roundabout exits and merging points, and low lateral clearance amplifies collision risk. Trigger conditions: {\"vrus_present\": true, \"dcpa_lt\": 1.5, \"min_future_distance_lt\": 2.0}. Relevant metrics: DCPA, min_future_distance, headway, VRU. Risk tags: intersection_crossing, merging_conflict, spatial_conflict, vru_conflict, yielding. Recommended actions: yield, decelerate, monitor_vru. Forbidden actions: accelerate, force_merge, aggressive_lane_change. Applicable scenario tags: car_bicycle, roundabout_vehicle_interaction, roundabout_vru_interaction.",
+    "legacy": {
+      "legacy_id": "scenario_round_cyclist_pattern_001",
+      "legacy_kb_type": "scenario",
+      "legacy_priority": 0.92
+    }
   },
   {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "scenario_preference_guardrail_001",
     "id": "scenario_preference_guardrail_001",
+    "doc_type": "scenario",
     "kb_type": "scenario",
-    "title": "激进与保守驾驶偏好的安全护栏规则",
-    "text": "激进驾驶偏好可以提升效率，但不得突破最低安全约束。保守驾驶偏好应在低 TTC、低间距以及弱势道路参与者出现时显著提高安全权重，并优先采用减速、让行和延迟通行策略。",
+    "title": "Safety guardrail rule for aggressive and conservative driving preferences",
+    "dataset_tags": [
+      "highd",
+      "round",
+      "ind",
+      "all"
+    ],
+    "scenario_tags": [
+      "car_following",
+      "generic_interaction",
+      "highway_car_following",
+      "highway_cut_in",
+      "highway_interaction",
+      "highway_lane_change",
+      "intersection_vehicle_interaction",
+      "intersection_vru_interaction",
+      "roundabout_exit",
+      "roundabout_vehicle_interaction",
+      "roundabout_vru_interaction",
+      "vru_conflict"
+    ],
+    "metric_tags": [
+      "TTC",
+      "min_future_distance",
+      "headway",
+      "VRU",
+      "acceleration"
+    ],
+    "risk_tags": [
+      "hard_braking",
+      "preference_guardrail",
+      "short_headway",
+      "vru_conflict",
+      "yielding"
+    ],
     "scene_type": "all",
-    "event_type": null,
-    "pair_type": null,
+    "event_type": "all",
+    "pair_type": "all",
+    "condition": {
+      "ttc_lt": 3.0,
+      "min_future_distance_lt": 2.0,
+      "vrus_present": true
+    },
+    "risk_mechanism": "Driving preferences must not override minimum safety constraints; low TTC, low spacing, or the presence of VRUs should significantly increase safety weighting.",
+    "recommended_action": [
+      "yield",
+      "decelerate",
+      "increase_headway",
+      "monitor_vru"
+    ],
+    "forbidden_action": [
+      "override_safety_boundary",
+      "accelerate",
+      "force_merge"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "priority_score": 0.92,
     "source": "scenario_rulebook",
-    "priority": 1.0
+    "jurisdiction": "internal",
+    "text": "Aggressive driving preferences may improve efficiency, but they must not violate minimum safety constraints. Conservative driving preferences should significantly increase safety weighting when low TTC, low spacing, or vulnerable road users are present, and should prioritize deceleration, yielding, and delayed passage. Risk mechanism: Driving preferences must not override minimum safety constraints; low TTC, low spacing, or the presence of VRUs should significantly increase safety weighting. Trigger conditions: {\"ttc_lt\": 3.0, \"min_future_distance_lt\": 2.0, \"vrus_present\": true}. Relevant metrics: TTC, min_future_distance, headway, VRU, acceleration. Risk tags: hard_braking, preference_guardrail, short_headway, vru_conflict, yielding. Recommended actions: yield, decelerate, increase_headway, monitor_vru. Forbidden actions: override_safety_boundary, accelerate, force_merge. Applicable scenario tags: car_following, generic_interaction, highway_car_following, highway_cut_in, highway_interaction, highway_lane_change, intersection_vehicle_interaction, intersection_vru_interaction, roundabout_exit, roundabout_vehicle_interaction, roundabout_vru_interaction, vru_conflict.",
+    "legacy": {
+      "legacy_id": "scenario_preference_guardrail_001",
+      "legacy_kb_type": "scenario",
+      "legacy_priority": 0.92
+    }
   },
   {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "scenario_round_multi_actor_complexity_002",
     "id": "scenario_round_multi_actor_complexity_002",
+    "doc_type": "scenario",
     "kb_type": "scenario",
-    "title": "环岛多参与者复杂交互模式",
-    "text": "环岛场景中常存在多车辆与骑行者同时交互，风险来源于多个冲突方向叠加，应采用更保守策略处理多对象关系。",
+    "title": "Complex multi-actor interaction pattern in roundabouts",
+    "dataset_tags": [
+      "round"
+    ],
+    "scenario_tags": [
+      "roundabout_merging",
+      "roundabout_vehicle_interaction",
+      "roundabout_vru_interaction"
+    ],
+    "metric_tags": [
+      "DCPA",
+      "min_future_distance",
+      "headway",
+      "VRU"
+    ],
+    "risk_tags": [
+      "merging_conflict",
+      "spatial_conflict",
+      "vru_conflict"
+    ],
     "scene_type": "rounD",
-    "event_type": null,
-    "pair_type": null,
+    "event_type": "roundabout_merging",
+    "pair_type": "all",
+    "condition": {
+      "multi_actor": true,
+      "dcpa_lt": 2.0,
+      "min_future_distance_lt": 2.5
+    },
+    "risk_mechanism": "Simultaneous interactions among multiple vehicles and cyclists create overlapping conflict directions, so a single-actor strategy may underestimate overall risk.",
+    "recommended_action": [
+      "decelerate",
+      "yield",
+      "monitor_multiple_agents"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "force_merge",
+      "ignore_secondary_actor"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "priority_score": 0.92,
     "source": "scenario_rulebook",
-    "priority": 0.95
+    "jurisdiction": "internal",
+    "text": "Roundabout scenarios often involve simultaneous interactions among multiple vehicles and cyclists. Risk arises from the superposition of multiple conflict directions, so a more conservative strategy should be used for multi-actor relationships. Risk mechanism: Simultaneous interactions among multiple vehicles and cyclists create overlapping conflict directions, so a single-actor strategy may underestimate overall risk. Trigger conditions: {\"multi_actor\": true, \"dcpa_lt\": 2.0, \"min_future_distance_lt\": 2.5}. Relevant metrics: DCPA, min_future_distance, headway, VRU. Risk tags: merging_conflict, spatial_conflict, vru_conflict. Recommended actions: decelerate, yield, monitor_multiple_agents. Forbidden actions: accelerate, force_merge, ignore_secondary_actor. Applicable scenario tags: roundabout_merging, roundabout_vehicle_interaction, roundabout_vru_interaction.",
+    "legacy": {
+      "legacy_id": "scenario_round_multi_actor_complexity_002",
+      "legacy_kb_type": "scenario",
+      "legacy_priority": 0.92
+    }
   },
   {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "scenario_round_exit_conflict_pattern_002",
     "id": "scenario_round_exit_conflict_pattern_002",
+    "doc_type": "scenario",
     "kb_type": "scenario",
-    "title": "环岛出口冲突强化模式",
-    "text": "出口区域同时涉及路径选择与速度调整，若存在骑行者或并行车辆，低距离冲突概率显著上升，应提前减速并避免抢先通行。",
+    "title": "Enhanced roundabout exit conflict pattern",
+    "dataset_tags": [
+      "round"
+    ],
+    "scenario_tags": [
+      "roundabout_exit",
+      "roundabout_vehicle_interaction",
+      "roundabout_vru_interaction"
+    ],
+    "metric_tags": [
+      "DCPA",
+      "min_future_distance",
+      "headway",
+      "VRU"
+    ],
+    "risk_tags": [
+      "spatial_conflict",
+      "vru_conflict"
+    ],
     "scene_type": "rounD",
-    "event_type": null,
-    "pair_type": null,
+    "event_type": "roundabout_exit",
+    "pair_type": "all",
+    "condition": {
+      "exit_zone": true,
+      "vrus_present": true,
+      "dcpa_lt": 1.5,
+      "min_future_distance_lt": 2.0
+    },
+    "risk_mechanism": "Roundabout exits involve both path selection and speed adjustment; VRUs or parallel vehicles increase the probability of low-distance conflicts.",
+    "recommended_action": [
+      "decelerate",
+      "yield",
+      "monitor_vru",
+      "monitor_conflict_point"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "force_exit",
+      "aggressive_lane_change"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "priority_score": 0.92,
     "source": "scenario_rulebook",
-    "priority": 0.95
+    "jurisdiction": "internal",
+    "text": "Exit areas involve both path selection and speed adjustment. If cyclists or parallel vehicles are present, the probability of low-distance conflicts increases significantly, so the vehicle should decelerate early and avoid forcing passage. Risk mechanism: Roundabout exits involve both path selection and speed adjustment; VRUs or parallel vehicles increase the probability of low-distance conflicts. Trigger conditions: {\"exit_zone\": true, \"vrus_present\": true, \"dcpa_lt\": 1.5, \"min_future_distance_lt\": 2.0}. Relevant metrics: DCPA, min_future_distance, headway, VRU. Risk tags: spatial_conflict, vru_conflict. Recommended actions: decelerate, yield, monitor_vru, monitor_conflict_point. Forbidden actions: accelerate, force_exit, aggressive_lane_change. Applicable scenario tags: roundabout_exit, roundabout_vehicle_interaction, roundabout_vru_interaction.",
+    "legacy": {
+      "legacy_id": "scenario_round_exit_conflict_pattern_002",
+      "legacy_kb_type": "scenario",
+      "legacy_priority": 0.92
+    }
   },
   {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "scenario_round_exit_conflict_pattern_003",
     "id": "scenario_round_exit_conflict_pattern_003",
+    "doc_type": "scenario",
     "kb_type": "scenario",
-    "title": "环岛出口冲突风险模式",
-    "text": "在环岛出口阶段，车辆需同时处理驶出路径与周边对象避让，若仍以效率优先，容易产生危险交互。",
+    "title": "Roundabout exit conflict risk pattern",
+    "dataset_tags": [
+      "round"
+    ],
+    "scenario_tags": [
+      "roundabout_exit",
+      "roundabout_vehicle_interaction"
+    ],
+    "metric_tags": [
+      "DCPA",
+      "min_future_distance",
+      "headway"
+    ],
+    "risk_tags": [
+      "preference_guardrail",
+      "spatial_conflict"
+    ],
     "scene_type": "rounD",
-    "event_type": null,
+    "event_type": "roundabout_exit",
     "pair_type": "all",
+    "condition": {
+      "exit_zone": true,
+      "dcpa_lt": 2.0,
+      "min_future_distance_lt": 2.5
+    },
+    "risk_mechanism": "If efficiency remains the dominant objective during exiting, the vehicle may ignore close-range interacting actors along the exit path.",
+    "recommended_action": [
+      "decelerate",
+      "yield",
+      "monitor_conflict_point"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "force_exit",
+      "priority_over_safety"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "priority_score": 0.92,
     "source": "scenario_rulebook",
-    "priority": 0.95
+    "jurisdiction": "internal",
+    "text": "During the roundabout exit phase, the vehicle must handle both exit-path selection and avoidance of surrounding actors. If it continues to prioritize efficiency, dangerous interactions may occur. Risk mechanism: If efficiency remains the dominant objective during exiting, the vehicle may ignore close-range interacting actors along the exit path. Trigger conditions: {\"exit_zone\": true, \"dcpa_lt\": 2.0, \"min_future_distance_lt\": 2.5}. Relevant metrics: DCPA, min_future_distance, headway. Risk tags: preference_guardrail, spatial_conflict. Recommended actions: decelerate, yield, monitor_conflict_point. Forbidden actions: accelerate, force_exit, priority_over_safety. Applicable scenario tags: roundabout_exit, roundabout_vehicle_interaction.",
+    "legacy": {
+      "legacy_id": "scenario_round_exit_conflict_pattern_003",
+      "legacy_kb_type": "scenario",
+      "legacy_priority": 0.92
+    }
   },
   {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "scenario_round_aggressive_vs_conservative_002",
     "id": "scenario_round_aggressive_vs_conservative_002",
+    "doc_type": "scenario",
     "kb_type": "scenario",
-    "title": "环岛激进与保守策略分歧模式",
-    "text": "激进策略倾向维持速度并抢先通过，而保守策略更倾向减速与让行。在高密度环岛交互中，应优先采用保守策略以避免冲突。",
+    "title": "Aggressive versus conservative strategy divergence in roundabouts",
+    "dataset_tags": [
+      "round"
+    ],
+    "scenario_tags": [
+      "roundabout_merging",
+      "roundabout_vehicle_interaction"
+    ],
+    "metric_tags": [
+      "DCPA",
+      "min_future_distance",
+      "headway"
+    ],
+    "risk_tags": [
+      "merging_conflict",
+      "preference_guardrail",
+      "spatial_conflict",
+      "yielding"
+    ],
     "scene_type": "rounD",
-    "event_type": null,
-    "pair_type": null,
+    "event_type": "roundabout_merging",
+    "pair_type": "all",
+    "condition": {
+      "traffic_density_high": true,
+      "dcpa_lt": 2.0,
+      "min_future_distance_lt": 2.5
+    },
+    "risk_mechanism": "In dense roundabouts, forcing passage reduces other actors' reaction space, while a conservative strategy can reduce overlapping conflicts.",
+    "recommended_action": [
+      "yield",
+      "decelerate",
+      "monitor_conflict_point"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "force_merge",
+      "priority_over_safety"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "priority_score": 0.92,
     "source": "scenario_rulebook",
-    "priority": 1.0
+    "jurisdiction": "internal",
+    "text": "Aggressive strategies tend to maintain speed and force passage, while conservative strategies tend to decelerate and yield. In dense roundabout interactions, conservative strategies should be prioritized to avoid conflicts. Risk mechanism: In dense roundabouts, forcing passage reduces other actors' reaction space, while a conservative strategy can reduce overlapping conflicts. Trigger conditions: {\"traffic_density_high\": true, \"dcpa_lt\": 2.0, \"min_future_distance_lt\": 2.5}. Relevant metrics: DCPA, min_future_distance, headway. Risk tags: merging_conflict, preference_guardrail, spatial_conflict, yielding. Recommended actions: yield, decelerate, monitor_conflict_point. Forbidden actions: accelerate, force_merge, priority_over_safety. Applicable scenario tags: roundabout_merging, roundabout_vehicle_interaction.",
+    "legacy": {
+      "legacy_id": "scenario_round_aggressive_vs_conservative_002",
+      "legacy_kb_type": "scenario",
+      "legacy_priority": 0.92
+    }
   },
   {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "scenario_round_vehicle_cyclist_pattern_002",
     "id": "scenario_round_vehicle_cyclist_pattern_002",
+    "doc_type": "scenario",
     "kb_type": "scenario",
-    "title": "环岛车辆与骑行者交互风险模式",
-    "text": "在环岛中，当机动车与骑行者存在空间交叠或路径交叉时，应提高安全裕度并优先让行，否则容易形成高风险交互。",
+    "title": "Roundabout vehicle-cyclist interaction risk pattern",
+    "dataset_tags": [
+      "round"
+    ],
+    "scenario_tags": [
+      "car_bicycle",
+      "roundabout_vehicle_interaction",
+      "roundabout_vru_interaction"
+    ],
+    "metric_tags": [
+      "DCPA",
+      "min_future_distance",
+      "headway",
+      "VRU"
+    ],
+    "risk_tags": [
+      "intersection_crossing",
+      "prediction_uncertainty",
+      "short_headway",
+      "spatial_conflict",
+      "vru_conflict",
+      "yielding"
+    ],
     "scene_type": "rounD",
-    "event_type": null,
+    "event_type": "car_bicycle",
     "pair_type": "vehicle_cyclist",
+    "condition": {
+      "vrus_present": true,
+      "path_overlap": true,
+      "dcpa_lt": 1.5,
+      "min_future_distance_lt": 2.0
+    },
+    "risk_mechanism": "When a motor vehicle and a cyclist have spatial overlap or path crossing, the uncertainty of cyclist motion amplifies close-range risk.",
+    "recommended_action": [
+      "yield",
+      "decelerate",
+      "monitor_vru"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "force_merge",
+      "aggressive_lane_change"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "priority_score": 0.92,
     "source": "scenario_rulebook",
-    "priority": 1.0
+    "jurisdiction": "internal",
+    "text": "In roundabouts, when a motor vehicle and a cyclist have spatial overlap or crossing paths, the vehicle should increase the safety margin and yield first; otherwise, a high-risk interaction can easily form. Risk mechanism: When a motor vehicle and a cyclist have spatial overlap or path crossing, the uncertainty of cyclist motion amplifies close-range risk. Trigger conditions: {\"vrus_present\": true, \"path_overlap\": true, \"dcpa_lt\": 1.5, \"min_future_distance_lt\": 2.0}. Relevant metrics: DCPA, min_future_distance, headway, VRU. Risk tags: intersection_crossing, prediction_uncertainty, short_headway, spatial_conflict, vru_conflict, yielding. Recommended actions: yield, decelerate, monitor_vru. Forbidden actions: accelerate, force_merge, aggressive_lane_change. Applicable scenario tags: car_bicycle, roundabout_vehicle_interaction, roundabout_vru_interaction.",
+    "legacy": {
+      "legacy_id": "scenario_round_vehicle_cyclist_pattern_002",
+      "legacy_kb_type": "scenario",
+      "legacy_priority": 0.92
+    }
   },
   {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "scenario_general_low_ttc_trigger_001",
     "id": "scenario_general_low_ttc_trigger_001",
+    "doc_type": "scenario",
     "kb_type": "scenario",
-    "title": "低TTC风险触发模式",
-    "text": "当时间到碰撞（TTC）低于安全阈值时，应立即判定为高风险状态，并触发防御性驾驶策略。",
+    "title": "Low-TTC risk trigger pattern",
+    "dataset_tags": [
+      "highd",
+      "round",
+      "ind",
+      "all"
+    ],
+    "scenario_tags": [
+      "car_following",
+      "generic_interaction",
+      "highway_car_following",
+      "highway_cut_in",
+      "highway_interaction",
+      "highway_lane_change",
+      "intersection_vehicle_interaction",
+      "intersection_vru_interaction",
+      "roundabout_exit",
+      "roundabout_vehicle_interaction",
+      "roundabout_vru_interaction"
+    ],
+    "metric_tags": [
+      "TTC"
+    ],
+    "risk_tags": [
+      "collision_risk"
+    ],
     "scene_type": "all",
-    "event_type": null,
+    "event_type": "all",
     "pair_type": "all",
+    "condition": {
+      "ttc_lt": 3.0
+    },
+    "risk_mechanism": "Low TTC indicates that a collision may occur within a short time, so defensive driving should be triggered immediately.",
+    "recommended_action": [
+      "decelerate",
+      "increase_headway",
+      "yield"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "keep_close_following",
+      "force_merge"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "priority_score": 0.92,
     "source": "general_risk_model",
-    "priority": 1.0
+    "jurisdiction": "internal",
+    "text": "When time to collision (TTC) falls below the safety threshold, the state should immediately be classified as high risk and a defensive driving strategy should be triggered. Risk mechanism: Low TTC indicates that a collision may occur within a short time, so defensive driving should be triggered immediately. Trigger conditions: {\"ttc_lt\": 3.0}. Relevant metrics: TTC. Risk tags: collision_risk. Recommended actions: decelerate, increase_headway, yield. Forbidden actions: accelerate, keep_close_following, force_merge. Applicable scenario tags: car_following, generic_interaction, highway_car_following, highway_cut_in, highway_interaction, highway_lane_change, intersection_vehicle_interaction, intersection_vru_interaction, roundabout_exit, roundabout_vehicle_interaction, roundabout_vru_interaction.",
+    "legacy": {
+      "legacy_id": "scenario_general_low_ttc_trigger_001",
+      "legacy_kb_type": "scenario",
+      "legacy_priority": 0.92
+    }
   },
   {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "scenario_general_temporal_risk_accumulation_001",
     "id": "scenario_general_temporal_risk_accumulation_001",
+    "doc_type": "scenario",
     "kb_type": "scenario",
-    "title": "多帧风险累积模式",
-    "text": "当车辆在连续多个时间帧中维持低安全裕度状态时，应认为风险在时间维度上累积，而非单帧事件。",
+    "title": "Multi-frame risk accumulation pattern",
+    "dataset_tags": [
+      "highd",
+      "round",
+      "ind",
+      "all"
+    ],
+    "scenario_tags": [
+      "generic_interaction",
+      "highway_car_following",
+      "highway_cut_in",
+      "highway_interaction",
+      "highway_lane_change",
+      "intersection_vehicle_interaction",
+      "intersection_vru_interaction",
+      "roundabout_exit",
+      "roundabout_vehicle_interaction",
+      "roundabout_vru_interaction"
+    ],
+    "metric_tags": [
+      "TTC",
+      "headway"
+    ],
+    "risk_tags": [
+      "short_headway",
+      "temporal_risk_accumulation"
+    ],
     "scene_type": "all",
-    "event_type": null,
+    "event_type": "all",
     "pair_type": "all",
+    "condition": {
+      "low_margin_frames_gte": 3,
+      "ttc_lt": 5.0
+    },
+    "risk_mechanism": "A low safety margin across consecutive frames indicates temporal risk accumulation, so the system should avoid judging risk only by a single-frame threshold.",
+    "recommended_action": [
+      "maintain_defensive_policy",
+      "decelerate",
+      "increase_headway"
+    ],
+    "forbidden_action": [
+      "oscillating_aggressive_policy",
+      "accelerate_under_low_margin"
+    ],
+    "severity": "medium",
+    "priority": 2,
+    "priority_score": 0.92,
     "source": "general_risk_model",
-    "priority": 0.95
+    "jurisdiction": "internal",
+    "text": "When a vehicle maintains a low safety margin across multiple consecutive frames, the risk should be regarded as accumulated over time rather than as a single-frame event. Risk mechanism: A low safety margin across consecutive frames indicates temporal risk accumulation, so the system should avoid judging risk only by a single-frame threshold. Trigger conditions: {\"low_margin_frames_gte\": 3, \"ttc_lt\": 5.0}. Relevant metrics: TTC, headway. Risk tags: short_headway, temporal_risk_accumulation. Recommended actions: maintain_defensive_policy, decelerate, increase_headway. Forbidden actions: oscillating_aggressive_policy, accelerate_under_low_margin. Applicable scenario tags: generic_interaction, highway_car_following, highway_cut_in, highway_interaction, highway_lane_change, intersection_vehicle_interaction, intersection_vru_interaction, roundabout_exit, roundabout_vehicle_interaction, roundabout_vru_interaction.",
+    "legacy": {
+      "legacy_id": "scenario_general_temporal_risk_accumulation_001",
+      "legacy_kb_type": "scenario",
+      "legacy_priority": 0.92
+    }
+  },
+  {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "scenario_ind_pedestrian_crossing_001",
+    "id": "scenario_ind_pedestrian_crossing_001",
+    "doc_type": "scenario",
+    "kb_type": "scenario",
+    "title": "Urban pedestrian crossing conflict mechanism",
+    "dataset_tags": [
+      "ind"
+    ],
+    "scenario_tags": [
+      "car_pedestrian",
+      "intersection_vehicle_interaction",
+      "intersection_vru_interaction"
+    ],
+    "metric_tags": [
+      "DCPA",
+      "min_future_distance",
+      "headway",
+      "VRU"
+    ],
+    "risk_tags": [
+      "intersection_crossing",
+      "spatial_conflict",
+      "vru_conflict",
+      "yielding"
+    ],
+    "scene_type": "inD",
+    "event_type": "car_pedestrian",
+    "pair_type": "vehicle_pedestrian",
+    "condition": {
+      "vrus_present": true,
+      "dcpa_lt": 2.0,
+      "min_future_distance_lt": 2.0,
+      "conflict_point_ahead": true
+    },
+    "risk_mechanism": "In urban scenes, pedestrian risk is dominated by predicted path overlap, low closest approach distance, and low future spatial margin.",
+    "recommended_action": [
+      "yield",
+      "decelerate",
+      "monitor_vru"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "force_pass",
+      "aggressive_lane_change"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "priority_score": 0.92,
+    "source": "scenario_rulebook",
+    "jurisdiction": "internal",
+    "text": "In urban pedestrian crossing conflicts, low DCPA and low minimum future distance indicate potential path overlap; the vehicle should yield, decelerate, and continuously monitor the vulnerable road user. Risk mechanism: In urban scenes, pedestrian risk is dominated by predicted path overlap, low closest approach distance, and low future spatial margin. Trigger conditions: {\"vrus_present\": true, \"dcpa_lt\": 2.0, \"min_future_distance_lt\": 2.0, \"conflict_point_ahead\": true}. Relevant metrics: DCPA, min_future_distance, headway, VRU. Risk tags: intersection_crossing, spatial_conflict, vru_conflict, yielding. Recommended actions: yield, decelerate, monitor_vru. Forbidden actions: accelerate, force_pass, aggressive_lane_change. Applicable scenario tags: car_pedestrian, intersection_vehicle_interaction, intersection_vru_interaction.",
+    "legacy": {
+      "legacy_id": "scenario_ind_pedestrian_crossing_001",
+      "legacy_kb_type": "scenario",
+      "legacy_priority": 0.92
+    }
+  },
+  {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "scenario_ind_cyclist_close_proximity_001",
+    "id": "scenario_ind_cyclist_close_proximity_001",
+    "doc_type": "scenario",
+    "kb_type": "scenario",
+    "title": "Urban cyclist close-proximity conflict mechanism",
+    "dataset_tags": [
+      "ind"
+    ],
+    "scenario_tags": [
+      "car_bicycle",
+      "intersection_vehicle_interaction",
+      "intersection_vru_interaction"
+    ],
+    "metric_tags": [
+      "DCPA",
+      "min_future_distance",
+      "headway",
+      "VRU"
+    ],
+    "risk_tags": [
+      "spatial_conflict",
+      "vru_conflict"
+    ],
+    "scene_type": "inD",
+    "event_type": "car_bicycle",
+    "pair_type": "vehicle_cyclist",
+    "condition": {
+      "vrus_present": true,
+      "dcpa_lt": 1.5,
+      "lateral_distance_lt": 1.5,
+      "min_future_distance_lt": 2.0
+    },
+    "risk_mechanism": "Cyclists may deviate laterally with limited predictability, so low lateral clearance creates high interaction risk even at moderate speed.",
+    "recommended_action": [
+      "decelerate",
+      "increase_lateral_clearance",
+      "monitor_vru"
+    ],
+    "forbidden_action": [
+      "close_pass",
+      "accelerate",
+      "aggressive_lane_change"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "priority_score": 0.92,
+    "source": "scenario_rulebook",
+    "jurisdiction": "internal",
+    "text": "When a cyclist is close to the predicted vehicle path with low lateral clearance, the vehicle should reduce speed, increase lateral clearance, and avoid close passing. Risk mechanism: Cyclists may deviate laterally with limited predictability, so low lateral clearance creates high interaction risk even at moderate speed. Trigger conditions: {\"vrus_present\": true, \"dcpa_lt\": 1.5, \"lateral_distance_lt\": 1.5, \"min_future_distance_lt\": 2.0}. Relevant metrics: DCPA, min_future_distance, headway, VRU. Risk tags: spatial_conflict, vru_conflict. Recommended actions: decelerate, increase_lateral_clearance, monitor_vru. Forbidden actions: close_pass, accelerate, aggressive_lane_change. Applicable scenario tags: car_bicycle, intersection_vehicle_interaction, intersection_vru_interaction.",
+    "legacy": {
+      "legacy_id": "scenario_ind_cyclist_close_proximity_001",
+      "legacy_kb_type": "scenario",
+      "legacy_priority": 0.92
+    }
+  },
+  {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "scenario_ind_turning_vru_conflict_001",
+    "id": "scenario_ind_turning_vru_conflict_001",
+    "doc_type": "scenario",
+    "kb_type": "scenario",
+    "title": "Turning vehicle crossing vulnerable road user path",
+    "dataset_tags": [
+      "ind"
+    ],
+    "scenario_tags": [
+      "intersection_vehicle_interaction",
+      "intersection_vru_interaction",
+      "turning_across_vru"
+    ],
+    "metric_tags": [
+      "min_future_distance",
+      "headway",
+      "VRU"
+    ],
+    "risk_tags": [
+      "intersection_crossing",
+      "spatial_conflict",
+      "vru_conflict",
+      "yielding"
+    ],
+    "scene_type": "inD",
+    "event_type": "turning_across_vru",
+    "pair_type": "vehicle_pedestrian",
+    "condition": {
+      "vrus_present": true,
+      "turning_maneuver": true,
+      "path_overlap": true,
+      "min_future_distance_lt": 2.5
+    },
+    "risk_mechanism": "Turning maneuvers can create conflicts because the vehicle trajectory intersects the pedestrian or cyclist path at low spatial margins.",
+    "recommended_action": [
+      "yield",
+      "decelerate",
+      "monitor_conflict_point"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "force_turn",
+      "ignore_vru"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "priority_score": 0.92,
+    "source": "scenario_rulebook",
+    "jurisdiction": "internal",
+    "text": "When a turning vehicle crosses the predicted path of a vulnerable road user, the vehicle should yield, reduce speed, and monitor the conflict point. Risk mechanism: Turning maneuvers can create conflicts because the vehicle trajectory intersects the pedestrian or cyclist path at low spatial margins. Trigger conditions: {\"vrus_present\": true, \"turning_maneuver\": true, \"path_overlap\": true, \"min_future_distance_lt\": 2.5}. Relevant metrics: min_future_distance, headway, VRU. Risk tags: intersection_crossing, spatial_conflict, vru_conflict, yielding. Recommended actions: yield, decelerate, monitor_conflict_point. Forbidden actions: accelerate, force_turn, ignore_vru. Applicable scenario tags: intersection_vehicle_interaction, intersection_vru_interaction, turning_across_vru.",
+    "legacy": {
+      "legacy_id": "scenario_ind_turning_vru_conflict_001",
+      "legacy_kb_type": "scenario",
+      "legacy_priority": 0.92
+    }
+  },
+  {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "scenario_ind_intersection_crossing_001",
+    "id": "scenario_ind_intersection_crossing_001",
+    "doc_type": "scenario",
+    "kb_type": "scenario",
+    "title": "Urban intersection crossing conflict mechanism",
+    "dataset_tags": [
+      "ind"
+    ],
+    "scenario_tags": [
+      "intersection_crossing",
+      "intersection_vehicle_interaction"
+    ],
+    "metric_tags": [
+      "TTC",
+      "min_future_distance",
+      "headway"
+    ],
+    "risk_tags": [
+      "intersection_crossing",
+      "spatial_conflict"
+    ],
+    "scene_type": "inD",
+    "event_type": "intersection_crossing",
+    "pair_type": "vehicle_vehicle",
+    "condition": {
+      "intersection_area": true,
+      "path_overlap": true,
+      "ttc_lt": 4.0,
+      "min_future_distance_lt": 3.0
+    },
+    "risk_mechanism": "At intersections, crossing trajectories can produce short-horizon conflicts even when vehicles are not in the same lane.",
+    "recommended_action": [
+      "decelerate",
+      "yield",
+      "monitor_conflict_point"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "force_pass",
+      "ignore_priority_relation"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "priority_score": 0.92,
+    "source": "scenario_rulebook",
+    "jurisdiction": "internal",
+    "text": "In urban intersection crossings, predicted path overlap and low future distance should elevate risk and trigger conservative speed control. Risk mechanism: At intersections, crossing trajectories can produce short-horizon conflicts even when vehicles are not in the same lane. Trigger conditions: {\"intersection_area\": true, \"path_overlap\": true, \"ttc_lt\": 4.0, \"min_future_distance_lt\": 3.0}. Relevant metrics: TTC, min_future_distance, headway. Risk tags: intersection_crossing, spatial_conflict. Recommended actions: decelerate, yield, monitor_conflict_point. Forbidden actions: accelerate, force_pass, ignore_priority_relation. Applicable scenario tags: intersection_crossing, intersection_vehicle_interaction.",
+    "legacy": {
+      "legacy_id": "scenario_ind_intersection_crossing_001",
+      "legacy_kb_type": "scenario",
+      "legacy_priority": 0.92
+    }
+  },
+  {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "scenario_ind_occluded_vru_001",
+    "id": "scenario_ind_occluded_vru_001",
+    "doc_type": "scenario",
+    "kb_type": "scenario",
+    "title": "Occluded vulnerable road user emergence mechanism",
+    "dataset_tags": [
+      "ind"
+    ],
+    "scenario_tags": [
+      "intersection_vehicle_interaction",
+      "intersection_vru_interaction",
+      "occluded_vru"
+    ],
+    "metric_tags": [
+      "headway",
+      "VRU"
+    ],
+    "risk_tags": [
+      "merging_conflict",
+      "occlusion_risk",
+      "short_headway",
+      "vru_conflict"
+    ],
+    "scene_type": "inD",
+    "event_type": "occluded_vru",
+    "pair_type": "vehicle_pedestrian",
+    "condition": {
+      "occlusion_risk": true,
+      "vrus_possible": true,
+      "urban_low_speed_area": true,
+      "limited_visibility": true
+    },
+    "risk_mechanism": "Occlusions reduce the time available to detect pedestrians or cyclists, so the safe action is to lower speed before the conflict becomes observable.",
+    "recommended_action": [
+      "decelerate",
+      "monitor_vru",
+      "increase_safety_margin"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "force_pass",
+      "ignore_occlusion"
+    ],
+    "severity": "medium",
+    "priority": 2,
+    "priority_score": 0.88,
+    "source": "scenario_rulebook",
+    "jurisdiction": "internal",
+    "text": "When occlusion may hide a vulnerable road user in an urban area, the vehicle should reduce speed and increase safety margin before entering the occluded conflict zone. Risk mechanism: Occlusions reduce the time available to detect pedestrians or cyclists, so the safe action is to lower speed before the conflict becomes observable. Trigger conditions: {\"occlusion_risk\": true, \"vrus_possible\": true, \"urban_low_speed_area\": true, \"limited_visibility\": true}. Relevant metrics: headway, VRU. Risk tags: merging_conflict, occlusion_risk, short_headway, vru_conflict. Recommended actions: decelerate, monitor_vru, increase_safety_margin. Forbidden actions: accelerate, force_pass, ignore_occlusion. Applicable scenario tags: intersection_vehicle_interaction, intersection_vru_interaction, occluded_vru.",
+    "legacy": {
+      "legacy_id": "scenario_ind_occluded_vru_001",
+      "legacy_kb_type": "scenario",
+      "legacy_priority": 0.88
+    }
+  },
+  {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "scenario_general_spatial_conflict_trigger_001",
+    "id": "scenario_general_spatial_conflict_trigger_001",
+    "doc_type": "scenario",
+    "kb_type": "scenario",
+    "title": "Spatial proximity based conflict trigger",
+    "dataset_tags": [
+      "highd",
+      "round",
+      "ind",
+      "all"
+    ],
+    "scenario_tags": [
+      "car_following",
+      "generic_interaction",
+      "highway_car_following",
+      "highway_cut_in",
+      "highway_interaction",
+      "highway_lane_change",
+      "intersection_vehicle_interaction",
+      "intersection_vru_interaction",
+      "roundabout_exit",
+      "roundabout_vehicle_interaction",
+      "roundabout_vru_interaction",
+      "spatial_conflict"
+    ],
+    "metric_tags": [
+      "TTC",
+      "DCPA",
+      "min_future_distance",
+      "headway"
+    ],
+    "risk_tags": [
+      "spatial_conflict"
+    ],
+    "scene_type": "all",
+    "event_type": "all",
+    "pair_type": "all",
+    "condition": {
+      "dcpa_lt": 2.0,
+      "min_future_distance_lt": 2.5
+    },
+    "risk_mechanism": "Low closest approach distance and low predicted future distance indicate spatial conflict even when raw TTC is not the dominant signal.",
+    "recommended_action": [
+      "decelerate",
+      "increase_lateral_clearance",
+      "monitor_conflict_point"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "force_pass",
+      "ignore_spatial_conflict"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "priority_score": 0.92,
+    "source": "general_risk_model",
+    "jurisdiction": "internal",
+    "text": "When DCPA or minimum future distance is low, spatial conflict risk should be elevated even if raw TTC is not extremely low. Risk mechanism: Low closest approach distance and low predicted future distance indicate spatial conflict even when raw TTC is not the dominant signal. Trigger conditions: {\"dcpa_lt\": 2.0, \"min_future_distance_lt\": 2.5}. Relevant metrics: TTC, DCPA, min_future_distance, headway. Risk tags: spatial_conflict. Recommended actions: decelerate, increase_lateral_clearance, monitor_conflict_point. Forbidden actions: accelerate, force_pass, ignore_spatial_conflict. Applicable scenario tags: car_following, generic_interaction, highway_car_following, highway_cut_in, highway_interaction, highway_lane_change, intersection_vehicle_interaction, intersection_vru_interaction, roundabout_exit, roundabout_vehicle_interaction, roundabout_vru_interaction, spatial_conflict.",
+    "legacy": {
+      "legacy_id": "scenario_general_spatial_conflict_trigger_001",
+      "legacy_kb_type": "scenario",
+      "legacy_priority": 0.92
+    }
+  },
+  {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "scenario_general_high_drac_trigger_001",
+    "id": "scenario_general_high_drac_trigger_001",
+    "doc_type": "scenario",
+    "kb_type": "scenario",
+    "title": "High required deceleration risk trigger",
+    "dataset_tags": [
+      "highd",
+      "round",
+      "ind",
+      "all"
+    ],
+    "scenario_tags": [
+      "generic_interaction",
+      "highway_car_following",
+      "highway_cut_in",
+      "highway_interaction",
+      "highway_lane_change",
+      "intersection_vehicle_interaction",
+      "intersection_vru_interaction",
+      "roundabout_exit",
+      "roundabout_vehicle_interaction",
+      "roundabout_vru_interaction"
+    ],
+    "metric_tags": [
+      "DRAC",
+      "headway",
+      "acceleration"
+    ],
+    "risk_tags": [
+      "hard_braking",
+      "short_headway"
+    ],
+    "scene_type": "all",
+    "event_type": "all",
+    "pair_type": "all",
+    "condition": {
+      "drac_gt": 6.0
+    },
+    "risk_mechanism": "High DRAC means the vehicle would require strong braking to avoid conflict, indicating low remaining safety margin.",
+    "recommended_action": [
+      "decelerate",
+      "increase_headway",
+      "prepare_braking"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "keep_close_following",
+      "delay_response"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "priority_score": 0.92,
+    "source": "general_risk_model",
+    "jurisdiction": "internal",
+    "text": "When the required deceleration to avoid collision is high, the vehicle should reduce speed and increase safety margin immediately. Risk mechanism: High DRAC means the vehicle would require strong braking to avoid conflict, indicating low remaining safety margin. Trigger conditions: {\"drac_gt\": 6.0}. Relevant metrics: DRAC, headway, acceleration. Risk tags: hard_braking, short_headway. Recommended actions: decelerate, increase_headway, prepare_braking. Forbidden actions: accelerate, keep_close_following, delay_response. Applicable scenario tags: generic_interaction, highway_car_following, highway_cut_in, highway_interaction, highway_lane_change, intersection_vehicle_interaction, intersection_vru_interaction, roundabout_exit, roundabout_vehicle_interaction, roundabout_vru_interaction.",
+    "legacy": {
+      "legacy_id": "scenario_general_high_drac_trigger_001",
+      "legacy_kb_type": "scenario",
+      "legacy_priority": 0.92
+    }
+  },
+  {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "scenario_general_min_future_distance_trigger_001",
+    "id": "scenario_general_min_future_distance_trigger_001",
+    "doc_type": "scenario",
+    "kb_type": "scenario",
+    "title": "Minimum future distance conflict mechanism",
+    "dataset_tags": [
+      "highd",
+      "round",
+      "ind",
+      "all"
+    ],
+    "scenario_tags": [
+      "generic_interaction",
+      "highway_car_following",
+      "highway_cut_in",
+      "highway_interaction",
+      "highway_lane_change",
+      "intersection_vehicle_interaction",
+      "intersection_vru_interaction",
+      "roundabout_exit",
+      "roundabout_vehicle_interaction",
+      "roundabout_vru_interaction",
+      "spatial_conflict"
+    ],
+    "metric_tags": [
+      "min_future_distance",
+      "headway"
+    ],
+    "risk_tags": [
+      "prediction_uncertainty",
+      "short_headway",
+      "spatial_conflict"
+    ],
+    "scene_type": "all",
+    "event_type": "all",
+    "pair_type": "all",
+    "condition": {
+      "min_future_distance_lt": 2.0,
+      "prediction_horizon_s": 3.0
+    },
+    "risk_mechanism": "A low predicted minimum distance within a short horizon indicates that actors may converge to the same region even if the current distance is still acceptable.",
+    "recommended_action": [
+      "decelerate",
+      "increase_lateral_clearance",
+      "monitor_conflict_point"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "force_pass",
+      "ignore_predicted_path"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "priority_score": 0.91,
+    "source": "general_risk_model",
+    "jurisdiction": "internal",
+    "text": "When the predicted minimum future distance is below the safety margin within the prediction horizon, the vehicle should treat the interaction as a spatial conflict. Risk mechanism: A low predicted minimum distance within a short horizon indicates that actors may converge to the same region even if the current distance is still acceptable. Trigger conditions: {\"min_future_distance_lt\": 2.0, \"prediction_horizon_s\": 3.0}. Relevant metrics: min_future_distance, headway. Risk tags: prediction_uncertainty, short_headway, spatial_conflict. Recommended actions: decelerate, increase_lateral_clearance, monitor_conflict_point. Forbidden actions: accelerate, force_pass, ignore_predicted_path. Applicable scenario tags: generic_interaction, highway_car_following, highway_cut_in, highway_interaction, highway_lane_change, intersection_vehicle_interaction, intersection_vru_interaction, roundabout_exit, roundabout_vehicle_interaction, roundabout_vru_interaction, spatial_conflict.",
+    "legacy": {
+      "legacy_id": "scenario_general_min_future_distance_trigger_001",
+      "legacy_kb_type": "scenario",
+      "legacy_priority": 0.91
+    }
+  },
+  {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "scenario_general_vru_priority_trigger_001",
+    "id": "scenario_general_vru_priority_trigger_001",
+    "doc_type": "scenario",
+    "kb_type": "scenario",
+    "title": "Vulnerable road user priority risk mechanism",
+    "dataset_tags": [
+      "highd",
+      "round",
+      "ind",
+      "all"
+    ],
+    "scenario_tags": [
+      "generic_interaction",
+      "highway_car_following",
+      "highway_cut_in",
+      "highway_interaction",
+      "highway_lane_change",
+      "intersection_vehicle_interaction",
+      "intersection_vru_interaction",
+      "roundabout_exit",
+      "roundabout_vehicle_interaction",
+      "roundabout_vru_interaction",
+      "vru_conflict"
+    ],
+    "metric_tags": [
+      "DCPA",
+      "min_future_distance",
+      "headway",
+      "VRU",
+      "acceleration"
+    ],
+    "risk_tags": [
+      "hard_braking",
+      "spatial_conflict",
+      "vru_conflict",
+      "yielding"
+    ],
+    "scene_type": "all",
+    "event_type": "all",
+    "pair_type": "vehicle_pedestrian",
+    "condition": {
+      "vrus_present": true,
+      "min_future_distance_lt": 2.5,
+      "dcpa_lt": 2.0
+    },
+    "risk_mechanism": "Conflicts involving vulnerable road users should be treated with higher severity because pedestrians have low physical protection and limited ability to evade.",
+    "recommended_action": [
+      "yield",
+      "decelerate",
+      "monitor_vru"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "force_pass",
+      "ignore_vru"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "priority_score": 0.92,
+    "source": "general_risk_model",
+    "jurisdiction": "internal",
+    "text": "When a vulnerable road user is close to the predicted path, the vehicle should use a conservative strategy with yielding and early deceleration. Risk mechanism: Conflicts involving vulnerable road users should be treated with higher severity because pedestrians have low physical protection and limited ability to evade. Trigger conditions: {\"vrus_present\": true, \"min_future_distance_lt\": 2.5, \"dcpa_lt\": 2.0}. Relevant metrics: DCPA, min_future_distance, headway, VRU, acceleration. Risk tags: hard_braking, spatial_conflict, vru_conflict, yielding. Recommended actions: yield, decelerate, monitor_vru. Forbidden actions: accelerate, force_pass, ignore_vru. Applicable scenario tags: generic_interaction, highway_car_following, highway_cut_in, highway_interaction, highway_lane_change, intersection_vehicle_interaction, intersection_vru_interaction, roundabout_exit, roundabout_vehicle_interaction, roundabout_vru_interaction, vru_conflict.",
+    "legacy": {
+      "legacy_id": "scenario_general_vru_priority_trigger_001",
+      "legacy_kb_type": "scenario",
+      "legacy_priority": 0.92
+    }
+  },
+  {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "scenario_round_conflict_point_occupation_001",
+    "id": "scenario_round_conflict_point_occupation_001",
+    "doc_type": "scenario",
+    "kb_type": "scenario",
+    "title": "Roundabout conflict point occupation mechanism",
+    "dataset_tags": [
+      "round"
+    ],
+    "scenario_tags": [
+      "roundabout_merging",
+      "roundabout_vehicle_interaction"
+    ],
+    "metric_tags": [
+      "min_future_distance",
+      "headway"
+    ],
+    "risk_tags": [
+      "merging_conflict",
+      "prediction_uncertainty",
+      "spatial_conflict",
+      "yielding"
+    ],
+    "scene_type": "rounD",
+    "event_type": "roundabout_merging",
+    "pair_type": "vehicle_vehicle",
+    "condition": {
+      "conflict_point_ahead": true,
+      "other_actor_near_conflict_point": true,
+      "min_future_distance_lt": 2.5
+    },
+    "risk_mechanism": "Roundabout merging risk is driven by whether another actor will occupy the same conflict point within a short prediction horizon.",
+    "recommended_action": [
+      "yield",
+      "decelerate",
+      "monitor_conflict_point"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "force_merge",
+      "ignore_priority_relation"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "priority_score": 0.92,
+    "source": "scenario_rulebook",
+    "jurisdiction": "internal",
+    "text": "In roundabout merging, the vehicle should monitor whether another actor is predicted to occupy the same conflict point and yield when future spatial distance is low. Risk mechanism: Roundabout merging risk is driven by whether another actor will occupy the same conflict point within a short prediction horizon. Trigger conditions: {\"conflict_point_ahead\": true, \"other_actor_near_conflict_point\": true, \"min_future_distance_lt\": 2.5}. Relevant metrics: min_future_distance, headway. Risk tags: merging_conflict, prediction_uncertainty, spatial_conflict, yielding. Recommended actions: yield, decelerate, monitor_conflict_point. Forbidden actions: accelerate, force_merge, ignore_priority_relation. Applicable scenario tags: roundabout_merging, roundabout_vehicle_interaction.",
+    "legacy": {
+      "legacy_id": "scenario_round_conflict_point_occupation_001",
+      "legacy_kb_type": "scenario",
+      "legacy_priority": 0.92
+    }
+  },
+  {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "scenario_round_exit_cyclist_conflict_001",
+    "id": "scenario_round_exit_cyclist_conflict_001",
+    "doc_type": "scenario",
+    "kb_type": "scenario",
+    "title": "Roundabout exit cyclist conflict mechanism",
+    "dataset_tags": [
+      "round"
+    ],
+    "scenario_tags": [
+      "roundabout_exit",
+      "roundabout_vehicle_interaction",
+      "roundabout_vru_interaction"
+    ],
+    "metric_tags": [
+      "DCPA",
+      "headway",
+      "VRU"
+    ],
+    "risk_tags": [
+      "spatial_conflict",
+      "vru_conflict",
+      "yielding"
+    ],
+    "scene_type": "rounD",
+    "event_type": "roundabout_exit",
+    "pair_type": "vehicle_cyclist",
+    "condition": {
+      "vrus_present": true,
+      "exit_zone": true,
+      "path_overlap": true,
+      "dcpa_lt": 2.0
+    },
+    "risk_mechanism": "At roundabout exits, vehicle exit trajectories may overlap with cyclist trajectories, producing low-distance conflicts near the exit path.",
+    "recommended_action": [
+      "yield",
+      "decelerate",
+      "monitor_vru"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "force_exit",
+      "close_pass"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "priority_score": 0.92,
+    "source": "scenario_rulebook",
+    "jurisdiction": "internal",
+    "text": "When exiting a roundabout near a cyclist with overlapping path and low DCPA, the vehicle should yield, decelerate, and avoid forcing the exit. Risk mechanism: At roundabout exits, vehicle exit trajectories may overlap with cyclist trajectories, producing low-distance conflicts near the exit path. Trigger conditions: {\"vrus_present\": true, \"exit_zone\": true, \"path_overlap\": true, \"dcpa_lt\": 2.0}. Relevant metrics: DCPA, headway, VRU. Risk tags: spatial_conflict, vru_conflict, yielding. Recommended actions: yield, decelerate, monitor_vru. Forbidden actions: accelerate, force_exit, close_pass. Applicable scenario tags: roundabout_exit, roundabout_vehicle_interaction, roundabout_vru_interaction.",
+    "legacy": {
+      "legacy_id": "scenario_round_exit_cyclist_conflict_001",
+      "legacy_kb_type": "scenario",
+      "legacy_priority": 0.92
+    }
+  },
+  {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "scenario_highd_lead_vehicle_deceleration_001",
+    "id": "scenario_highd_lead_vehicle_deceleration_001",
+    "doc_type": "scenario",
+    "kb_type": "scenario",
+    "title": "Lead vehicle hard deceleration in highway following",
+    "dataset_tags": [
+      "highd"
+    ],
+    "scenario_tags": [
+      "car_following",
+      "highway_car_following",
+      "highway_interaction"
+    ],
+    "metric_tags": [
+      "TTC",
+      "THW",
+      "headway",
+      "relative_speed",
+      "acceleration"
+    ],
+    "risk_tags": [
+      "closing_speed",
+      "hard_braking",
+      "rear_end",
+      "short_headway"
+    ],
+    "scene_type": "highD",
+    "event_type": "car_following",
+    "pair_type": "vehicle_vehicle",
+    "condition": {
+      "lead_vehicle_decelerating": true,
+      "ttc_lt": 4.0,
+      "thw_lt": 1.5,
+      "closing_speed_gt": 0.0
+    },
+    "risk_mechanism": "When the lead vehicle decelerates while the following vehicle still has positive closing speed, the available reaction and braking space rapidly decreases.",
+    "recommended_action": [
+      "decelerate",
+      "increase_headway",
+      "prepare_braking"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "keep_close_following",
+      "delay_response"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "priority_score": 0.91,
+    "source": "scenario_rulebook",
+    "jurisdiction": "internal",
+    "text": "In highway following, lead vehicle deceleration combined with low headway and positive closing speed should trigger early deceleration. Risk mechanism: When the lead vehicle decelerates while the following vehicle still has positive closing speed, the available reaction and braking space rapidly decreases. Trigger conditions: {\"lead_vehicle_decelerating\": true, \"ttc_lt\": 4.0, \"thw_lt\": 1.5, \"closing_speed_gt\": 0.0}. Relevant metrics: TTC, THW, headway, relative_speed, acceleration. Risk tags: closing_speed, hard_braking, rear_end, short_headway. Recommended actions: decelerate, increase_headway, prepare_braking. Forbidden actions: accelerate, keep_close_following, delay_response. Applicable scenario tags: car_following, highway_car_following, highway_interaction.",
+    "legacy": {
+      "legacy_id": "scenario_highd_lead_vehicle_deceleration_001",
+      "legacy_kb_type": "scenario",
+      "legacy_priority": 0.91
+    }
+  },
+  {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "scenario_general_multi_frame_low_margin_001",
+    "id": "scenario_general_multi_frame_low_margin_001",
+    "doc_type": "scenario",
+    "kb_type": "scenario",
+    "title": "Multi-Frame Low-Safety-Margin Accumulated Risk Mechanism",
+    "dataset_tags": [
+      "highd",
+      "round",
+      "ind",
+      "all"
+    ],
+    "scenario_tags": [
+      "car_following",
+      "generic_interaction",
+      "highway_car_following",
+      "highway_cut_in",
+      "highway_interaction",
+      "highway_lane_change",
+      "intersection_vehicle_interaction",
+      "intersection_vru_interaction",
+      "roundabout_exit",
+      "roundabout_vehicle_interaction",
+      "roundabout_vru_interaction"
+    ],
+    "metric_tags": [
+      "TTC",
+      "DCPA",
+      "min_future_distance",
+      "headway"
+    ],
+    "risk_tags": [
+      "short_headway",
+      "temporal_risk_accumulation"
+    ],
+    "scene_type": "all",
+    "event_type": "multi_frame_low_margin",
+    "pair_type": "all",
+    "condition": {
+      "ttc_lt": 3.0,
+      "min_future_distance_lt": 2.5,
+      "multi_frame_low_margin": true
+    },
+    "risk_mechanism": "Low TTC or low distance across multiple consecutive frames indicates that the risk is not instantaneous noise, but a stable lack of safety margin that can gradually evolve into a high-danger state.",
+    "recommended_action": [
+      "decelerate",
+      "increase_headway",
+      "monitor_conflict_agent"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "keep_low_margin"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "priority_score": 0.9,
+    "source": "general_risk_model",
+    "jurisdiction": "internal",
+    "text": "Across multiple consecutive frames, the vehicle consistently maintains a low safety distance or low TTC. The risk accumulates over time and eventually forms a high-danger state. Risk mechanism: Low TTC or low distance across multiple consecutive frames indicates that the risk is not instantaneous noise, but a stable lack of safety margin that can gradually evolve into a high-danger state. Trigger conditions: {\"ttc_lt\": 3.0, \"min_future_distance_lt\": 2.5, \"multi_frame_low_margin\": true}. Relevant metrics: TTC, DCPA, min_future_distance, headway. Risk tags: short_headway, temporal_risk_accumulation. Recommended actions: decelerate, increase_headway, monitor_conflict_agent. Forbidden actions: accelerate, keep_low_margin. Applicable scenario tags: car_following, generic_interaction, highway_car_following, highway_cut_in, highway_interaction, highway_lane_change, intersection_vehicle_interaction, intersection_vru_interaction, roundabout_exit, roundabout_vehicle_interaction, roundabout_vru_interaction.",
+    "legacy": {
+      "legacy_id": "scenario_general_multi_frame_low_margin_001",
+      "legacy_kb_type": "scenario",
+      "legacy_priority": 0.9
+    }
+  },
+  {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "scenario_general_efficiency_dominance_001",
+    "id": "scenario_general_efficiency_dominance_001",
+    "doc_type": "scenario",
+    "kb_type": "scenario",
+    "title": "Safety Deficiency Caused by Efficiency-Dominant Driving Mechanism",
+    "dataset_tags": [
+      "highd",
+      "round",
+      "ind",
+      "all"
+    ],
+    "scenario_tags": [
+      "generic_interaction",
+      "highway_car_following",
+      "highway_cut_in",
+      "highway_interaction",
+      "highway_lane_change",
+      "intersection_vehicle_interaction",
+      "intersection_vru_interaction",
+      "roundabout_exit",
+      "roundabout_vehicle_interaction",
+      "roundabout_vru_interaction"
+    ],
+    "metric_tags": [
+      "headway"
+    ],
+    "risk_tags": [
+      "preference_guardrail",
+      "short_headway",
+      "yielding"
+    ],
+    "scene_type": "all",
+    "event_type": "efficiency_safety_tradeoff",
+    "pair_type": "all",
+    "condition": {
+      "safety_margin_low": true,
+      "efficiency_priority": true
+    },
+    "risk_mechanism": "An efficiency-first strategy may gain speed by compressing gaps or forcing passage, reducing both compliance and safety margins.",
+    "recommended_action": [
+      "yield",
+      "decelerate",
+      "increase_safety_margin"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "force_merge",
+      "keep_low_margin"
+    ],
+    "severity": "medium",
+    "priority": 2,
+    "priority_score": 0.9,
+    "source": "general_risk_model",
+    "jurisdiction": "internal",
+    "text": "When pursuing traffic efficiency, a vehicle may compress spacing or force passage to increase speed, causing the safety margin to decline significantly and creating potentially non-compliant behavior. Risk mechanism: An efficiency-first strategy may gain speed by compressing gaps or forcing passage, reducing both compliance and safety margins. Trigger conditions: {\"safety_margin_low\": true, \"efficiency_priority\": true}. Relevant metrics: headway. Risk tags: preference_guardrail, short_headway, yielding. Recommended actions: yield, decelerate, increase_safety_margin. Forbidden actions: accelerate, force_merge, keep_low_margin. Applicable scenario tags: generic_interaction, highway_car_following, highway_cut_in, highway_interaction, highway_lane_change, intersection_vehicle_interaction, intersection_vru_interaction, roundabout_exit, roundabout_vehicle_interaction, roundabout_vru_interaction.",
+    "legacy": {
+      "legacy_id": "scenario_general_efficiency_dominance_001",
+      "legacy_kb_type": "scenario",
+      "legacy_priority": 0.9
+    }
+  },
+  {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "scenario_all_drac_high_low_distance_001",
+    "id": "scenario_all_drac_high_low_distance_001",
+    "doc_type": "scenario",
+    "kb_type": "scenario",
+    "title": "Combined High-DRAC and Low-Future-Distance Risk Mechanism",
+    "dataset_tags": [
+      "highd",
+      "round",
+      "ind",
+      "all"
+    ],
+    "scenario_tags": [
+      "generic_interaction",
+      "highway_car_following",
+      "highway_cut_in",
+      "highway_interaction",
+      "highway_lane_change",
+      "intersection_vehicle_interaction",
+      "intersection_vru_interaction",
+      "roundabout_exit",
+      "roundabout_vehicle_interaction",
+      "roundabout_vru_interaction",
+      "spatial_conflict"
+    ],
+    "metric_tags": [
+      "TTC",
+      "DRAC",
+      "min_future_distance",
+      "headway"
+    ],
+    "risk_tags": [
+      "hard_braking",
+      "merging_conflict",
+      "short_headway",
+      "spatial_conflict"
+    ],
+    "scene_type": "all",
+    "event_type": "emergency_braking_risk",
+    "pair_type": "all",
+    "condition": {
+      "drac_gt": 6.0,
+      "min_future_distance_lt": 2.0,
+      "ttc_lt": 3.0
+    },
+    "risk_mechanism": "High DRAC indicates that strong braking is required to avoid a collision. If the future minimum distance is also low, the conflict has entered an emergency-response window.",
+    "recommended_action": [
+      "decelerate",
+      "increase_safety_margin",
+      "monitor_conflict_agent"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "maintain_high_speed",
+      "ignore_conflict"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "priority_score": 0.9,
+    "source": "general_risk_model",
+    "jurisdiction": "internal",
+    "text": "When DRAC is high and the predicted future distance is too low, the interaction should be treated as high risk and the safety margin should be restored immediately. Risk mechanism: High DRAC indicates that strong braking is required to avoid a collision. If the future minimum distance is also low, the conflict has entered an emergency-response window. Trigger conditions: {\"drac_gt\": 6.0, \"min_future_distance_lt\": 2.0, \"ttc_lt\": 3.0}. Relevant metrics: TTC, DRAC, min_future_distance, headway. Risk tags: hard_braking, merging_conflict, short_headway, spatial_conflict. Recommended actions: decelerate, increase_safety_margin, monitor_conflict_agent. Forbidden actions: accelerate, maintain_high_speed, ignore_conflict. Applicable scenario tags: generic_interaction, highway_car_following, highway_cut_in, highway_interaction, highway_lane_change, intersection_vehicle_interaction, intersection_vru_interaction, roundabout_exit, roundabout_vehicle_interaction, roundabout_vru_interaction, spatial_conflict.",
+    "legacy": {
+      "legacy_id": "scenario_all_drac_high_low_distance_001",
+      "legacy_kb_type": "scenario",
+      "legacy_priority": 0.9
+    }
+  },
+  {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "scenario_all_ttc_dcpa_disagreement_spatial_risk_001",
+    "id": "scenario_all_ttc_dcpa_disagreement_spatial_risk_001",
+    "doc_type": "scenario",
+    "kb_type": "scenario",
+    "title": "Spatial Risk Mechanism with Non-Low TTC but Too-Close Distance",
+    "dataset_tags": [
+      "highd",
+      "round",
+      "ind",
+      "all"
+    ],
+    "scenario_tags": [
+      "car_following",
+      "generic_interaction",
+      "highway_car_following",
+      "highway_cut_in",
+      "highway_interaction",
+      "highway_lane_change",
+      "intersection_vehicle_interaction",
+      "intersection_vru_interaction",
+      "roundabout_exit",
+      "roundabout_vehicle_interaction",
+      "roundabout_vru_interaction",
+      "spatial_conflict"
+    ],
+    "metric_tags": [
+      "TTC",
+      "DCPA",
+      "min_future_distance",
+      "headway"
+    ],
+    "risk_tags": [
+      "spatial_conflict"
+    ],
+    "scene_type": "all",
+    "event_type": "metric_disagreement_conflict",
+    "pair_type": "all",
+    "condition": {
+      "ttc_gt": 4.0,
+      "dcpa_lt": 1.5,
+      "min_future_distance_lt": 1.8
+    },
+    "risk_mechanism": "TTC can be insensitive due to velocity direction or short-term speed estimation, but low DCPA and low future distance still indicate an obvious spatial conflict.",
+    "recommended_action": [
+      "monitor_conflict_point",
+      "decelerate",
+      "increase_safety_margin"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "ignore_spatial_conflict",
+      "keep_low_margin"
+    ],
+    "severity": "medium",
+    "priority": 2,
+    "priority_score": 0.82,
+    "source": "general_risk_model",
+    "jurisdiction": "internal",
+    "text": "If TTC is not triggered but DCPA and future minimum distance remain low, spatial-risk evidence should be retained to avoid judging safety solely by TTC. Risk mechanism: TTC can be insensitive due to velocity direction or short-term speed estimation, but low DCPA and low future distance still indicate an obvious spatial conflict. Trigger conditions: {\"ttc_gt\": 4.0, \"dcpa_lt\": 1.5, \"min_future_distance_lt\": 1.8}. Relevant metrics: TTC, DCPA, min_future_distance, headway. Risk tags: spatial_conflict. Recommended actions: monitor_conflict_point, decelerate, increase_safety_margin. Forbidden actions: accelerate, ignore_spatial_conflict, keep_low_margin. Applicable scenario tags: car_following, generic_interaction, highway_car_following, highway_cut_in, highway_interaction, highway_lane_change, intersection_vehicle_interaction, intersection_vru_interaction, roundabout_exit, roundabout_vehicle_interaction, roundabout_vru_interaction, spatial_conflict.",
+    "legacy": {
+      "legacy_id": "scenario_all_ttc_dcpa_disagreement_spatial_risk_001",
+      "legacy_kb_type": "scenario",
+      "legacy_priority": 0.82
+    }
+  },
+  {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "scenario_all_vru_high_priority_low_margin_001",
+    "id": "scenario_all_vru_high_priority_low_margin_001",
+    "doc_type": "scenario",
+    "kb_type": "scenario",
+    "title": "High-Priority Low-Margin VRU Risk Mechanism",
+    "dataset_tags": [
+      "highd",
+      "round",
+      "ind",
+      "all"
+    ],
+    "scenario_tags": [
+      "generic_interaction",
+      "highway_car_following",
+      "highway_cut_in",
+      "highway_interaction",
+      "highway_lane_change",
+      "intersection_vehicle_interaction",
+      "intersection_vru_interaction",
+      "roundabout_exit",
+      "roundabout_vehicle_interaction",
+      "roundabout_vru_interaction",
+      "spatial_conflict",
+      "vru_conflict"
+    ],
+    "metric_tags": [
+      "DCPA",
+      "min_future_distance",
+      "headway",
+      "VRU"
+    ],
+    "risk_tags": [
+      "spatial_conflict",
+      "vru_conflict",
+      "yielding"
+    ],
+    "scene_type": "all",
+    "event_type": "vru_close_conflict",
+    "pair_type": "all",
+    "condition": {
+      "vrus_present": true,
+      "min_future_distance_lt": 2.0,
+      "dcpa_lt": 2.0
+    },
+    "risk_mechanism": "VRUs lack a vehicle shell for protection, so close interactions have more severe injury consequences and should rank higher than ordinary low-margin vehicle-vehicle cases.",
+    "recommended_action": [
+      "yield",
+      "decelerate",
+      "monitor_vru"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "close_pass",
+      "ignore_vru"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "priority_score": 0.92,
+    "source": "general_risk_model",
+    "jurisdiction": "internal",
+    "text": "Whenever the interaction object includes a pedestrian or cyclist and future spatial distance is low, the risk priority should be raised and a yielding strategy should be adopted. Risk mechanism: VRUs lack a vehicle shell for protection, so close interactions have more severe injury consequences and should rank higher than ordinary low-margin vehicle-vehicle cases. Trigger conditions: {\"vrus_present\": true, \"min_future_distance_lt\": 2.0, \"dcpa_lt\": 2.0}. Relevant metrics: DCPA, min_future_distance, headway, VRU. Risk tags: spatial_conflict, vru_conflict, yielding. Recommended actions: yield, decelerate, monitor_vru. Forbidden actions: accelerate, close_pass, ignore_vru. Applicable scenario tags: generic_interaction, highway_car_following, highway_cut_in, highway_interaction, highway_lane_change, intersection_vehicle_interaction, intersection_vru_interaction, roundabout_exit, roundabout_vehicle_interaction, roundabout_vru_interaction, spatial_conflict, vru_conflict.",
+    "legacy": {
+      "legacy_id": "scenario_all_vru_high_priority_low_margin_001",
+      "legacy_kb_type": "scenario",
+      "legacy_priority": 0.92
+    }
+  },
+  {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "scenario_all_multi_frame_risk_accumulation_002",
+    "id": "scenario_all_multi_frame_risk_accumulation_002",
+    "doc_type": "scenario",
+    "kb_type": "scenario",
+    "title": "Unresolved Multi-Frame Risk Mechanism",
+    "dataset_tags": [
+      "highd",
+      "round",
+      "ind",
+      "all"
+    ],
+    "scenario_tags": [
+      "car_following",
+      "generic_interaction",
+      "highway_car_following",
+      "highway_cut_in",
+      "highway_interaction",
+      "highway_lane_change",
+      "intersection_vehicle_interaction",
+      "intersection_vru_interaction",
+      "roundabout_exit",
+      "roundabout_vehicle_interaction",
+      "roundabout_vru_interaction",
+      "spatial_conflict"
+    ],
+    "metric_tags": [
+      "TTC",
+      "min_future_distance",
+      "headway"
+    ],
+    "risk_tags": [
+      "short_headway",
+      "spatial_conflict",
+      "temporal_risk_accumulation"
+    ],
+    "scene_type": "all",
+    "event_type": "multi_frame_low_margin",
+    "pair_type": "all",
+    "condition": {
+      "low_margin_frames_gte": 10,
+      "ttc_lt": 3.5,
+      "min_future_distance_lt": 2.5
+    },
+    "risk_mechanism": "Risk indicators triggered across multiple consecutive frames show that the danger is not instantaneous noise but a stable interaction pattern requiring active intervention.",
+    "recommended_action": [
+      "decelerate",
+      "increase_safety_margin",
+      "monitor_conflict_agent"
+    ],
+    "forbidden_action": [
+      "maintain_high_speed",
+      "ignore_conflict",
+      "keep_low_margin"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "priority_score": 0.9,
+    "source": "general_risk_model",
+    "jurisdiction": "internal",
+    "text": "If low TTC or low future distance persists across multiple consecutive frames, the vehicle should not continue its original strategy but should actively decelerate to restore the safety margin. Risk mechanism: Risk indicators triggered across multiple consecutive frames show that the danger is not instantaneous noise but a stable interaction pattern requiring active intervention. Trigger conditions: {\"low_margin_frames_gte\": 10, \"ttc_lt\": 3.5, \"min_future_distance_lt\": 2.5}. Relevant metrics: TTC, min_future_distance, headway. Risk tags: short_headway, spatial_conflict, temporal_risk_accumulation. Recommended actions: decelerate, increase_safety_margin, monitor_conflict_agent. Forbidden actions: maintain_high_speed, ignore_conflict, keep_low_margin. Applicable scenario tags: car_following, generic_interaction, highway_car_following, highway_cut_in, highway_interaction, highway_lane_change, intersection_vehicle_interaction, intersection_vru_interaction, roundabout_exit, roundabout_vehicle_interaction, roundabout_vru_interaction, spatial_conflict.",
+    "legacy": {
+      "legacy_id": "scenario_all_multi_frame_risk_accumulation_002",
+      "legacy_kb_type": "scenario",
+      "legacy_priority": 0.9
+    }
+  },
+  {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "scenario_all_prediction_uncertainty_high_risk_001",
+    "id": "scenario_all_prediction_uncertainty_high_risk_001",
+    "doc_type": "scenario",
+    "kb_type": "scenario",
+    "title": "Conservative Response Under Trajectory-Prediction Uncertainty Mechanism",
+    "dataset_tags": [
+      "highd",
+      "round",
+      "ind",
+      "all"
+    ],
+    "scenario_tags": [
+      "generic_interaction",
+      "highway_car_following",
+      "highway_cut_in",
+      "highway_interaction",
+      "highway_lane_change",
+      "intersection_vehicle_interaction",
+      "intersection_vru_interaction",
+      "roundabout_exit",
+      "roundabout_vehicle_interaction",
+      "roundabout_vru_interaction",
+      "spatial_conflict"
+    ],
+    "metric_tags": [
+      "DCPA",
+      "min_future_distance",
+      "headway",
+      "acceleration"
+    ],
+    "risk_tags": [
+      "hard_braking",
+      "prediction_uncertainty",
+      "short_headway",
+      "spatial_conflict"
+    ],
+    "scene_type": "all",
+    "event_type": "prediction_uncertainty_conflict",
+    "pair_type": "all",
+    "condition": {
+      "trajectory_uncertainty_high": true,
+      "min_future_distance_lt": 2.5,
+      "dcpa_lt": 2.5
+    },
+    "risk_mechanism": "When the other party's trajectory prediction is uncertain but the spatial margin is low, optimistic prediction can underestimate worst-case risk, so conservative actions should be used.",
+    "recommended_action": [
+      "decelerate",
+      "increase_safety_margin",
+      "monitor_conflict_agent"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "assume_constant_path",
+      "ignore_uncertainty"
+    ],
+    "severity": "medium",
+    "priority": 2,
+    "priority_score": 0.84,
+    "source": "general_risk_model",
+    "jurisdiction": "internal",
+    "text": "When trajectory prediction is uncertain and future distance is low, conservative deceleration and an enlarged safety margin should be prioritized. Risk mechanism: When the other party's trajectory prediction is uncertain but the spatial margin is low, optimistic prediction can underestimate worst-case risk, so conservative actions should be used. Trigger conditions: {\"trajectory_uncertainty_high\": true, \"min_future_distance_lt\": 2.5, \"dcpa_lt\": 2.5}. Relevant metrics: DCPA, min_future_distance, headway, acceleration. Risk tags: hard_braking, prediction_uncertainty, short_headway, spatial_conflict. Recommended actions: decelerate, increase_safety_margin, monitor_conflict_agent. Forbidden actions: accelerate, assume_constant_path, ignore_uncertainty. Applicable scenario tags: generic_interaction, highway_car_following, highway_cut_in, highway_interaction, highway_lane_change, intersection_vehicle_interaction, intersection_vru_interaction, roundabout_exit, roundabout_vehicle_interaction, roundabout_vru_interaction, spatial_conflict.",
+    "legacy": {
+      "legacy_id": "scenario_all_prediction_uncertainty_high_risk_001",
+      "legacy_kb_type": "scenario",
+      "legacy_priority": 0.84
+    }
+  },
+  {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "scenario_all_aggressive_jerk_low_margin_001",
+    "id": "scenario_all_aggressive_jerk_low_margin_001",
+    "doc_type": "scenario",
+    "kb_type": "scenario",
+    "title": "High-Jerk Aggressive Behavior with Low-Margin Mechanism",
+    "dataset_tags": [
+      "highd",
+      "round",
+      "ind",
+      "all"
+    ],
+    "scenario_tags": [
+      "generic_interaction",
+      "highway_car_following",
+      "highway_cut_in",
+      "highway_interaction",
+      "highway_lane_change",
+      "intersection_vehicle_interaction",
+      "intersection_vru_interaction",
+      "roundabout_exit",
+      "roundabout_vehicle_interaction",
+      "roundabout_vru_interaction",
+      "vru_conflict"
+    ],
+    "metric_tags": [
+      "headway",
+      "VRU",
+      "acceleration",
+      "jerk"
+    ],
+    "risk_tags": [
+      "hard_braking",
+      "preference_guardrail",
+      "short_headway",
+      "unsmooth_behavior",
+      "vru_conflict"
+    ],
+    "scene_type": "all",
+    "event_type": "aggressive_driving_conflict",
+    "pair_type": "all",
+    "condition": {
+      "jerk_abs_gt": 4.0,
+      "acceleration_abs_gt": 3.0,
+      "safety_margin_low": true
+    },
+    "risk_mechanism": "High jerk and high acceleration indicate unsmooth behavior. If the safety margin is also low, surrounding traffic participants will have greater difficulty predicting the vehicle.",
+    "recommended_action": [
+      "smooth_deceleration",
+      "increase_safety_margin",
+      "monitor_conflict_agent"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "aggressive_lane_change",
+      "keep_low_margin"
+    ],
+    "severity": "medium",
+    "priority": 2,
+    "priority_score": 0.8,
+    "source": "general_risk_model",
+    "jurisdiction": "internal",
+    "text": "When a vehicle exhibits aggressive acceleration or deceleration, or high jerk, and its distance to other vehicles or VRUs is low, smooth control and margin enlargement should be prioritized. Risk mechanism: High jerk and high acceleration indicate unsmooth behavior. If the safety margin is also low, surrounding traffic participants will have greater difficulty predicting the vehicle. Trigger conditions: {\"jerk_abs_gt\": 4.0, \"acceleration_abs_gt\": 3.0, \"safety_margin_low\": true}. Relevant metrics: headway, VRU, acceleration, jerk. Risk tags: hard_braking, preference_guardrail, short_headway, unsmooth_behavior, vru_conflict. Recommended actions: smooth_deceleration, increase_safety_margin, monitor_conflict_agent. Forbidden actions: accelerate, aggressive_lane_change, keep_low_margin. Applicable scenario tags: generic_interaction, highway_car_following, highway_cut_in, highway_interaction, highway_lane_change, intersection_vehicle_interaction, intersection_vru_interaction, roundabout_exit, roundabout_vehicle_interaction, roundabout_vru_interaction, vru_conflict.",
+    "legacy": {
+      "legacy_id": "scenario_all_aggressive_jerk_low_margin_001",
+      "legacy_kb_type": "scenario",
+      "legacy_priority": 0.8
+    }
+  },
+  {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "scenario_all_occluded_vru_possible_001",
+    "id": "scenario_all_occluded_vru_possible_001",
+    "doc_type": "scenario",
+    "kb_type": "scenario",
+    "title": "Conservative Passage with Potential VRU in Occluded Area Mechanism",
+    "dataset_tags": [
+      "highd",
+      "round",
+      "ind",
+      "all"
+    ],
+    "scenario_tags": [
+      "generic_interaction",
+      "highway_car_following",
+      "highway_cut_in",
+      "highway_interaction",
+      "highway_lane_change",
+      "intersection_vehicle_interaction",
+      "intersection_vru_interaction",
+      "roundabout_exit",
+      "roundabout_vehicle_interaction",
+      "roundabout_vru_interaction",
+      "vru_conflict"
+    ],
+    "metric_tags": [
+      "VRU"
+    ],
+    "risk_tags": [
+      "hard_braking",
+      "occlusion_risk",
+      "vru_conflict",
+      "yielding"
+    ],
+    "scene_type": "all",
+    "event_type": "occluded_vru_conflict",
+    "pair_type": "all",
+    "condition": {
+      "occlusion_risk": true,
+      "vru_likely": true,
+      "speed_gt": 6.0
+    },
+    "risk_mechanism": "An occluded area may contain unobserved VRUs, and higher speed can leave insufficient braking time after they are detected.",
+    "recommended_action": [
+      "decelerate",
+      "monitor_occluded_area",
+      "yield"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "maintain_high_speed",
+      "ignore_occlusion"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "priority_score": 0.92,
+    "source": "general_risk_model",
+    "jurisdiction": "internal",
+    "text": "When pedestrians or cyclists may enter from a roadside occluded area, the vehicle should reduce speed and prepare to yield. Risk mechanism: An occluded area may contain unobserved VRUs, and higher speed can leave insufficient braking time after they are detected. Trigger conditions: {\"occlusion_risk\": true, \"vru_likely\": true, \"speed_gt\": 6.0}. Relevant metrics: VRU. Risk tags: hard_braking, occlusion_risk, vru_conflict, yielding. Recommended actions: decelerate, monitor_occluded_area, yield. Forbidden actions: accelerate, maintain_high_speed, ignore_occlusion. Applicable scenario tags: generic_interaction, highway_car_following, highway_cut_in, highway_interaction, highway_lane_change, intersection_vehicle_interaction, intersection_vru_interaction, roundabout_exit, roundabout_vehicle_interaction, roundabout_vru_interaction, vru_conflict.",
+    "legacy": {
+      "legacy_id": "scenario_all_occluded_vru_possible_001",
+      "legacy_kb_type": "scenario",
+      "legacy_priority": 0.92
+    }
+  },
+  {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "scenario_all_conflict_point_competition_001",
+    "id": "scenario_all_conflict_point_competition_001",
+    "doc_type": "scenario",
+    "kb_type": "scenario",
+    "title": "Conflict-Point Arrival-Time Competition Mechanism",
+    "dataset_tags": [
+      "highd",
+      "round",
+      "ind",
+      "all"
+    ],
+    "scenario_tags": [
+      "generic_interaction",
+      "highway_car_following",
+      "highway_cut_in",
+      "highway_interaction",
+      "highway_lane_change",
+      "intersection_vehicle_interaction",
+      "intersection_vru_interaction",
+      "roundabout_exit",
+      "roundabout_vehicle_interaction",
+      "roundabout_vru_interaction",
+      "spatial_conflict"
+    ],
+    "metric_tags": [
+      "DCPA",
+      "TCPA",
+      "min_future_distance",
+      "headway"
+    ],
+    "risk_tags": [
+      "intersection_crossing",
+      "spatial_conflict",
+      "yielding"
+    ],
+    "scene_type": "all",
+    "event_type": "conflict_point_competition",
+    "pair_type": "all",
+    "condition": {
+      "time_to_conflict_diff_lt": 1.0,
+      "dcpa_lt": 2.5,
+      "min_future_distance_lt": 2.5
+    },
+    "risk_mechanism": "When multiple objects arrive at the same conflict point with a very small time gap, maintaining speed by both parties can create forced passage or crossing conflict.",
+    "recommended_action": [
+      "yield",
+      "decelerate",
+      "monitor_conflict_point"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "force_crossing",
+      "ignore_conflict_point"
+    ],
+    "severity": "medium",
+    "priority": 2,
+    "priority_score": 0.86,
+    "source": "general_risk_model",
+    "jurisdiction": "internal",
+    "text": "When two traffic participants arrive at the same conflict point almost simultaneously, the vehicle should actively decelerate and yield clearly to avoid time competition. Risk mechanism: When multiple objects arrive at the same conflict point with a very small time gap, maintaining speed by both parties can create forced passage or crossing conflict. Trigger conditions: {\"time_to_conflict_diff_lt\": 1.0, \"dcpa_lt\": 2.5, \"min_future_distance_lt\": 2.5}. Relevant metrics: DCPA, TCPA, min_future_distance, headway. Risk tags: intersection_crossing, spatial_conflict, yielding. Recommended actions: yield, decelerate, monitor_conflict_point. Forbidden actions: accelerate, force_crossing, ignore_conflict_point. Applicable scenario tags: generic_interaction, highway_car_following, highway_cut_in, highway_interaction, highway_lane_change, intersection_vehicle_interaction, intersection_vru_interaction, roundabout_exit, roundabout_vehicle_interaction, roundabout_vru_interaction, spatial_conflict.",
+    "legacy": {
+      "legacy_id": "scenario_all_conflict_point_competition_001",
+      "legacy_kb_type": "scenario",
+      "legacy_priority": 0.86
+    }
+  },
+  {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "scenario_all_low_speed_high_density_vru_001",
+    "id": "scenario_all_low_speed_high_density_vru_001",
+    "doc_type": "scenario",
+    "kb_type": "scenario",
+    "title": "Low-Speed High-Density VRU Mixed-Traffic Risk Mechanism",
+    "dataset_tags": [
+      "highd",
+      "round",
+      "ind",
+      "all"
+    ],
+    "scenario_tags": [
+      "generic_interaction",
+      "highway_car_following",
+      "highway_cut_in",
+      "highway_interaction",
+      "highway_lane_change",
+      "intersection_vehicle_interaction",
+      "intersection_vru_interaction",
+      "roundabout_exit",
+      "roundabout_vehicle_interaction",
+      "roundabout_vru_interaction",
+      "vru_conflict"
+    ],
+    "metric_tags": [
+      "DCPA",
+      "min_future_distance",
+      "headway",
+      "VRU"
+    ],
+    "risk_tags": [
+      "short_headway",
+      "spatial_conflict",
+      "vru_conflict"
+    ],
+    "scene_type": "all",
+    "event_type": "low_speed_vru_conflict",
+    "pair_type": "all",
+    "condition": {
+      "vrus_present": true,
+      "speed_lt": 10.0,
+      "num_vrus_gte": 3,
+      "dcpa_lt": 2.0,
+      "min_future_distance_lt": 2.0
+    },
+    "risk_mechanism": "In low-speed scenarios, collision severity may be lower, but high VRU density restricts the drivable space and increases close-contact and misjudgment risks.",
+    "recommended_action": [
+      "decelerate",
+      "yield",
+      "monitor_multiple_agents",
+      "increase_safety_margin"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "force_merge",
+      "close_pass"
+    ],
+    "severity": "medium",
+    "priority": 2,
+    "priority_score": 0.85,
+    "source": "general_risk_model",
+    "jurisdiction": "internal",
+    "text": "In areas with low speed but dense VRUs, the vehicle should avoid squeezing through small gaps and should prioritize maintaining low speed and enlarging buffer space. Risk mechanism: In low-speed scenarios, collision severity may be lower, but high VRU density restricts the drivable space and increases close-contact and misjudgment risks. Trigger conditions: {\"vrus_present\": true, \"speed_lt\": 10.0, \"num_vrus_gte\": 3, \"dcpa_lt\": 2.0, \"min_future_distance_lt\": 2.0}. Relevant metrics: DCPA, min_future_distance, headway, VRU. Risk tags: short_headway, spatial_conflict, vru_conflict. Recommended actions: decelerate, yield, monitor_multiple_agents, increase_safety_margin. Forbidden actions: accelerate, force_merge, close_pass. Applicable scenario tags: generic_interaction, highway_car_following, highway_cut_in, highway_interaction, highway_lane_change, intersection_vehicle_interaction, intersection_vru_interaction, roundabout_exit, roundabout_vehicle_interaction, roundabout_vru_interaction, vru_conflict.",
+    "legacy": {
+      "legacy_id": "scenario_all_low_speed_high_density_vru_001",
+      "legacy_kb_type": "scenario",
+      "legacy_priority": 0.85
+    }
+  },
+  {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "scenario_all_false_safe_ttc_lateral_conflict_001",
+    "id": "scenario_all_false_safe_ttc_lateral_conflict_001",
+    "doc_type": "scenario",
+    "kb_type": "scenario",
+    "title": "Apparently Safe TTC but Insufficient Lateral Distance Mechanism",
+    "dataset_tags": [
+      "highd",
+      "round",
+      "ind",
+      "all"
+    ],
+    "scenario_tags": [
+      "car_following",
+      "generic_interaction",
+      "highway_car_following",
+      "highway_cut_in",
+      "highway_interaction",
+      "highway_lane_change",
+      "intersection_vehicle_interaction",
+      "intersection_vru_interaction",
+      "roundabout_exit",
+      "roundabout_vehicle_interaction",
+      "roundabout_vru_interaction",
+      "spatial_conflict"
+    ],
+    "metric_tags": [
+      "TTC",
+      "DCPA",
+      "min_future_distance",
+      "headway"
+    ],
+    "risk_tags": [
+      "spatial_conflict"
+    ],
+    "scene_type": "all",
+    "event_type": "metric_disagreement_conflict",
+    "pair_type": "all",
+    "condition": {
+      "ttc_gt": 4.0,
+      "dcpa_lt": 1.2,
+      "lateral_distance_lt": 1.2,
+      "min_future_distance_lt": 1.5
+    },
+    "risk_mechanism": "TTC mainly reflects longitudinal closing time and cannot sufficiently represent lateral proximity or parallel side-swipe risk, so high TTC does not imply spatial safety.",
+    "recommended_action": [
+      "increase_lateral_clearance",
+      "decelerate",
+      "monitor_adjacent_agent"
+    ],
+    "forbidden_action": [
+      "close_pass",
+      "accelerate",
+      "ignore_spatial_conflict"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "priority_score": 0.9,
+    "source": "general_risk_model",
+    "jurisdiction": "internal",
+    "text": "When TTC is large but DCPA and lateral distance are very small, the interaction should be handled primarily as a spatial conflict to avoid mistakenly judging the scene as safe. Risk mechanism: TTC mainly reflects longitudinal closing time and cannot sufficiently represent lateral proximity or parallel side-swipe risk, so high TTC does not imply spatial safety. Trigger conditions: {\"ttc_gt\": 4.0, \"dcpa_lt\": 1.2, \"lateral_distance_lt\": 1.2, \"min_future_distance_lt\": 1.5}. Relevant metrics: TTC, DCPA, min_future_distance, headway. Risk tags: spatial_conflict. Recommended actions: increase_lateral_clearance, decelerate, monitor_adjacent_agent. Forbidden actions: close_pass, accelerate, ignore_spatial_conflict. Applicable scenario tags: car_following, generic_interaction, highway_car_following, highway_cut_in, highway_interaction, highway_lane_change, intersection_vehicle_interaction, intersection_vru_interaction, roundabout_exit, roundabout_vehicle_interaction, roundabout_vru_interaction, spatial_conflict.",
+    "legacy": {
+      "legacy_id": "scenario_all_false_safe_ttc_lateral_conflict_001",
+      "legacy_kb_type": "scenario",
+      "legacy_priority": 0.9
+    }
+  },
+  {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "scenario_all_sudden_deceleration_lead_vehicle_001",
+    "id": "scenario_all_sudden_deceleration_lead_vehicle_001",
+    "doc_type": "scenario",
+    "kb_type": "scenario",
+    "title": "Lead Vehicle Sudden Deceleration Triggering Following Risk Mechanism",
+    "dataset_tags": [
+      "highd",
+      "round",
+      "ind",
+      "all"
+    ],
+    "scenario_tags": [
+      "car_following",
+      "generic_interaction",
+      "highway_car_following",
+      "highway_cut_in",
+      "highway_interaction",
+      "highway_lane_change",
+      "intersection_vehicle_interaction",
+      "intersection_vru_interaction",
+      "roundabout_exit",
+      "roundabout_vehicle_interaction",
+      "roundabout_vru_interaction"
+    ],
+    "metric_tags": [
+      "TTC",
+      "THW",
+      "DRAC",
+      "headway",
+      "acceleration"
+    ],
+    "risk_tags": [
+      "hard_braking",
+      "rear_end",
+      "short_headway"
+    ],
+    "scene_type": "all",
+    "event_type": "car_following",
+    "pair_type": "vehicle_vehicle",
+    "condition": {
+      "ttc_lt": 3.0,
+      "thw_lt": 1.2,
+      "lead_deceleration_gt": 3.0,
+      "closing_speed_gt": 0.0
+    },
+    "risk_mechanism": "When the lead vehicle suddenly decelerates and the following vehicle has insufficient headway, the following vehicle needs high braking intensity to avoid rear-end collision, and risk accumulates rapidly.",
+    "recommended_action": [
+      "decelerate",
+      "increase_headway",
+      "monitor_lead_vehicle"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "keep_close_following",
+      "late_brake"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "priority_score": 0.9,
+    "source": "general_risk_model",
+    "jurisdiction": "internal",
+    "text": "If the lead vehicle clearly decelerates and the following vehicle is at a small headway, the following vehicle should immediately decelerate and increase the gap instead of continuing close following. Risk mechanism: When the lead vehicle suddenly decelerates and the following vehicle has insufficient headway, the following vehicle needs high braking intensity to avoid rear-end collision, and risk accumulates rapidly. Trigger conditions: {\"ttc_lt\": 3.0, \"thw_lt\": 1.2, \"lead_deceleration_gt\": 3.0, \"closing_speed_gt\": 0.0}. Relevant metrics: TTC, THW, DRAC, headway, acceleration. Risk tags: hard_braking, rear_end, short_headway. Recommended actions: decelerate, increase_headway, monitor_lead_vehicle. Forbidden actions: accelerate, keep_close_following, late_brake. Applicable scenario tags: car_following, generic_interaction, highway_car_following, highway_cut_in, highway_interaction, highway_lane_change, intersection_vehicle_interaction, intersection_vru_interaction, roundabout_exit, roundabout_vehicle_interaction, roundabout_vru_interaction.",
+    "legacy": {
+      "legacy_id": "scenario_all_sudden_deceleration_lead_vehicle_001",
+      "legacy_kb_type": "scenario",
+      "legacy_priority": 0.9
+    }
+  },
+  {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "scenario_all_vru_intention_uncertainty_002",
+    "id": "scenario_all_vru_intention_uncertainty_002",
+    "doc_type": "scenario",
+    "kb_type": "scenario",
+    "title": "Conservative Decision Mechanism Under VRU Intention Uncertainty",
+    "dataset_tags": [
+      "highd",
+      "round",
+      "ind",
+      "all"
+    ],
+    "scenario_tags": [
+      "generic_interaction",
+      "highway_car_following",
+      "highway_cut_in",
+      "highway_interaction",
+      "highway_lane_change",
+      "intersection_vehicle_interaction",
+      "intersection_vru_interaction",
+      "roundabout_exit",
+      "roundabout_vehicle_interaction",
+      "roundabout_vru_interaction",
+      "vru_conflict"
+    ],
+    "metric_tags": [
+      "DCPA",
+      "min_future_distance",
+      "headway",
+      "VRU"
+    ],
+    "risk_tags": [
+      "prediction_uncertainty",
+      "short_headway",
+      "spatial_conflict",
+      "vru_conflict"
+    ],
+    "scene_type": "all",
+    "event_type": "vru_intention_uncertainty",
+    "pair_type": "all",
+    "condition": {
+      "vrus_present": true,
+      "prediction_uncertainty_gt": 0.7,
+      "dcpa_lt": 2.5,
+      "min_future_distance_lt": 2.5
+    },
+    "risk_mechanism": "When VRU intention is uncertain, a single trajectory prediction may underestimate the true conflict probability, so a more conservative multimodal risk boundary should be used.",
+    "recommended_action": [
+      "decelerate",
+      "yield",
+      "monitor_vru",
+      "increase_safety_margin"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "assume_constant_velocity",
+      "force_pass"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "priority_score": 0.92,
+    "source": "general_risk_model",
+    "jurisdiction": "internal",
+    "text": "When VRU motion intention is unstable or prediction uncertainty is high, the vehicle should reduce speed and enlarge the safety margin instead of relying on a single predicted trajectory to force passage. Risk mechanism: When VRU intention is uncertain, a single trajectory prediction may underestimate the true conflict probability, so a more conservative multimodal risk boundary should be used. Trigger conditions: {\"vrus_present\": true, \"prediction_uncertainty_gt\": 0.7, \"dcpa_lt\": 2.5, \"min_future_distance_lt\": 2.5}. Relevant metrics: DCPA, min_future_distance, headway, VRU. Risk tags: prediction_uncertainty, short_headway, spatial_conflict, vru_conflict. Recommended actions: decelerate, yield, monitor_vru, increase_safety_margin. Forbidden actions: accelerate, assume_constant_velocity, force_pass. Applicable scenario tags: generic_interaction, highway_car_following, highway_cut_in, highway_interaction, highway_lane_change, intersection_vehicle_interaction, intersection_vru_interaction, roundabout_exit, roundabout_vehicle_interaction, roundabout_vru_interaction, vru_conflict.",
+    "legacy": {
+      "legacy_id": "scenario_all_vru_intention_uncertainty_002",
+      "legacy_kb_type": "scenario",
+      "legacy_priority": 0.92
+    }
+  },
+  {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "scenario_all_close_pass_requires_buffer_001",
+    "id": "scenario_all_close_pass_requires_buffer_001",
+    "doc_type": "scenario",
+    "kb_type": "scenario",
+    "title": "Close Passing of VRU Requires Extra Buffer Mechanism",
+    "dataset_tags": [
+      "highd",
+      "round",
+      "ind",
+      "all"
+    ],
+    "scenario_tags": [
+      "generic_interaction",
+      "highway_car_following",
+      "highway_cut_in",
+      "highway_interaction",
+      "highway_lane_change",
+      "intersection_vehicle_interaction",
+      "intersection_vru_interaction",
+      "roundabout_exit",
+      "roundabout_vehicle_interaction",
+      "roundabout_vru_interaction",
+      "spatial_conflict",
+      "vru_conflict"
+    ],
+    "metric_tags": [
+      "DCPA",
+      "headway",
+      "VRU"
+    ],
+    "risk_tags": [
+      "preference_guardrail",
+      "short_headway",
+      "spatial_conflict",
+      "vru_conflict"
+    ],
+    "scene_type": "all",
+    "event_type": "vru_close_pass",
+    "pair_type": "all",
+    "condition": {
+      "vrus_present": true,
+      "lateral_distance_lt": 1.5,
+      "dcpa_lt": 1.5,
+      "speed_gt": 5.0
+    },
+    "risk_mechanism": "Passing a VRU at close range with relatively high speed reduces the VRU's recovery space and amplifies collision risk from minor lateral disturbances.",
+    "recommended_action": [
+      "increase_lateral_clearance",
+      "decelerate",
+      "monitor_vru"
+    ],
+    "forbidden_action": [
+      "close_pass",
+      "accelerate",
+      "aggressive_lane_change"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "priority_score": 0.91,
+    "source": "general_risk_model",
+    "jurisdiction": "internal",
+    "text": "When a vehicle needs to pass beside a VRU, it should satisfy both low speed and sufficient lateral buffer and must not pass closely with an efficiency-first strategy. Risk mechanism: Passing a VRU at close range with relatively high speed reduces the VRU's recovery space and amplifies collision risk from minor lateral disturbances. Trigger conditions: {\"vrus_present\": true, \"lateral_distance_lt\": 1.5, \"dcpa_lt\": 1.5, \"speed_gt\": 5.0}. Relevant metrics: DCPA, headway, VRU. Risk tags: preference_guardrail, short_headway, spatial_conflict, vru_conflict. Recommended actions: increase_lateral_clearance, decelerate, monitor_vru. Forbidden actions: close_pass, accelerate, aggressive_lane_change. Applicable scenario tags: generic_interaction, highway_car_following, highway_cut_in, highway_interaction, highway_lane_change, intersection_vehicle_interaction, intersection_vru_interaction, roundabout_exit, roundabout_vehicle_interaction, roundabout_vru_interaction, spatial_conflict, vru_conflict.",
+    "legacy": {
+      "legacy_id": "scenario_all_close_pass_requires_buffer_001",
+      "legacy_kb_type": "scenario",
+      "legacy_priority": 0.91
+    }
   }
 ]

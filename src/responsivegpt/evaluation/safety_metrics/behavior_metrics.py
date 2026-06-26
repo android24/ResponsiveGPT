@@ -25,6 +25,10 @@ def compute_behavior_safety_metrics(frame_metrics_list, decision_list, trigger_l
         return BehaviorSafetyMetrics(
             num_frames=0,
             reaction_delay_frames=None,
+            reaction_success_rate=None,
+            reaction_censored=False,
+            first_risky_frame_pos=None,
+            reaction_observation_window_frames=None,
             trigger_delay_frames=None,
             decision_flip_count=0,
             decision_flip_rate=0.0,
@@ -53,6 +57,19 @@ def compute_behavior_safety_metrics(frame_metrics_list, decision_list, trigger_l
             if _decision_violation(decision_list[j]):
                 reaction_delay = j - first_risky_idx
                 break
+    reaction_success_rate = (
+        None
+        if first_risky_idx is None
+        else float(reaction_delay is not None)
+    )
+    reaction_censored = (
+        first_risky_idx is not None and reaction_delay is None
+    )
+    reaction_observation_window = (
+        None
+        if first_risky_idx is None
+        else max(0, n - 1 - first_risky_idx)
+    )
 
     # first trigger after risk appears
     trigger_delay = None
@@ -74,6 +91,10 @@ def compute_behavior_safety_metrics(frame_metrics_list, decision_list, trigger_l
     return BehaviorSafetyMetrics(
         num_frames=n,
         reaction_delay_frames=reaction_delay,
+        reaction_success_rate=reaction_success_rate,
+        reaction_censored=reaction_censored,
+        first_risky_frame_pos=first_risky_idx,
+        reaction_observation_window_frames=reaction_observation_window,
         trigger_delay_frames=trigger_delay,
         decision_flip_count=flips,
         decision_flip_rate=flips / max(1, n - 1),

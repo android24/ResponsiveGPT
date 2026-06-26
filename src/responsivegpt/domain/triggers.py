@@ -13,6 +13,7 @@ TriggerType = Literal[
 TriggerAction = Literal[
     "increase_safety_weight",
     "decrease_efficiency_weight",
+    "increase_efficiency_weight",
     "increase_risk_sensitivity",
     "apply_guardrail",
     "freeze_lane_change",

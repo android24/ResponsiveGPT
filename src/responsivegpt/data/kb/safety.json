@@ -1,0 +1,197 @@
+[
+  {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "safety_highd_ttc_thw_following_001",
+    "id": "safety_highd_ttc_thw_following_001",
+    "doc_type": "safety",
+    "kb_type": "safety",
+    "title": "TTC and THW Risk in Highway Car-Following",
+    "dataset_tags": ["highd"],
+    "scenario_tags": ["highway_car_following", "car_following", "highway_interaction"],
+    "metric_tags": ["TTC", "THW", "headway", "relative_speed"],
+    "risk_tags": ["rear_end", "short_headway", "closing_speed", "insufficient_reaction_time"],
+    "scene_type": "highD",
+    "event_type": "car_following",
+    "pair_type": "vehicle_vehicle",
+    "condition": {
+      "ttc_lt": 3.0,
+      "thw_lt": 1.2,
+      "closing_speed_gt": 0.0
+    },
+    "risk_mechanism": "Low TTC and short THW indicate that the following vehicle has limited time and distance to react to lead-vehicle braking. Positive closing speed further accelerates the reduction of available reaction time.",
+    "metric_interpretation": {
+      "TTC": "Lower TTC indicates less time before a potential rear-end conflict if the closing trend continues.",
+      "THW": "Lower THW indicates insufficient temporal spacing under the current ego speed.",
+      "relative_speed": "Positive closing speed indicates that ego is approaching the lead vehicle."
+    },
+    "recommended_action": ["increase_headway", "decelerate", "monitor_lead_vehicle"],
+    "forbidden_action": ["accelerate", "keep_close_following"],
+    "severity": "high",
+    "priority": 3,
+    "source": "internal_safety_metric_rule",
+    "jurisdiction": "internal_experimental_rule",
+    "text": "For highD highway car-following, TTC below 3.0 seconds or THW below 1.2 seconds indicates insufficient reaction time. If closing speed is positive, rear-end risk increases rapidly. The system should increase headway, decelerate, and monitor the lead vehicle rather than accelerating or maintaining close following."
+  },
+  {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "safety_highd_cutin_headway_drop_001",
+    "id": "safety_highd_cutin_headway_drop_001",
+    "doc_type": "safety",
+    "kb_type": "safety",
+    "title": "Headway Drop and TTC Risk in Highway Cut-in",
+    "dataset_tags": ["highd"],
+    "scenario_tags": ["highway_cut_in", "highway_lane_change", "cut_in", "highway_interaction"],
+    "metric_tags": ["TTC", "THW", "headway", "min_future_distance"],
+    "risk_tags": ["cut_in", "rear_end", "headway_reduction", "gap_acceptance", "short_headway"],
+    "scene_type": "highD",
+    "event_type": "cut_in",
+    "pair_type": "vehicle_vehicle",
+    "condition": {
+      "cut_in_detected": true,
+      "headway_drop_gt": 0.3,
+      "thw_lt": 1.5,
+      "min_future_distance_lt": 2.5
+    },
+    "risk_mechanism": "A cut-in can abruptly compress the target-lane gap. A sudden headway drop is more dangerous than a stable short headway because the rear vehicle has less time to adapt.",
+    "metric_interpretation": {
+      "headway": "A rapid headway reduction indicates sudden compression of reaction space.",
+      "THW": "Low THW after cut-in indicates insufficient temporal spacing.",
+      "min_future_distance": "Low future distance indicates that the spatial gap may remain unsafe in the near future."
+    },
+    "recommended_action": ["decelerate", "increase_headway", "monitor_cut_in_vehicle"],
+    "forbidden_action": ["accelerate", "force_merge", "aggressive_lane_change"],
+    "severity": "high",
+    "priority": 3,
+    "source": "internal_safety_metric_rule",
+    "jurisdiction": "internal_experimental_rule",
+    "text": "In highway cut-in scenarios, sudden headway reduction and low THW indicate compressed reaction space for the rear vehicle. If minimum future distance is also low, the interaction should be treated as high risk. The system should decelerate, increase headway, and avoid aggressive lane-changing or acceleration."
+  },
+  {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "safety_general_drac_emergency_braking_001",
+    "id": "safety_general_drac_emergency_braking_001",
+    "doc_type": "safety",
+    "kb_type": "safety",
+    "title": "DRAC as Emergency Braking Demand Indicator",
+    "dataset_tags": ["highd", "round", "ind", "all"],
+    "scenario_tags": ["generic_interaction", "highway_car_following", "intersection_vehicle_interaction", "roundabout_vehicle_interaction"],
+    "metric_tags": ["DRAC", "TTC", "relative_speed"],
+    "risk_tags": ["hard_braking", "collision", "short_headway", "merging_conflict"],
+    "scene_type": "all",
+    "event_type": "emergency_braking_required",
+    "pair_type": "all",
+    "condition": {
+      "drac_gt": 6.0,
+      "ttc_lt": 3.0
+    },
+    "risk_mechanism": "High DRAC means that strong deceleration is required to avoid a collision. When high DRAC appears together with low TTC, the system should treat the interaction as urgent.",
+    "metric_interpretation": {
+      "DRAC": "Higher DRAC indicates larger required deceleration to avoid collision.",
+      "TTC": "Low TTC indicates short remaining time before potential collision."
+    },
+    "recommended_action": ["decelerate", "increase_headway", "prepare_to_stop", "avoid_new_conflict"],
+    "forbidden_action": ["accelerate", "force_merge", "keep_close_following"],
+    "severity": "high",
+    "priority": 3,
+    "source": "internal_safety_metric_rule",
+    "jurisdiction": "internal_experimental_rule",
+    "text": "DRAC reflects the deceleration demand required to avoid collision. If DRAC exceeds 6.0 m/s² and TTC is below 3.0 seconds, the interaction should be treated as an emergency braking risk. The system should decelerate, prepare to stop, and avoid creating new conflicts."
+  },
+  {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "safety_round_dcpa_future_distance_001",
+    "id": "safety_round_dcpa_future_distance_001",
+    "doc_type": "safety",
+    "kb_type": "safety",
+    "title": "DCPA and Future Distance Risk in Roundabout Interaction",
+    "dataset_tags": ["round"],
+    "scenario_tags": ["roundabout_vehicle_interaction", "roundabout_merging", "roundabout_exit"],
+    "metric_tags": ["DCPA", "TCPA", "min_future_distance", "distance", "headway"],
+    "risk_tags": ["roundabout_conflict", "spatial_conflict", "merging_conflict", "yielding"],
+    "scene_type": "rounD",
+    "event_type": "roundabout_merging",
+    "pair_type": "vehicle_vehicle",
+    "condition": {
+      "dcpa_lt": 2.0,
+      "min_future_distance_lt": 2.5
+    },
+    "risk_mechanism": "Roundabout conflicts are often dominated by future spatial proximity rather than purely longitudinal TTC. Small DCPA and low minimum future distance indicate that two agents may occupy nearby conflict regions.",
+    "metric_interpretation": {
+      "DCPA": "Small DCPA indicates that two trajectories will pass close to each other.",
+      "TCPA": "Small positive TCPA indicates that the closest approach will occur soon.",
+      "min_future_distance": "Low minimum future distance indicates near-term spatial conflict."
+    },
+    "recommended_action": ["yield", "decelerate", "monitor_conflict_point"],
+    "forbidden_action": ["accelerate", "force_merge", "ignore_conflict_vehicle"],
+    "severity": "high",
+    "priority": 3,
+    "source": "internal_safety_metric_rule",
+    "jurisdiction": "internal_experimental_rule",
+    "text": "For rounD roundabout interactions, DCPA and minimum future distance should be prioritized over raw longitudinal TTC. If DCPA is below 2.0 meters or minimum future distance is below 2.5 meters, the system should yield, decelerate, and monitor the conflict point instead of forcing a merge."
+  },
+  {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "safety_vru_spatial_margin_001",
+    "id": "safety_vru_spatial_margin_001",
+    "doc_type": "safety",
+    "kb_type": "safety",
+    "title": "VRU Spatial Safety Margin Risk",
+    "dataset_tags": ["round", "ind", "all"],
+    "scenario_tags": ["roundabout_vru_interaction", "intersection_vru_interaction", "vru_conflict"],
+    "metric_tags": ["DCPA", "min_future_distance", "lateral_clearance", "VRU"],
+    "risk_tags": ["vru_conflict", "low_lateral_clearance", "spatial_conflict", "yielding"],
+    "scene_type": "all",
+    "event_type": "vru_conflict",
+    "pair_type": "vehicle_pedestrian_or_cyclist",
+    "condition": {
+      "vrus_present": true,
+      "dcpa_lt": 2.0,
+      "min_future_distance_lt": 2.0
+    },
+    "risk_mechanism": "Vulnerable road users have high motion uncertainty and low physical protection. Low DCPA or low future distance around VRUs should increase safety weighting even when TTC is not yet critical.",
+    "metric_interpretation": {
+      "DCPA": "Small DCPA near a VRU indicates close passing or crossing conflict.",
+      "min_future_distance": "Low predicted future distance indicates insufficient spatial buffer.",
+      "VRU": "Presence of pedestrians or cyclists should raise the safety priority."
+    },
+    "recommended_action": ["yield", "decelerate", "monitor_vru", "increase_lateral_clearance"],
+    "forbidden_action": ["accelerate", "close_pass", "force_crossing", "ignore_vru"],
+    "severity": "high",
+    "priority": 3,
+    "source": "internal_safety_metric_rule",
+    "jurisdiction": "internal_experimental_rule",
+    "text": "When pedestrians or cyclists are near the ego path, the system should rely on DCPA, minimum future distance, and lateral clearance to evaluate risk. If a VRU is present and spatial margin is low, the system should yield, decelerate, monitor the VRU, and increase lateral clearance."
+  },
+  {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "safety_ind_occlusion_vru_001",
+    "id": "safety_ind_occlusion_vru_001",
+    "doc_type": "safety",
+    "kb_type": "safety",
+    "title": "Occlusion-Aware VRU Risk at Urban Intersections",
+    "dataset_tags": ["ind"],
+    "scenario_tags": ["intersection_vru_interaction", "intersection_occlusion", "occluded_pedestrian_conflict"],
+    "metric_tags": ["min_future_distance", "occlusion", "VRU"],
+    "risk_tags": ["occlusion", "vru_conflict", "crossing_conflict", "hard_braking"],
+    "scene_type": "inD",
+    "event_type": "occluded_pedestrian_conflict",
+    "pair_type": "vehicle_pedestrian",
+    "condition": {
+      "vrus_present": true,
+      "occlusion_risk": true,
+      "min_future_distance_lt": 2.5
+    },
+    "risk_mechanism": "Occlusion can delay the detection of pedestrians or cyclists. Even if current distance is not extremely low, the system should reduce speed when future distance is small and visibility is limited.",
+    "metric_interpretation": {
+      "occlusion": "Occlusion increases uncertainty about VRU motion and appearance.",
+      "min_future_distance": "Low future distance under occlusion indicates insufficient time to react after the VRU becomes visible."
+    },
+    "recommended_action": ["decelerate", "monitor_occlusion", "yield"],
+    "forbidden_action": ["accelerate", "close_pass", "ignore_occlusion"],
+    "severity": "high",
+    "priority": 3,
+    "source": "internal_safety_metric_rule",
+    "jurisdiction": "internal_experimental_rule",
+    "text": "For inD urban intersection scenes with occlusion risk, the system should reduce speed and enlarge the safety margin even before a pedestrian is fully visible. Low minimum future distance under occlusion should trigger conservative behavior."
+  }
+]

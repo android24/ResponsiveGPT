@@ -108,15 +108,16 @@ class NullProfileLearner:
     """
     用于消融实验：禁用 profile learning，但保持 service 接口不变。
     """
+    enabled = False
+
     def update(self, profile, *args, **kwargs):
-        # 保持 profile 不变，并返回“空更新”
-        return profile, {}
+        return profile
 
     def step(self, profile, *args, **kwargs):
-        return profile, {}
+        return profile
 
     def learn(self, profile, *args, **kwargs):
-        return profile, {}
+        return profile
 
     def apply(self, profile, *args, **kwargs):
-        return profile, {}
+        return profile

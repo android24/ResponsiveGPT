@@ -1,11 +1,11 @@
-from dataclasses import dataclass
-from typing import Optional
+from dataclasses import dataclass, field
+from typing import Any, Optional
 
 
 @dataclass(frozen=True)
 class KnowledgeDoc:
     id: str
-    kb_type: str              # law / case / scenario
+    kb_type: str              # law / case / scenario / policy / safety
     title: str
     text: str
 
@@ -15,6 +15,19 @@ class KnowledgeDoc:
 
     source: Optional[str] = None
     priority: float = 1.0
+
+    dataset_tags: list[str] = field(default_factory=list)
+    scenario_tags: list[str] = field(default_factory=list)
+    metric_tags: list[str] = field(default_factory=list)
+    risk_tags: list[str] = field(default_factory=list)
+
+    condition: dict[str, Any] = field(default_factory=dict)
+    risk_mechanism: Optional[str] = None
+    recommended_action: list[str] = field(default_factory=list)
+    forbidden_action: list[str] = field(default_factory=list)
+    severity: Optional[str] = None
+    jurisdiction: Optional[str] = None
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)

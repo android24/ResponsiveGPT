@@ -1,0 +1,231 @@
+[
+  {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "policy_general_safety_over_efficiency_001",
+    "id": "policy_general_safety_over_efficiency_001",
+    "doc_type": "policy",
+    "kb_type": "policy",
+    "title": "Safety-First Decision Policy",
+    "dataset_tags": ["highd", "round", "ind", "all"],
+    "scenario_tags": ["generic_interaction", "highway_car_following", "highway_cut_in", "roundabout_vehicle_interaction", "intersection_vehicle_interaction", "intersection_vru_interaction"],
+    "metric_tags": ["TTC", "DCPA", "DRAC", "min_future_distance"],
+    "risk_tags": ["collision", "priority_forcing", "low_safety_margin"],
+    "scene_type": "all",
+    "event_type": "general_safety",
+    "pair_type": "all",
+    "condition": {
+      "safety_efficiency_conflict": true
+    },
+    "policy_goal": "When safety conflicts with efficiency, safety must dominate the decision.",
+    "strategy_mapping": {
+      "low_risk": ["maintain_speed", "monitor"],
+      "medium_risk": ["increase_safety_margin", "decelerate"],
+      "high_risk": ["decelerate", "yield", "prepare_to_stop"]
+    },
+    "recommended_action": ["decelerate", "yield", "increase_safety_margin"],
+    "forbidden_action": ["accelerate", "force_merge", "risk_taking"],
+    "severity": "high",
+    "priority": 3,
+    "source": "internal_decision_policy",
+    "jurisdiction": "internal_experimental_rule",
+    "text": "When safety conflicts with traffic efficiency, the decision policy should prioritize safety. If physical safety metrics indicate high risk, the system should decelerate, yield, or increase the safety margin rather than accelerating or forcing passage."
+  },
+  {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "policy_highd_following_response_001",
+    "id": "policy_highd_following_response_001",
+    "doc_type": "policy",
+    "kb_type": "policy",
+    "title": "Highway Following Response Policy",
+    "dataset_tags": ["highd"],
+    "scenario_tags": ["highway_car_following", "car_following"],
+    "metric_tags": ["TTC", "THW", "DRAC", "headway", "relative_speed"],
+    "risk_tags": ["rear_end", "closing_speed", "short_headway", "hard_braking"],
+    "scene_type": "highD",
+    "event_type": "car_following",
+    "pair_type": "vehicle_vehicle",
+    "condition": {
+      "ttc_lt": 3.0,
+      "thw_lt": 1.2,
+      "closing_speed_gt": 0.0
+    },
+    "policy_goal": "Restore longitudinal safety margin in high-speed following.",
+    "strategy_mapping": {
+      "low_risk": ["maintain_speed", "monitor_lead_vehicle"],
+      "medium_risk": ["reduce_closing_speed", "increase_headway"],
+      "high_risk": ["decelerate", "increase_headway", "prepare_braking"]
+    },
+    "recommended_action": ["increase_headway", "decelerate", "monitor_lead_vehicle"],
+    "forbidden_action": ["accelerate", "keep_close_following", "delay_response"],
+    "severity": "high",
+    "priority": 3,
+    "source": "internal_policy",
+    "jurisdiction": "internal_experimental_rule",
+    "text": "For highD highway following, if TTC or THW is low and ego is closing on the lead vehicle, the policy should reduce closing speed and restore headway. The system should not accelerate or continue close following."
+  },
+  {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "policy_highd_cutin_response_001",
+    "id": "policy_highd_cutin_response_001",
+    "doc_type": "policy",
+    "kb_type": "policy",
+    "title": "Highway Cut-in Conservative Response Policy",
+    "dataset_tags": ["highd"],
+    "scenario_tags": ["highway_cut_in", "highway_lane_change", "cut_in"],
+    "metric_tags": ["TTC", "THW", "headway", "min_future_distance"],
+    "risk_tags": ["cut_in", "gap_acceptance", "rear_end", "headway_reduction"],
+    "scene_type": "highD",
+    "event_type": "cut_in",
+    "pair_type": "vehicle_vehicle",
+    "condition": {
+      "cut_in_detected": true,
+      "headway_drop_gt": 0.3,
+      "min_future_distance_lt": 2.5
+    },
+    "policy_goal": "Avoid forcing lane-change conflicts and recover reaction space after cut-in.",
+    "strategy_mapping": {
+      "low_risk": ["monitor_adjacent_vehicle"],
+      "medium_risk": ["increase_headway", "avoid_lane_change"],
+      "high_risk": ["decelerate", "abort_lane_change", "yield"]
+    },
+    "recommended_action": ["decelerate", "increase_headway", "monitor_cut_in_vehicle"],
+    "forbidden_action": ["accelerate", "force_merge", "aggressive_lane_change"],
+    "severity": "high",
+    "priority": 3,
+    "source": "internal_policy",
+    "jurisdiction": "internal_experimental_rule",
+    "text": "For highway cut-in scenarios, the policy should avoid forcing the target-lane gap. If headway drops or future distance is low, the vehicle should decelerate, increase headway, and avoid aggressive lane-changing."
+  },
+  {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "policy_roundabout_yielding_001",
+    "id": "policy_roundabout_yielding_001",
+    "doc_type": "policy",
+    "kb_type": "policy",
+    "title": "Roundabout Yielding and Conflict-Point Monitoring Policy",
+    "dataset_tags": ["round"],
+    "scenario_tags": ["roundabout_vehicle_interaction", "roundabout_merging", "roundabout_exit"],
+    "metric_tags": ["DCPA", "TCPA", "min_future_distance", "distance"],
+    "risk_tags": ["roundabout_conflict", "merging_conflict", "spatial_conflict", "yielding"],
+    "scene_type": "rounD",
+    "event_type": "roundabout_merging",
+    "pair_type": "vehicle_vehicle",
+    "condition": {
+      "dcpa_lt": 2.0,
+      "min_future_distance_lt": 2.5
+    },
+    "policy_goal": "Avoid entering or exiting a roundabout conflict zone when spatial margin is insufficient.",
+    "strategy_mapping": {
+      "low_risk": ["maintain_order", "monitor_conflict_point"],
+      "medium_risk": ["decelerate", "yield"],
+      "high_risk": ["yield", "decelerate", "delay_entry_or_exit"]
+    },
+    "recommended_action": ["yield", "decelerate", "monitor_conflict_point"],
+    "forbidden_action": ["accelerate", "force_merge", "ignore_priority"],
+    "severity": "high",
+    "priority": 3,
+    "source": "internal_policy",
+    "jurisdiction": "internal_experimental_rule",
+    "text": "For rounD roundabout interactions, the policy should prioritize yielding and conflict-point monitoring when DCPA or minimum future distance is low. The vehicle should avoid forcing entry, forcing exit, or accelerating into a conflict region."
+  },
+  {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "policy_vru_priority_001",
+    "id": "policy_vru_priority_001",
+    "doc_type": "policy",
+    "kb_type": "policy",
+    "title": "VRU Priority Protection Policy",
+    "dataset_tags": ["round", "ind", "all"],
+    "scenario_tags": ["roundabout_vru_interaction", "intersection_vru_interaction", "vru_conflict"],
+    "metric_tags": ["DCPA", "min_future_distance", "lateral_clearance", "VRU"],
+    "risk_tags": ["vru_conflict", "low_lateral_clearance", "yielding", "priority_forcing"],
+    "scene_type": "all",
+    "event_type": "vru_conflict",
+    "pair_type": "vehicle_pedestrian_or_cyclist",
+    "condition": {
+      "vrus_present": true,
+      "dcpa_lt": 2.0,
+      "min_future_distance_lt": 2.0
+    },
+    "policy_goal": "Protect vulnerable road users by increasing safety margins and avoiding close passing.",
+    "strategy_mapping": {
+      "low_risk": ["monitor_vru", "maintain_low_speed"],
+      "medium_risk": ["decelerate", "increase_lateral_clearance"],
+      "high_risk": ["yield", "decelerate", "prepare_to_stop", "monitor_vru"]
+    },
+    "recommended_action": ["yield", "decelerate", "monitor_vru", "increase_lateral_clearance"],
+    "forbidden_action": ["accelerate", "close_pass", "force_crossing", "ignore_vru"],
+    "severity": "high",
+    "priority": 3,
+    "source": "internal_policy",
+    "jurisdiction": "internal_experimental_rule",
+    "text": "When pedestrians or cyclists are present near the ego path, the policy should prioritize yielding, deceleration, monitoring the VRU, and increasing lateral clearance. It should forbid close passing, forced crossing, and acceleration under low spatial margin."
+  },
+  {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "policy_ind_intersection_crossing_001",
+    "id": "policy_ind_intersection_crossing_001",
+    "doc_type": "policy",
+    "kb_type": "policy",
+    "title": "Urban Intersection Crossing Conflict Policy",
+    "dataset_tags": ["ind"],
+    "scenario_tags": ["intersection_vehicle_interaction", "intersection_vru_interaction", "intersection_crossing"],
+    "metric_tags": ["DCPA", "TCPA", "DRAC", "min_future_distance", "VRU"],
+    "risk_tags": ["crossing_conflict", "vru_conflict", "hard_braking", "spatial_conflict"],
+    "scene_type": "inD",
+    "event_type": "intersection_crossing",
+    "pair_type": "all",
+    "condition": {
+      "crossing_paths": true,
+      "dcpa_lt": 2.0,
+      "min_future_distance_lt": 2.0
+    },
+    "policy_goal": "Avoid entering a predicted crossing conflict zone when future spatial risk is high.",
+    "strategy_mapping": {
+      "low_risk": ["monitor_crossing_agents"],
+      "medium_risk": ["decelerate", "yield"],
+      "high_risk": ["yield", "decelerate", "prepare_to_stop"]
+    },
+    "recommended_action": ["yield", "decelerate", "monitor_conflict_point"],
+    "forbidden_action": ["accelerate", "force_crossing", "ignore_crossing_agent"],
+    "severity": "high",
+    "priority": 3,
+    "source": "internal_policy",
+    "jurisdiction": "internal_experimental_rule",
+    "text": "For inD urban intersection crossing conflicts, the policy should avoid entering predicted conflict regions when DCPA or minimum future distance is low. The vehicle should yield, decelerate, and monitor the conflict point."
+  },
+  {
+    "schema_version": "rag_v1_grounded",
+    "chunk_id": "policy_profile_guardrail_001",
+    "id": "policy_profile_guardrail_001",
+    "doc_type": "policy",
+    "kb_type": "policy",
+    "title": "Driver Profile Safety Guardrail Policy",
+    "dataset_tags": ["highd", "round", "ind", "all"],
+    "scenario_tags": ["generic_interaction", "highway_car_following", "highway_cut_in", "roundabout_vehicle_interaction", "intersection_vru_interaction"],
+    "metric_tags": ["TTC", "THW", "DRAC", "DCPA", "min_future_distance", "VRU"],
+    "risk_tags": ["preference_guardrail", "short_headway", "spatial_conflict", "vru_conflict"],
+    "scene_type": "all",
+    "event_type": "profile_guardrail",
+    "pair_type": "all",
+    "condition": {
+      "ttc_lt": 3.0,
+      "drac_gt": 6.0,
+      "dcpa_lt": 2.0,
+      "min_future_distance_lt": 2.0
+    },
+    "policy_goal": "Driving preference may adjust comfort and efficiency, but must not override critical safety boundaries.",
+    "profile_policy": {
+      "aggressive": "Allow efficiency-oriented behavior only when all critical safety metrics are within safe margins.",
+      "balanced": "Balance safety and efficiency, but switch to conservative behavior under medium or high physical risk.",
+      "conservative": "Increase safety margin earlier and prefer yielding or deceleration under uncertain risk."
+    },
+    "recommended_action": ["respect_safety_boundary", "decelerate", "yield", "increase_headway", "monitor_vru"],
+    "forbidden_action": ["override_safety_boundary", "accelerate_under_high_risk", "force_merge", "close_pass"],
+    "severity": "high",
+    "priority": 3,
+    "source": "internal_profile_policy",
+    "jurisdiction": "internal_experimental_rule",
+    "text": "Driver profiles can adjust efficiency and comfort preferences, but they must not override safety boundaries. If TTC, DRAC, DCPA, or minimum future distance indicates critical risk, the policy should constrain aggressive behavior and enforce deceleration, yielding, or safety-margin recovery."
+  }
+]

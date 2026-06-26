@@ -26,10 +26,22 @@ def compute_planning_quality(planning_records, frame_metrics_list, decision_list
         {"frame_pos": int, "frame_index": int, "planning": dict}
       ]
     """
-    if not planning_records:
+    successful_records = [
+        record
+        for record in planning_records
+        if not bool(
+            (record.get("planning") or {})
+            .get("diagnostics", {})
+            .get("fallback")
+        )
+    ]
+    if not successful_records:
         return {
             "planning_call_count": 0,
+            "planning_attempt_count": len(planning_records),
+            "planning_failure_count": len(planning_records),
             "planning_hit_rate": None,
+            "planning_precision": None,
             "planning_miss_rate": None,
             "planning_false_alarm_rate": None,
             "planning_reactive_consistency": None,
@@ -38,7 +50,7 @@ def compute_planning_quality(planning_records, frame_metrics_list, decision_list
     tp = fp = fn = tn = 0
     consistency = []
 
-    for rec in planning_records:
+    for rec in successful_records:
         frame_pos = rec.get("frame_pos", 0)
         planning = rec.get("planning", {})
 
@@ -59,8 +71,13 @@ def compute_planning_quality(planning_records, frame_metrics_list, decision_list
         )
 
     return {
-        "planning_call_count": len(planning_records),
-        "planning_hit_rate": _safe_div(tp, tp + fp),
+        "planning_call_count": len(successful_records),
+        "planning_attempt_count": len(planning_records),
+        "planning_failure_count": (
+            len(planning_records) - len(successful_records)
+        ),
+        "planning_hit_rate": _safe_div(tp, tp + fn),
+        "planning_precision": _safe_div(tp, tp + fp),
         "planning_miss_rate": _safe_div(fn, tp + fn),
         "planning_false_alarm_rate": _safe_div(fp, fp + tn),
         "planning_reactive_consistency": _safe_mean(consistency),

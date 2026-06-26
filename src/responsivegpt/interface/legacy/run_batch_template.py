@@ -130,6 +130,8 @@ def build_service(
         primary_model=selected_model,
         fallback_model=selected_fallback,
         max_completion_tokens=int(env.get("LLM_MAX_COMPLETION_TOKENS", "2048")),
+        timeout_s=float(env.get("LLM_TIMEOUT_S", "120")),
+        max_retries=int(env.get("LLM_MAX_RETRIES", "1")),
     )
 
     repo = JsonProfileRepository(

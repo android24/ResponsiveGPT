@@ -99,6 +99,10 @@ class LLMPhysicsAlignment:
 class BehaviorSafetyMetrics:
     num_frames: int
     reaction_delay_frames: Optional[int]
+    reaction_success_rate: Optional[float]
+    reaction_censored: bool
+    first_risky_frame_pos: Optional[int]
+    reaction_observation_window_frames: Optional[int]
     trigger_delay_frames: Optional[int]
     decision_flip_count: int
     decision_flip_rate: float

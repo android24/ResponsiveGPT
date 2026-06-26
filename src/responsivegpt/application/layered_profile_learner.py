@@ -6,6 +6,8 @@ def clamp(x, lo, hi):
 
 
 class LayeredProfileLearner:
+    enabled = True
+
     """
     闭环学习器：
     - 输入：当前 profile + trigger list + profile_update proposal + decision
@@ -21,10 +23,8 @@ class LayeredProfileLearner:
 
         self._ensure_structure(p)
 
-        # 1) 先按 profile_update 做显式更新
-        self._apply_profile_delta(p, profile_update)
-
-        # 2) 再按 trigger 做分层强化
+        # profile_update is retained as an auditable proposal. Applying both
+        # it and the originating trigger would double-count the same signal.
         for trig in triggers:
             if not trig.activated:
                 continue
@@ -120,53 +120,65 @@ class LayeredProfileLearner:
 
     def _apply_global_trigger(self, p: dict, trig):
         g = p["global"]
+        step = self._trigger_step(trig)
 
         if trig.trigger_type in ["risk_threshold", "compliance_violation", "human_feedback"]:
-            g["risk_sensitivity"] += 0.05 * trig.score
+            g["risk_sensitivity"] += step
 
         if trig.action == "increase_safety_weight":
-            g["safety_weight"] += 0.05 * trig.score
-            g["efficiency_weight"] -= 0.05 * trig.score
+            g["safety_weight"] += step
+            g["efficiency_weight"] -= step
 
         if trig.action == "decrease_efficiency_weight":
-            g["efficiency_weight"] -= 0.05 * trig.score
-            g["safety_weight"] += 0.05 * trig.score
+            g["efficiency_weight"] -= step
+            g["safety_weight"] += step
+
+        if trig.action == "increase_efficiency_weight":
+            g["efficiency_weight"] += step
+            g["safety_weight"] -= step
 
     def _apply_longitudinal_trigger(self, p: dict, trig):
         lg = p["longitudinal"]
+        step = self._trigger_step(trig)
 
         if trig.trigger_type in ["persistent_high_risk", "risk_threshold", "compliance_violation"]:
-            lg["preferred_time_headway"] += 0.08 * trig.score
-            lg["min_time_headway"] += 0.05 * trig.score
+            lg["preferred_time_headway"] += step
+            lg["min_time_headway"] += 0.625 * step
 
         if trig.action == "slowdown_bias":
-            lg["acceleration_aggressiveness"] -= 0.05 * trig.score
-            lg["brake_aggressiveness"] += 0.05 * trig.score
+            lg["acceleration_aggressiveness"] -= step
+            lg["brake_aggressiveness"] += step
 
     def _apply_lateral_trigger(self, p: dict, trig):
         lat = p["lateral"]
+        step = self._trigger_step(trig)
 
         if trig.action == "freeze_lane_change":
-            lat["lane_change_aggressiveness"] -= 0.1 * trig.score
-            lat["min_gap_acceptance"] += 0.08 * trig.score
+            lat["lane_change_aggressiveness"] -= step
+            lat["min_gap_acceptance"] += 0.8 * step
 
         if trig.trigger_type == "compliance_violation":
-            lat["cut_in_tolerance"] -= 0.05 * trig.score
+            lat["cut_in_tolerance"] -= step
 
     def _apply_interaction_trigger(self, p: dict, trig):
         inter = p["interaction"]
+        step = self._trigger_step(trig)
 
         if trig.trigger_type == "vru_protection":
-            inter["vehicle_cyclist_yield_bias"] += 0.1 * trig.score
-            inter["vehicle_vehicle_assertiveness"] -= 0.05 * trig.score
+            inter["vehicle_cyclist_yield_bias"] += step
+            inter["vehicle_vehicle_assertiveness"] -= 0.5 * step
 
         if trig.trigger_type == "human_feedback":
-            inter["vehicle_cyclist_yield_bias"] += 0.05 * trig.score
+            inter["vehicle_cyclist_yield_bias"] += 0.5 * step
 
     def _apply_temporal_trigger(self, p: dict, trig):
         tmp = p["temporal"]
         if trig.trigger_type in ["persistent_high_risk", "compliance_violation"]:
-            tmp["recent_violation_penalty"] += 0.05 * trig.score
+            tmp["recent_violation_penalty"] += self._trigger_step(trig)
+
+    def _trigger_step(self, trig) -> float:
+        magnitude = min(abs(float(trig.action_value or 0.0)), 0.25)
+        return self.lr * magnitude * max(0.0, float(trig.score))
 
     def _apply_tuning_suggestion(self, p: dict, tuning: dict):
         if not tuning:

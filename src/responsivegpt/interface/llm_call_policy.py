@@ -17,9 +17,19 @@ def should_call_llm(
     frame_safety,
     stride: int = 5,
     risk_threshold: float = 0.35,
+    *,
+    max_stale_frames: int = 30,
+    risk_delta_threshold: float = 0.15,
+    last_llm_frame_pos: int | None = None,
+    last_llm_risk_level: str | None = None,
+    last_llm_risk_index: float | None = None,
+    evidence_changed: bool = False,
+    grounding_refresh_required: bool = False,
+    planning_hint_updated: bool = False,
 ) -> bool:
     policy = str(policy or "hybrid").lower()
     stride = max(1, int(stride))
+    max_stale_frames = max(1, int(max_stale_frames))
 
     if policy == "none":
         return False
@@ -46,6 +56,30 @@ def should_call_llm(
 
     if policy == "risk_only":
         return risky
+
+    if policy == "event_triggered":
+        if last_llm_frame_pos is None:
+            return True
+
+        if frame_pos - last_llm_frame_pos >= max_stale_frames:
+            return True
+
+        current_risk_level = str(getattr(frame_safety, "physical_risk_level", "") or "")
+        if current_risk_level and current_risk_level != str(last_llm_risk_level or ""):
+            return True
+
+        current_risk_index = getattr(frame_safety, "physical_risk_index", None)
+        if current_risk_index is not None and last_llm_risk_index is not None:
+            if abs(float(current_risk_index) - float(last_llm_risk_index)) >= risk_delta_threshold:
+                return True
+
+        if grounding_refresh_required:
+            return True
+
+        if risky and (evidence_changed or planning_hint_updated):
+            return True
+
+        return False
 
     if policy == "hybrid":
         return risky or frame_pos % stride == 0

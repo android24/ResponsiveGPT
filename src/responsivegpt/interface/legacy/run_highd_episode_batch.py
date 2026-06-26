@@ -146,6 +146,8 @@ def build_service(env: dict, template_profile_path: str, runtime_profile_path: s
         primary_model=primary_model,
         fallback_model=fallback_model,
         max_completion_tokens=int(env.get("LLM_MAX_COMPLETION_TOKENS", "2048")),
+        timeout_s=float(env.get("LLM_TIMEOUT_S", "120")),
+        max_retries=int(env.get("LLM_MAX_RETRIES", "1")),
     )
 
     # 关键：模板 + 运行态分离

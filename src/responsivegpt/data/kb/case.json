@@ -1,189 +1,3131 @@
 [
   {
-    "id": "case_highd_following_low_ttc_001",
-    "kb_type": "case",
-    "title": "高速低 TTC 跟驰风险案例",
-    "text": "在高速持续跟驰场景中，若车辆在较小前向间距下继续保持较高速度，且 closing speed 为正，则最小 TTC 会快速下降。这类场景通常对应急刹或追尾近失碰风险，应优先减速和扩大车距。",
-    "scene_type": "highD",
-    "event_type": "FOLLOWING_CRITICAL",
-    "pair_type": null,
+    "chunk_id": "case_highd_following_low_ttc_001",
+    "doc_type": "case",
+    "title": "High-Speed Low-TTC Following Risk Case",
+    "text": "In a continuous high-speed following scenario, if the vehicle keeps a high speed under a small forward gap and the closing speed is positive, the minimum TTC will drop rapidly. This type of scenario usually corresponds to hard braking or rear-end near-miss risk, so the vehicle should prioritize deceleration and increase the following distance.",
+    "dataset_tags": [
+      "highd"
+    ],
+    "scenario_tags": [
+      "highway_car_following",
+      "car_following"
+    ],
+    "metric_tags": [
+      "TTC",
+      "THW",
+      "headway",
+      "relative_speed"
+    ],
+    "risk_tags": [
+      "rear_end",
+      "hard_braking",
+      "closing_speed",
+      "low_ttc",
+      "short_headway",
+      "gap_acceptance"
+    ],
+    "condition": {
+      "ttc_lt": 3.0,
+      "thw_lt": 1.2,
+      "closing_speed_gt": 0.0
+    },
+    "risk_mechanism": "Low TTC and short forward spacing jointly compress the following vehicle's reaction time, making a short-horizon rear-end conflict likely.",
+    "recommended_action": [
+      "increase_headway",
+      "decelerate",
+      "monitor_lead_vehicle"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "keep_close_following"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "original_priority_score": 0.95,
     "source": "highd_dataset_casebook",
-    "priority": 0.95
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for highd scenarios tagged as highway_car_following, car_following using risk evidence from TTC, THW, headway, relative_speed. Source case: High-Speed Low-TTC Following Risk Case.",
+    "legacy": {
+      "id": "case_highd_following_low_ttc_001",
+      "kb_type": "case",
+      "scene_type": "highD",
+      "event_type": "car_following",
+      "pair_type": "vehicle_vehicle"
+    }
   },
   {
-    "id": "case_highd_following_persistent_low_ttc_001",
-    "kb_type": "case",
-    "title": "持续低TTC跟驰风险案例",
-    "text": "在高速跟驰场景中，后车持续以较高相对速度接近前车，导致TTC长期处于较低水平。此类行为显著增加追尾风险，应通过减速恢复安全间距。",
-    "scene_type": "highD",
-    "event_type": "FOLLOWING_CRITICAL",
-    "pair_type": null,
+    "chunk_id": "case_highd_following_persistent_low_ttc_001",
+    "doc_type": "case",
+    "title": "Persistent Low-TTC Following Risk Case",
+    "text": "In a high-speed following scenario, the following vehicle continuously approaches the lead vehicle with a high relative speed, keeping TTC at a low level for a long duration. This behavior significantly increases rear-end risk and should be corrected by decelerating to restore a safe gap.",
+    "dataset_tags": [
+      "highd"
+    ],
+    "scenario_tags": [
+      "highway_car_following",
+      "car_following"
+    ],
+    "metric_tags": [
+      "TTC",
+      "THW",
+      "headway",
+      "relative_speed"
+    ],
+    "risk_tags": [
+      "rear_end",
+      "hard_braking",
+      "closing_speed",
+      "low_ttc",
+      "short_headway",
+      "gap_acceptance"
+    ],
+    "condition": {
+      "ttc_lt": 3.0,
+      "thw_lt": 1.2,
+      "closing_speed_gt": 0.0,
+      "persistent_low_ttc": true
+    },
+    "risk_mechanism": "When the following vehicle continuously approaches the lead vehicle with a high relative speed, reaction time and braking space are compressed for an extended period, increasing the risk of rear-end collision or hard-braking near-misses.",
+    "recommended_action": [
+      "increase_headway",
+      "decelerate",
+      "monitor_lead_vehicle"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "keep_close_following"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "original_priority_score": 0.95,
     "source": "highd_dataset_casebook",
-    "priority": 0.95
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for highd scenarios tagged as highway_car_following, car_following using risk evidence from TTC, THW, headway, relative_speed. Source case: Persistent Low-TTC Following Risk Case.",
+    "legacy": {
+      "id": "case_highd_following_persistent_low_ttc_001",
+      "kb_type": "case",
+      "scene_type": "highD",
+      "event_type": "car_following",
+      "pair_type": "vehicle_vehicle"
+    }
   },
   {
-    "id": "case_highd_cutin_rear_reaction_001",
-    "kb_type": "case",
-    "title": "高速 cut-in 后车反应不足案例",
-    "text": "在高速场景中，切入车辆若在目标车道可用间隙较小的情况下完成 cut-in，后车会面临显著缩短的反应时间与制动空间。若相对速度为正且 headway 突降，应视为高风险交互。",
-    "scene_type": "highD",
-    "event_type": "CUTIN_CRITICAL",
-    "pair_type": null,
+    "chunk_id": "case_highd_cutin_rear_reaction_001",
+    "doc_type": "case",
+    "title": "High-Speed Cut-in with Insufficient Rear-Vehicle Reaction Case",
+    "text": "In a high-speed scenario, if a cut-in vehicle enters the target lane when the available gap is small, the rear vehicle faces significantly shortened reaction time and braking space. If the relative speed is closing and the headway drops abruptly, the interaction should be treated as high risk.",
+    "dataset_tags": [
+      "highd"
+    ],
+    "scenario_tags": [
+      "highway_cut_in",
+      "cut_in"
+    ],
+    "metric_tags": [
+      "TTC",
+      "THW",
+      "headway",
+      "relative_speed"
+    ],
+    "risk_tags": [
+      "rear_end",
+      "hard_braking",
+      "closing_speed",
+      "low_ttc",
+      "cut_in",
+      "gap_acceptance",
+      "headway_reduction"
+    ],
+    "condition": {
+      "cut_in_detected": true,
+      "ttc_lt": 3.0,
+      "thw_drop": true,
+      "closing_speed_gt": 0.0
+    },
+    "risk_mechanism": "A cut-in suddenly shortens the reaction time and braking space of the rear vehicle in the target lane; if the relative motion is still closing, the risk increases.",
+    "recommended_action": [
+      "decelerate",
+      "increase_headway",
+      "monitor_cut_in_vehicle"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "keep_close_following",
+      "aggressive_lane_change"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "original_priority_score": 0.95,
     "source": "highd_dataset_casebook",
-    "priority": 0.95
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for highd scenarios tagged as highway_cut_in, cut_in using risk evidence from TTC, THW, headway, relative_speed. Source case: High-Speed Cut-in with Insufficient Rear-Vehicle Reaction Case.",
+    "legacy": {
+      "id": "case_highd_cutin_rear_reaction_001",
+      "kb_type": "case",
+      "scene_type": "highD",
+      "event_type": "cut_in",
+      "pair_type": "vehicle_vehicle"
+    }
   },
   {
-    "id": "case_highd_cutin_insufficient_reaction_space_001",
-    "kb_type": "case",
-    "title": "cut-in后反应空间不足案例",
-    "text": "变道车辆在目标车道间隙不足的情况下强行切入，导致后车反应空间急剧压缩，形成低TTC高风险交互。",
-    "scene_type": "highD",
-    "event_type": "CUTIN_CRITICAL",
-    "pair_type": null,
+    "chunk_id": "case_highd_cutin_insufficient_reaction_space_001",
+    "doc_type": "case",
+    "title": "Cut-in with Insufficient Reaction Space Case",
+    "text": "A lane-changing vehicle forces a cut-in when the target-lane gap is insufficient, sharply compressing the rear vehicle's reaction space and forming a low-TTC high-risk interaction.",
+    "dataset_tags": [
+      "highd"
+    ],
+    "scenario_tags": [
+      "highway_cut_in",
+      "cut_in"
+    ],
+    "metric_tags": [
+      "TTC",
+      "THW",
+      "min_future_distance",
+      "headway"
+    ],
+    "risk_tags": [
+      "rear_end",
+      "hard_braking",
+      "low_ttc",
+      "short_headway",
+      "cut_in",
+      "gap_acceptance",
+      "forcing_behavior"
+    ],
+    "condition": {
+      "cut_in_detected": true,
+      "ttc_lt": 3.0,
+      "thw_lt": 1.2,
+      "min_future_distance_lt": 2.5
+    },
+    "risk_mechanism": "The target-lane reaction space is suddenly compressed by the cut-in vehicle, leaving the rear vehicle with insufficient braking distance and easily creating a low-TTC high-risk interaction.",
+    "recommended_action": [
+      "decelerate",
+      "increase_headway",
+      "monitor_cut_in_vehicle"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "keep_close_following",
+      "aggressive_lane_change"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "original_priority_score": 0.95,
     "source": "highd_dataset_casebook",
-    "priority": 0.95
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for highd scenarios tagged as highway_cut_in, cut_in using risk evidence from TTC, THW, min_future_distance, headway. Source case: Cut-in with Insufficient Reaction Space Case.",
+    "legacy": {
+      "id": "case_highd_cutin_insufficient_reaction_space_001",
+      "kb_type": "case",
+      "scene_type": "highD",
+      "event_type": "cut_in",
+      "pair_type": "vehicle_vehicle"
+    }
   },
   {
-    "id": "case_highd_cutin_small_gap_acceptance_001",
-    "kb_type": "case",
-    "title": "小间隙变道风险案例",
-    "text": "车辆在较小间隙条件下执行变道操作，导致前后车辆需紧急调整速度或轨迹，显著增加冲突概率。",
-    "scene_type": "highD",
-    "event_type": "CUTIN_CRITICAL",
-    "pair_type": null,
+    "chunk_id": "case_highd_cutin_small_gap_acceptance_001",
+    "doc_type": "case",
+    "title": "Small-Gap Lane-Change Risk Case",
+    "text": "A vehicle performs a lane change under a small-gap condition, forcing front and rear vehicles to urgently adjust speed or trajectory and significantly increasing conflict probability.",
+    "dataset_tags": [
+      "highd"
+    ],
+    "scenario_tags": [
+      "highway_cut_in",
+      "cut_in"
+    ],
+    "metric_tags": [
+      "TTC",
+      "min_future_distance",
+      "headway",
+      "lateral_clearance"
+    ],
+    "risk_tags": [
+      "rear_end",
+      "low_ttc",
+      "cut_in",
+      "gap_acceptance",
+      "lateral_conflict",
+      "forcing_behavior"
+    ],
+    "condition": {
+      "cut_in_detected": true,
+      "gap_acceptance_lt": 2.0,
+      "ttc_lt": 3.0,
+      "min_future_distance_lt": 2.5
+    },
+    "risk_mechanism": "A small-gap lane change forces vehicles in the target lane to adjust speed or trajectory within a short time, significantly increasing the probability of longitudinal and lateral conflicts.",
+    "recommended_action": [
+      "decelerate",
+      "increase_headway",
+      "monitor_cut_in_vehicle"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "keep_close_following",
+      "aggressive_lane_change"
+    ],
+    "severity": "medium",
+    "priority": 2,
+    "original_priority_score": 0.9,
     "source": "highd_dataset_casebook",
-    "priority": 0.9
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for highd scenarios tagged as highway_cut_in, cut_in using risk evidence from TTC, min_future_distance, headway, lateral_clearance. Source case: Small-Gap Lane-Change Risk Case.",
+    "legacy": {
+      "id": "case_highd_cutin_small_gap_acceptance_001",
+      "kb_type": "case",
+      "scene_type": "highD",
+      "event_type": "cut_in",
+      "pair_type": "vehicle_vehicle"
+    }
   },
   {
-    "id": "case_highd_short_headway_accumulation_002",
-    "kb_type": "case",
-    "title": "高速持续小间距跟驰累积风险案例",
-    "text": "在高速场景中，车辆若长时间维持较小车头间距，即使短时未发生冲突，也会显著提高风险累积。当出现轻微减速或扰动时，容易迅速演化为近失碰。",
-    "scene_type": "highD",
-    "event_type": "FOLLOWING_CRITICAL",
-    "pair_type": null,
+    "chunk_id": "case_highd_short_headway_accumulation_002",
+    "doc_type": "case",
+    "title": "High-Speed Persistent Short-Headway Accumulated Risk Case",
+    "text": "In high-speed scenarios, if a vehicle maintains a short headway for a long time, risk accumulates significantly even when no immediate conflict occurs. A slight deceleration or disturbance can quickly evolve into a near-miss.",
+    "dataset_tags": [
+      "highd"
+    ],
+    "scenario_tags": [
+      "highway_car_following",
+      "car_following"
+    ],
+    "metric_tags": [
+      "TTC",
+      "THW",
+      "headway",
+      "relative_speed"
+    ],
+    "risk_tags": [
+      "rear_end",
+      "hard_braking",
+      "closing_speed",
+      "low_ttc",
+      "short_headway",
+      "headway_reduction"
+    ],
+    "condition": {
+      "ttc_lt": 3.0,
+      "thw_lt": 1.2,
+      "closing_speed_gt": 0.0,
+      "persistent_low_ttc": true
+    },
+    "risk_mechanism": "When the following vehicle continuously approaches the lead vehicle with a high relative speed, reaction time and braking space are compressed for an extended period, increasing the risk of rear-end collision or hard-braking near-misses.",
+    "recommended_action": [
+      "increase_headway",
+      "decelerate",
+      "monitor_lead_vehicle"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "keep_close_following"
+    ],
+    "severity": "medium",
+    "priority": 2,
+    "original_priority_score": 0.9,
     "source": "highd_dataset_casebook",
-    "priority": 0.9
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for highd scenarios tagged as highway_car_following, car_following using risk evidence from TTC, THW, headway, relative_speed. Source case: High-Speed Persistent Short-Headway Accumulated Risk Case.",
+    "legacy": {
+      "id": "case_highd_short_headway_accumulation_002",
+      "kb_type": "case",
+      "scene_type": "highD",
+      "event_type": "car_following",
+      "pair_type": "vehicle_vehicle"
+    }
   },
   {
-    "id": "case_highd_aggressive_gap_acceptance_002",
-    "kb_type": "case",
-    "title": "高速激进间隙接受案例",
-    "text": "部分车辆在变道时接受过小间隙，依赖后车减速配合完成操作。这类激进策略在高相对速度条件下极易导致危险交互。",
-    "scene_type": "highD",
-    "event_type": "CUTIN_CRITICAL",
-    "pair_type": null,
+    "chunk_id": "case_highd_aggressive_gap_acceptance_002",
+    "doc_type": "case",
+    "title": "High-Speed Aggressive Gap-Acceptance Case",
+    "text": "Some vehicles accept overly small gaps during lane changes and rely on the rear vehicle to decelerate to complete the maneuver. Such aggressive strategies are highly likely to cause dangerous interactions under high relative-speed conditions.",
+    "dataset_tags": [
+      "highd"
+    ],
+    "scenario_tags": [
+      "highway_cut_in",
+      "cut_in"
+    ],
+    "metric_tags": [
+      "TTC",
+      "min_future_distance",
+      "headway",
+      "lateral_clearance"
+    ],
+    "risk_tags": [
+      "rear_end",
+      "low_ttc",
+      "cut_in",
+      "gap_acceptance",
+      "lateral_conflict",
+      "forcing_behavior"
+    ],
+    "condition": {
+      "cut_in_detected": true,
+      "gap_acceptance_lt": 2.0,
+      "ttc_lt": 3.0,
+      "min_future_distance_lt": 2.5
+    },
+    "risk_mechanism": "A small-gap lane change forces target-lane vehicles to adjust speed or trajectory within a short time, significantly increasing the probability of longitudinal and lateral conflicts.",
+    "recommended_action": [
+      "decelerate",
+      "increase_headway",
+      "monitor_cut_in_vehicle"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "keep_close_following",
+      "aggressive_lane_change"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "original_priority_score": 0.95,
     "source": "highd_dataset_casebook",
-    "priority": 0.95
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for highd scenarios tagged as highway_cut_in, cut_in using risk evidence from TTC, min_future_distance, headway, lateral_clearance. Source case: High-Speed Aggressive Gap-Acceptance Case.",
+    "legacy": {
+      "id": "case_highd_aggressive_gap_acceptance_002",
+      "kb_type": "case",
+      "scene_type": "highD",
+      "event_type": "cut_in",
+      "pair_type": "vehicle_vehicle"
+    }
   },
   {
-    "id": "case_round_entry_merge_conflict_001",
-    "kb_type": "case",
-    "title": "环岛入口汇入冲突案例",
-    "text": "车辆在进入环岛时未对环岛内车辆进行充分让行，通过加速抢行汇入，导致低距离高风险交互。",
-    "scene_type": "rounD",
-    "event_type": null,
-    "pair_type": "vehicle_vehicle",
+    "chunk_id": "case_round_entry_merge_conflict_001",
+    "doc_type": "case",
+    "title": "Roundabout Entry Merging Conflict Case",
+    "text": "When entering the roundabout, the vehicle fails to yield sufficiently to vehicles already inside the roundabout and accelerates to force a merge, resulting in a low-distance high-risk interaction.",
+    "dataset_tags": [
+      "round"
+    ],
+    "scenario_tags": [
+      "roundabout_vehicle_interaction",
+      "roundabout_merging"
+    ],
+    "metric_tags": [
+      "DCPA",
+      "min_future_distance"
+    ],
+    "risk_tags": [
+      "merging_conflict",
+      "yielding",
+      "roundabout_conflict",
+      "forcing_behavior"
+    ],
+    "condition": {
+      "dcpa_lt": 2.0,
+      "min_future_distance_lt": 2.5
+    },
+    "risk_mechanism": "Roundabout merging conflicts are mainly driven by future spatial proximity and insufficient closest distance; forcing entry or failing to yield actively compresses the safety margin.",
+    "recommended_action": [
+      "yield",
+      "decelerate",
+      "monitor_conflict_point"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "force_merge"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "original_priority_score": 0.95,
     "source": "round_dataset_casebook",
-    "priority": 0.95
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for round scenarios tagged as roundabout_vehicle_interaction, roundabout_merging using risk evidence from DCPA, min_future_distance. Source case: Roundabout Entry Merging Conflict Case.",
+    "legacy": {
+      "id": "case_round_entry_merge_conflict_001",
+      "kb_type": "case",
+      "scene_type": "rounD",
+      "event_type": "roundabout_merging",
+      "pair_type": "vehicle_vehicle"
+    }
   },
   {
-    "id": "case_round_vehicle_merge_conflict_001",
-    "kb_type": "case",
-    "title": "环岛车辆汇入冲突案例",
-    "text": "在环岛入口与环内车辆交互时，若双方都倾向维持通行效率而缺少主动让行，则容易形成低间距、高冲突概率的汇入风险。这类场景应通过减速或让行来恢复安全裕度。",
-    "scene_type": "rounD",
-    "event_type": null,
-    "pair_type": "vehicle_vehicle",
+    "chunk_id": "case_round_vehicle_merge_conflict_001",
+    "doc_type": "case",
+    "title": "Roundabout Vehicle Merging Conflict Case",
+    "text": "When an entry vehicle interacts with vehicles inside the roundabout, if both sides prioritize traffic efficiency and lack active yielding, a low-gap, high-conflict-probability merging risk can easily form. This type of scenario should restore the safety margin through deceleration or yielding.",
+    "dataset_tags": [
+      "round"
+    ],
+    "scenario_tags": [
+      "roundabout_vehicle_interaction",
+      "roundabout_merging"
+    ],
+    "metric_tags": [
+      "DCPA",
+      "min_future_distance",
+      "headway"
+    ],
+    "risk_tags": [
+      "gap_acceptance",
+      "yielding",
+      "roundabout_conflict"
+    ],
+    "condition": {
+      "dcpa_lt": 2.0,
+      "min_future_distance_lt": 2.5
+    },
+    "risk_mechanism": "Roundabout merging conflicts are mainly driven by future spatial proximity and insufficient closest distance; forcing entry or failing to yield actively compresses the safety margin.",
+    "recommended_action": [
+      "yield",
+      "decelerate",
+      "monitor_conflict_point"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "force_merge"
+    ],
+    "severity": "medium",
+    "priority": 2,
+    "original_priority_score": 0.9,
     "source": "round_dataset_casebook",
-    "priority": 0.9
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for round scenarios tagged as roundabout_vehicle_interaction, roundabout_merging using risk evidence from DCPA, min_future_distance, headway. Source case: Roundabout Vehicle Merging Conflict Case.",
+    "legacy": {
+      "id": "case_round_vehicle_merge_conflict_001",
+      "kb_type": "case",
+      "scene_type": "rounD",
+      "event_type": "roundabout_merging",
+      "pair_type": "vehicle_vehicle"
+    }
   },
   {
-    "id": "case_round_exit_cyclist_conflict_001",
-    "kb_type": "case",
-    "title": "环岛出口车辆与骑行者冲突案例",
-    "text": "在环岛出口附近，机动车若尝试维持效率并抢先驶出，容易与相邻骑行者形成低距离、低 TTC 的高风险交互。此类场景应优先减速、延后退出并让行骑行者。",
-    "scene_type": "rounD",
-    "event_type": null,
-    "pair_type": "vehicle_cyclist",
+    "chunk_id": "case_round_exit_cyclist_conflict_001",
+    "doc_type": "case",
+    "title": "Roundabout Exit Vehicle-Cyclist Conflict Case",
+    "text": "Near a roundabout exit, if a motor vehicle tries to maintain efficiency and exits ahead aggressively, it can easily form a low-distance, low-TTC high-risk interaction with a nearby cyclist. The vehicle should prioritize deceleration, delay the exit, and yield to the cyclist.",
+    "dataset_tags": [
+      "round"
+    ],
+    "scenario_tags": [
+      "roundabout_vru_interaction",
+      "roundabout_exit_conflict",
+      "roundabout_exit_cyclist_conflict"
+    ],
+    "metric_tags": [
+      "TTC",
+      "DCPA",
+      "min_future_distance",
+      "VRU"
+    ],
+    "risk_tags": [
+      "low_ttc",
+      "yielding",
+      "roundabout_conflict",
+      "vru_conflict"
+    ],
+    "condition": {
+      "vrus_present": true,
+      "ttc_lt": 3.0,
+      "dcpa_lt": 2.0,
+      "min_future_distance_lt": 2.0
+    },
+    "risk_mechanism": "When a motor vehicle interacts at a low distance with a cyclist near a roundabout entry or exit, the spatial margin is insufficient and VRU trajectory uncertainty is high, making a near-miss likely.",
+    "recommended_action": [
+      "yield",
+      "decelerate",
+      "monitor_vru"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "force_exit",
+      "aggressive_lane_change"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "original_priority_score": 0.95,
     "source": "round_dataset_casebook",
-    "priority": 0.95
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for round scenarios tagged as roundabout_vru_interaction, roundabout_exit_conflict, roundabout_exit_cyclist_conflict using risk evidence from TTC, DCPA, min_future_distance, VRU. Source case: Roundabout Exit Vehicle-Cyclist Conflict Case.",
+    "legacy": {
+      "id": "case_round_exit_cyclist_conflict_001",
+      "kb_type": "case",
+      "scene_type": "rounD",
+      "event_type": "roundabout_exit_cyclist_conflict",
+      "pair_type": "vehicle_cyclist"
+    }
   },
   {
-    "id": "case_round_exit_vehicle_cyclist_conflict_002",
-    "kb_type": "case",
-    "title": "环岛出口车辆与骑行者冲突案例",
-    "text": "在环岛出口区域，机动车尝试抢先驶出，与骑行者形成低距离交互，存在显著安全风险，应优先让行。",
-    "scene_type": "rounD",
-    "event_type": null,
-    "pair_type": "vehicle_cyclist",
+    "chunk_id": "case_round_exit_vehicle_cyclist_conflict_002",
+    "doc_type": "case",
+    "title": "Roundabout Exit Vehicle-Cyclist Conflict Case",
+    "text": "At a roundabout exit, a motor vehicle attempts to exit ahead and forms a low-distance interaction with a cyclist. This creates significant safety risk, so yielding should be prioritized.",
+    "dataset_tags": [
+      "round"
+    ],
+    "scenario_tags": [
+      "roundabout_vru_interaction",
+      "roundabout_exit_conflict",
+      "roundabout_exit_cyclist_conflict"
+    ],
+    "metric_tags": [
+      "TTC",
+      "DCPA",
+      "min_future_distance",
+      "VRU"
+    ],
+    "risk_tags": [
+      "low_ttc",
+      "yielding",
+      "roundabout_conflict",
+      "vru_conflict"
+    ],
+    "condition": {
+      "vrus_present": true,
+      "ttc_lt": 3.0,
+      "dcpa_lt": 2.0,
+      "min_future_distance_lt": 2.0
+    },
+    "risk_mechanism": "When a motor vehicle interacts at a low distance with a cyclist near a roundabout entry or exit, the spatial margin is insufficient and VRU trajectory uncertainty is high, making a near-miss likely.",
+    "recommended_action": [
+      "yield",
+      "decelerate",
+      "monitor_vru"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "force_exit",
+      "aggressive_lane_change"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "original_priority_score": 0.97,
     "source": "round_dataset_casebook",
-    "priority": 1.0
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for round scenarios tagged as roundabout_vru_interaction, roundabout_exit_conflict, roundabout_exit_cyclist_conflict using risk evidence from TTC, DCPA, min_future_distance, VRU. Source case: Roundabout Exit Vehicle-Cyclist Conflict Case.",
+    "legacy": {
+      "id": "case_round_exit_vehicle_cyclist_conflict_002",
+      "kb_type": "case",
+      "scene_type": "rounD",
+      "event_type": "roundabout_exit_cyclist_conflict",
+      "pair_type": "vehicle_cyclist"
+    }
   },
   {
-    "id": "case_round_parallel_close_interaction_001",
-    "kb_type": "case",
-    "title": "环岛并行近距离交互案例",
-    "text": "在环岛内部，多车辆并行运行时未保持足够间距，导致持续低距离交互，增加侧向冲突风险。",
-    "scene_type": "rounD",
-    "event_type": null,
-    "pair_type": "vehicle_vehicle",
+    "chunk_id": "case_round_parallel_close_interaction_001",
+    "doc_type": "case",
+    "title": "Roundabout Parallel Close-Interaction Case",
+    "text": "Inside a roundabout, multiple vehicles travel in parallel without maintaining sufficient spacing, resulting in persistent low-distance interactions and increased lateral conflict risk.",
+    "dataset_tags": [
+      "round"
+    ],
+    "scenario_tags": [
+      "roundabout_vehicle_interaction",
+      "roundabout_parallel_conflict",
+      "roundabout_parallel_close_interaction"
+    ],
+    "metric_tags": [
+      "DCPA",
+      "min_future_distance",
+      "lateral_clearance"
+    ],
+    "risk_tags": [
+      "lateral_conflict",
+      "roundabout_conflict",
+      "multi_agent"
+    ],
+    "condition": {
+      "dcpa_lt": 2.0,
+      "min_future_distance_lt": 2.5,
+      "parallel_interaction": true
+    },
+    "risk_mechanism": "If parallel vehicles inside a roundabout continuously maintain low lateral or longitudinal distance, the tolerance for trajectory disturbances decreases and lateral conflict risk increases.",
+    "recommended_action": [
+      "decelerate",
+      "increase_lateral_clearance",
+      "monitor_adjacent_vehicle"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "aggressive_lane_change",
+      "keep_close_following"
+    ],
+    "severity": "medium",
+    "priority": 2,
+    "original_priority_score": 0.9,
     "source": "round_dataset_casebook",
-    "priority": 0.9
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for round scenarios tagged as roundabout_vehicle_interaction, roundabout_parallel_conflict, roundabout_parallel_close_interaction using risk evidence from DCPA, min_future_distance, lateral_clearance. Source case: Roundabout Parallel Close-Interaction Case.",
+    "legacy": {
+      "id": "case_round_parallel_close_interaction_001",
+      "kb_type": "case",
+      "scene_type": "rounD",
+      "event_type": "roundabout_parallel_close_interaction",
+      "pair_type": "vehicle_vehicle"
+    }
   },
   {
-    "id": "case_general_multi_frame_low_margin_001",
-    "kb_type": "case",
-    "title": "多帧低安全裕度累积风险案例",
-    "text": "在连续多个时间帧中，车辆始终维持较低安全距离或低TTC，风险逐步累积，最终形成高危险状态。",
-    "scene_type": "all",
-    "event_type": null,
-    "pair_type": "all",
-    "source": "analysis_casebook",
-    "priority": 0.9
-  },
-  {
-    "id": "case_round_vehicle_cyclist_close_001",
-    "kb_type": "case",
-    "title": "环岛机动车与骑行者近距离冲突案例",
-    "text": "当机动车在环岛入口或出口附近与骑行者发生近距离并行、切入或抢先通过时，若最小距离和 TTC 同时较低，应视为高风险并优先采取让行策略。",
-    "scene_type": "rounD",
-    "event_type": null,
-    "pair_type": "vehicle_cyclist",
+    "chunk_id": "case_round_vehicle_cyclist_close_001",
+    "doc_type": "case",
+    "title": "Roundabout Motor-Vehicle and Cyclist Close-Conflict Case",
+    "text": "When a motor vehicle and a cyclist have a close parallel, cut-in, or aggressive passing interaction near a roundabout entry or exit, and both minimum distance and TTC are low, it should be treated as high risk and a yielding strategy should be prioritized.",
+    "dataset_tags": [
+      "round"
+    ],
+    "scenario_tags": [
+      "roundabout_vru_interaction",
+      "roundabout_exit_conflict",
+      "roundabout_exit_cyclist_conflict"
+    ],
+    "metric_tags": [
+      "TTC",
+      "DCPA",
+      "min_future_distance",
+      "VRU"
+    ],
+    "risk_tags": [
+      "low_ttc",
+      "cut_in",
+      "yielding",
+      "roundabout_conflict",
+      "vru_conflict"
+    ],
+    "condition": {
+      "vrus_present": true,
+      "ttc_lt": 3.0,
+      "dcpa_lt": 2.0,
+      "min_future_distance_lt": 2.0
+    },
+    "risk_mechanism": "When a motor vehicle interacts at a low distance with a cyclist near a roundabout entry or exit, the spatial margin is insufficient and VRU trajectory uncertainty is high, making a near-miss likely.",
+    "recommended_action": [
+      "yield",
+      "decelerate",
+      "monitor_vru"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "force_exit",
+      "aggressive_lane_change"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "original_priority_score": 0.95,
     "source": "round_dataset_casebook",
-    "priority": 0.95
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for round scenarios tagged as roundabout_vru_interaction, roundabout_exit_conflict, roundabout_exit_cyclist_conflict using risk evidence from TTC, DCPA, min_future_distance, VRU. Source case: Roundabout Motor-Vehicle and Cyclist Close-Conflict Case.",
+    "legacy": {
+      "id": "case_round_vehicle_cyclist_close_001",
+      "kb_type": "case",
+      "scene_type": "rounD",
+      "event_type": "roundabout_exit_cyclist_conflict",
+      "pair_type": "vehicle_cyclist"
+    }
   },
   {
-    "id": "case_round_double_interaction_conflict_002",
-    "kb_type": "case",
-    "title": "环岛多对象交互冲突案例",
-    "text": "在环岛中同时存在多个交互对象时，驾驶员若只关注单一目标，容易忽略其他方向来车或骑行者，从而形成复合风险场景。",
-    "scene_type": "rounD",
-    "event_type": null,
-    "pair_type": "vehicle_vehicle",
+    "chunk_id": "case_round_double_interaction_conflict_002",
+    "doc_type": "case",
+    "title": "Roundabout Multi-Object Interaction Conflict Case",
+    "text": "When multiple interaction objects exist simultaneously in a roundabout, a driver who focuses on only one target may overlook approaching vehicles or cyclists from other directions, creating a compound-risk scenario.",
+    "dataset_tags": [
+      "round"
+    ],
+    "scenario_tags": [
+      "roundabout_vehicle_interaction",
+      "roundabout_multi_object_conflict"
+    ],
+    "metric_tags": [
+      "DCPA",
+      "min_future_distance"
+    ],
+    "risk_tags": [
+      "roundabout_conflict",
+      "vru_conflict",
+      "multi_agent"
+    ],
+    "condition": {
+      "dcpa_lt": 2.0,
+      "min_future_distance_lt": 2.5,
+      "multiple_interaction_objects": true
+    },
+    "risk_mechanism": "In multi-object roundabout interactions, focusing on only one target can lead to missed vehicles or cyclists from other directions and create compound conflict risk.",
+    "recommended_action": [
+      "decelerate",
+      "yield",
+      "monitor_multiple_agents"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "force_merge",
+      "single_target_focus"
+    ],
+    "severity": "medium",
+    "priority": 2,
+    "original_priority_score": 0.9,
     "source": "round_dataset_casebook",
-    "priority": 0.9
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for round scenarios tagged as roundabout_vehicle_interaction, roundabout_multi_object_conflict using risk evidence from DCPA, min_future_distance. Source case: Roundabout Multi-Object Interaction Conflict Case.",
+    "legacy": {
+      "id": "case_round_double_interaction_conflict_002",
+      "kb_type": "case",
+      "scene_type": "rounD",
+      "event_type": "roundabout_multi_object_conflict",
+      "pair_type": "vehicle_vehicle"
+    }
   },
   {
-    "id": "case_round_cyclist_blind_spot_002",
-    "kb_type": "case",
-    "title": "环岛骑行者盲区冲突案例",
-    "text": "在环岛出口或侧方区域，骑行者可能处于驾驶员视觉盲区。若车辆未提前减速或扩大安全范围，容易产生近距离冲突。",
-    "scene_type": "rounD",
-    "event_type": null,
-    "pair_type": "vehicle_cyclist",
+    "chunk_id": "case_round_cyclist_blind_spot_002",
+    "doc_type": "case",
+    "title": "Roundabout Cyclist Blind-Spot Conflict Case",
+    "text": "Near a roundabout exit or side area, a cyclist may be in the driver's visual blind spot. If the vehicle does not decelerate in advance or enlarge the safety margin, a close-distance conflict can easily occur.",
+    "dataset_tags": [
+      "round"
+    ],
+    "scenario_tags": [
+      "roundabout_vru_interaction",
+      "roundabout_exit_conflict",
+      "roundabout_exit_cyclist_conflict"
+    ],
+    "metric_tags": [
+      "DCPA",
+      "min_future_distance",
+      "lateral_clearance",
+      "VRU"
+    ],
+    "risk_tags": [
+      "lateral_conflict",
+      "roundabout_conflict",
+      "vru_conflict",
+      "blind_spot"
+    ],
+    "condition": {
+      "vrus_present": true,
+      "dcpa_lt": 2.0,
+      "min_future_distance_lt": 2.0,
+      "blind_spot_risk": true
+    },
+    "risk_mechanism": "Cyclists near a roundabout exit or side area may be in the driver's blind spot. If the vehicle does not decelerate in advance and enlarge the safety area, a close lateral conflict can occur.",
+    "recommended_action": [
+      "yield",
+      "decelerate",
+      "monitor_vru"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "force_exit",
+      "aggressive_lane_change"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "original_priority_score": 0.95,
     "source": "round_dataset_casebook",
-    "priority": 0.95
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for round scenarios tagged as roundabout_vru_interaction, roundabout_exit_conflict, roundabout_exit_cyclist_conflict using risk evidence from DCPA, min_future_distance, lateral_clearance, VRU. Source case: Roundabout Cyclist Blind-Spot Conflict Case.",
+    "legacy": {
+      "id": "case_round_cyclist_blind_spot_002",
+      "kb_type": "case",
+      "scene_type": "rounD",
+      "event_type": "roundabout_exit_cyclist_conflict",
+      "pair_type": "vehicle_cyclist"
+    }
   },
   {
-    "id": "case_general_efficiency_dominance_001",
-    "kb_type": "case",
-    "title": "效率优先导致安全不足案例",
-    "text": "车辆在追求通行效率时，通过压缩间距或抢行来提高速度，导致安全裕度显著下降，形成潜在违规行为。",
-    "scene_type": "all",
-    "event_type": null,
-    "pair_type": "all",
-    "source": "analysis_casebook",
-    "priority": 0.9
+    "chunk_id": "case_highd_following_hard_brake_response_002",
+    "doc_type": "case",
+    "title": "High-Speed Following Response to Lead-Vehicle Hard Braking Case",
+    "text": "In high-speed following, if the lead vehicle clearly decelerates and the following vehicle has both low TTC and low THW, it should immediately decelerate and restore a safe time headway.",
+    "dataset_tags": [
+      "highd"
+    ],
+    "scenario_tags": [
+      "highway_car_following",
+      "car_following"
+    ],
+    "metric_tags": [
+      "TTC",
+      "THW",
+      "headway",
+      "relative_speed"
+    ],
+    "risk_tags": [
+      "rear_end",
+      "hard_braking",
+      "closing_speed",
+      "low_ttc",
+      "short_headway",
+      "headway_reduction"
+    ],
+    "condition": {
+      "ttc_lt": 2.5,
+      "thw_lt": 1.0,
+      "lead_deceleration_gt": 3.0,
+      "closing_speed_gt": 0.0
+    },
+    "risk_mechanism": "When the lead vehicle suddenly decelerates while the following vehicle is still in short-headway following, the available braking time is rapidly compressed, making a rear-end near-miss likely.",
+    "recommended_action": [
+      "decelerate",
+      "increase_headway",
+      "monitor_lead_vehicle"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "keep_close_following",
+      "late_brake"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "original_priority_score": 0.96,
+    "source": "highd_dataset_casebook_extended",
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for highd scenarios tagged as highway_car_following, car_following using risk evidence from TTC, THW, headway, relative_speed. Source case: High-Speed Following Response to Lead-Vehicle Hard Braking Case.",
+    "legacy": {
+      "id": "case_highd_following_hard_brake_response_002",
+      "kb_type": "case",
+      "scene_type": "highD",
+      "event_type": "car_following",
+      "pair_type": "vehicle_vehicle"
+    }
+  },
+  {
+    "chunk_id": "case_highd_following_stop_and_go_shockwave_003",
+    "doc_type": "case",
+    "title": "High-Speed Traffic Disturbance Amplification Following Case",
+    "text": "In high-speed traffic flow, if small THW and large relative-speed fluctuations persist across multiple frames, the vehicle should decelerate smoothly and increase following distance to prevent disturbances from amplifying upstream.",
+    "dataset_tags": [
+      "highd"
+    ],
+    "scenario_tags": [
+      "highway_car_following",
+      "car_following"
+    ],
+    "metric_tags": [
+      "THW",
+      "headway",
+      "relative_speed"
+    ],
+    "risk_tags": [
+      "short_headway",
+      "headway_reduction",
+      "multi_agent"
+    ],
+    "condition": {
+      "thw_lt": 1.2,
+      "relative_speed_abs_gt": 4.0,
+      "low_margin_frames_gte": 5,
+      "speed_gt": 20.0
+    },
+    "risk_mechanism": "Short headways in a high-speed vehicle queue amplify minor speed disturbances, causing following vehicles to enter low-safety-margin states repeatedly.",
+    "recommended_action": [
+      "smooth_deceleration",
+      "increase_headway",
+      "monitor_lead_vehicle"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "keep_close_following",
+      "late_brake"
+    ],
+    "severity": "high",
+    "priority": 2,
+    "original_priority_score": 0.91,
+    "source": "highd_dataset_casebook_extended",
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for highd scenarios tagged as highway_car_following, car_following using risk evidence from THW, headway, relative_speed. Source case: High-Speed Traffic Disturbance Amplification Following Case.",
+    "legacy": {
+      "id": "case_highd_following_stop_and_go_shockwave_003",
+      "kb_type": "case",
+      "scene_type": "highD",
+      "event_type": "car_following",
+      "pair_type": "vehicle_vehicle"
+    }
+  },
+  {
+    "chunk_id": "case_highd_cut_in_rear_ttc_drop_002",
+    "doc_type": "case",
+    "title": "High-Speed Cut-in Causing Rear-Vehicle TTC Drop Case",
+    "text": "When a vehicle's cut-in would cause a sudden TTC drop for the rear vehicle in the target lane, the lane change should be aborted or delayed instead of forcing the merge.",
+    "dataset_tags": [
+      "highd"
+    ],
+    "scenario_tags": [
+      "highway_cut_in",
+      "cut_in"
+    ],
+    "metric_tags": [
+      "TTC",
+      "THW",
+      "headway",
+      "lateral_clearance"
+    ],
+    "risk_tags": [
+      "rear_end",
+      "low_ttc",
+      "short_headway",
+      "cut_in",
+      "gap_acceptance",
+      "lateral_conflict",
+      "merging_conflict"
+    ],
+    "condition": {
+      "rear_ttc_lt": 2.5,
+      "rear_thw_lt": 1.0,
+      "lateral_overlap": true,
+      "target_lane_gap_lt": 10.0
+    },
+    "risk_mechanism": "After the cut-in vehicle occupies the target lane, the rear vehicle's forward gap and reaction time suddenly decrease, forcing the rear vehicle to decelerate sharply.",
+    "recommended_action": [
+      "abort_lane_change",
+      "decelerate",
+      "increase_headway"
+    ],
+    "forbidden_action": [
+      "force_merge",
+      "aggressive_lane_change",
+      "accelerate_into_gap"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "original_priority_score": 0.96,
+    "source": "highd_dataset_casebook_extended",
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for highd scenarios tagged as highway_cut_in, cut_in using risk evidence from TTC, THW, headway, lateral_clearance. Source case: High-Speed Cut-in Causing Rear-Vehicle TTC Drop Case.",
+    "legacy": {
+      "id": "case_highd_cut_in_rear_ttc_drop_002",
+      "kb_type": "case",
+      "scene_type": "highD",
+      "event_type": "cut_in",
+      "pair_type": "vehicle_vehicle"
+    }
+  },
+  {
+    "chunk_id": "case_highd_cut_in_front_rear_gap_insufficient_003",
+    "doc_type": "case",
+    "title": "High-Speed Cut-in with Insufficient Front and Rear Gaps Case",
+    "text": "If the available front and rear gaps in the target lane are both small, a high-speed lane change should be delayed or canceled until a more stable safe gap is available.",
+    "dataset_tags": [
+      "highd"
+    ],
+    "scenario_tags": [
+      "highway_cut_in",
+      "cut_in"
+    ],
+    "metric_tags": [
+      "headway"
+    ],
+    "risk_tags": [
+      "rear_end",
+      "cut_in",
+      "gap_acceptance",
+      "multi_agent"
+    ],
+    "condition": {
+      "front_gap_lt": 8.0,
+      "rear_gap_lt": 10.0,
+      "speed_gt": 22.0,
+      "target_lane_gap_lt": 12.0
+    },
+    "risk_mechanism": "When both front and rear gaps in the target lane are insufficient, continuing the lane change compresses the safety margins of both front and rear vehicles and triggers multi-vehicle chain adjustments.",
+    "recommended_action": [
+      "delay_lane_change",
+      "maintain_lane",
+      "monitor_target_lane"
+    ],
+    "forbidden_action": [
+      "force_merge",
+      "aggressive_lane_change",
+      "accelerate_into_gap"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "original_priority_score": 0.93,
+    "source": "highd_dataset_casebook_extended",
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for highd scenarios tagged as highway_cut_in, cut_in using risk evidence from headway. Source case: High-Speed Cut-in with Insufficient Front and Rear Gaps Case.",
+    "legacy": {
+      "id": "case_highd_cut_in_front_rear_gap_insufficient_003",
+      "kb_type": "case",
+      "scene_type": "highD",
+      "event_type": "cut_in",
+      "pair_type": "vehicle_vehicle"
+    }
+  },
+  {
+    "chunk_id": "case_highd_lane_change_closing_rear_vehicle_004",
+    "doc_type": "case",
+    "title": "Lane Change with Fast-Approaching Rear Vehicle Case",
+    "text": "When a vehicle from behind in the target lane approaches with a high relative speed, immediate merging should be avoided even if the current lateral distance appears acceptable.",
+    "dataset_tags": [
+      "highd"
+    ],
+    "scenario_tags": [
+      "highway_lane_change",
+      "lane_change"
+    ],
+    "metric_tags": [
+      "TTC",
+      "headway",
+      "relative_speed",
+      "lateral_clearance"
+    ],
+    "risk_tags": [
+      "rear_end",
+      "closing_speed",
+      "low_ttc",
+      "gap_acceptance",
+      "lateral_conflict"
+    ],
+    "condition": {
+      "rear_vehicle_closing_speed_gt": 3.0,
+      "rear_ttc_lt": 3.0,
+      "target_lane_rear_present": true
+    },
+    "risk_mechanism": "When the rear vehicle in the target lane approaches rapidly, the lane-changing vehicle may misjudge the available gap, leaving the rear vehicle with insufficient reaction space.",
+    "recommended_action": [
+      "maintain_lane",
+      "abort_lane_change",
+      "signal_and_wait"
+    ],
+    "forbidden_action": [
+      "force_merge",
+      "aggressive_lane_change",
+      "accelerate_into_gap"
+    ],
+    "severity": "high",
+    "priority": 2,
+    "original_priority_score": 0.92,
+    "source": "highd_dataset_casebook_extended",
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for highd scenarios tagged as highway_lane_change, lane_change using risk evidence from TTC, headway, relative_speed, lateral_clearance. Source case: Lane Change with Fast-Approaching Rear Vehicle Case.",
+    "legacy": {
+      "id": "case_highd_lane_change_closing_rear_vehicle_004",
+      "kb_type": "case",
+      "scene_type": "highD",
+      "event_type": "lane_change",
+      "pair_type": "vehicle_vehicle"
+    }
+  },
+  {
+    "chunk_id": "case_highd_overtaking_short_return_gap_001",
+    "doc_type": "case",
+    "title": "High-Speed Premature Return After Overtaking Case",
+    "text": "After overtaking at high speed, if the return gap to the overtaken vehicle is insufficient, the vehicle should remain in its lane and return only after increasing the spacing.",
+    "dataset_tags": [
+      "highd"
+    ],
+    "scenario_tags": [
+      "highway_lane_change",
+      "overtaking_return"
+    ],
+    "metric_tags": [
+      "TTC",
+      "headway",
+      "lateral_clearance"
+    ],
+    "risk_tags": [
+      "rear_end",
+      "low_ttc",
+      "gap_acceptance",
+      "headway_reduction",
+      "lateral_conflict"
+    ],
+    "condition": {
+      "rear_gap_lt": 9.0,
+      "rear_ttc_lt": 3.0,
+      "lateral_overlap": true,
+      "speed_gt": 24.0
+    },
+    "risk_mechanism": "Returning too early after overtaking compresses the forward space of the overtaken vehicle, turning normal following into short-headway following abruptly.",
+    "recommended_action": [
+      "delay_lane_change",
+      "increase_headway",
+      "monitor_rear_vehicle"
+    ],
+    "forbidden_action": [
+      "cut_back_close",
+      "accelerate_into_gap",
+      "aggressive_lane_change"
+    ],
+    "severity": "high",
+    "priority": 2,
+    "original_priority_score": 0.91,
+    "source": "highd_dataset_casebook_extended",
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for highd scenarios tagged as highway_lane_change, overtaking_return using risk evidence from TTC, headway, lateral_clearance. Source case: High-Speed Premature Return After Overtaking Case.",
+    "legacy": {
+      "id": "case_highd_overtaking_short_return_gap_001",
+      "kb_type": "case",
+      "scene_type": "highD",
+      "event_type": "overtaking_return",
+      "pair_type": "vehicle_vehicle"
+    }
+  },
+  {
+    "chunk_id": "case_ind_pedestrian_crossing_low_ttc_001",
+    "doc_type": "case",
+    "title": "Urban Intersection Pedestrian Crossing Low-TTC Case",
+    "text": "At an urban intersection, if a pedestrian approaches the vehicle's predicted path and both TTC and DCPA are low, the vehicle should prioritize yielding and reduce speed.",
+    "dataset_tags": [
+      "ind"
+    ],
+    "scenario_tags": [
+      "intersection_vru_interaction",
+      "car_pedestrian"
+    ],
+    "metric_tags": [
+      "TTC",
+      "DCPA",
+      "min_future_distance",
+      "VRU"
+    ],
+    "risk_tags": [
+      "low_ttc",
+      "yielding",
+      "vru_conflict",
+      "crossing_conflict"
+    ],
+    "condition": {
+      "vrus_present": true,
+      "ttc_lt": 3.0,
+      "dcpa_lt": 2.0,
+      "min_future_distance_lt": 2.0
+    },
+    "risk_mechanism": "The predicted trajectories of the pedestrian and vehicle approach each other within a short horizon; low TTC and low DCPA jointly indicate a crossing conflict.",
+    "recommended_action": [
+      "yield",
+      "decelerate",
+      "monitor_vru"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "close_pass",
+      "turn_without_yield"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "original_priority_score": 0.97,
+    "source": "ind_dataset_casebook_extended",
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for ind scenarios tagged as intersection_vru_interaction, car_pedestrian using risk evidence from TTC, DCPA, min_future_distance, VRU. Source case: Urban Intersection Pedestrian Crossing Low-TTC Case.",
+    "legacy": {
+      "id": "case_ind_pedestrian_crossing_low_ttc_001",
+      "kb_type": "case",
+      "scene_type": "inD",
+      "event_type": "car_pedestrian",
+      "pair_type": "vehicle_pedestrian"
+    }
+  },
+  {
+    "chunk_id": "case_ind_pedestrian_occluded_crossing_002",
+    "doc_type": "case",
+    "title": "Pedestrian Suddenly Emerging from Occluded Area Case",
+    "text": "When there is occlusion near an intersection or roadside area and a pedestrian may enter the lane, the vehicle should decelerate in advance and monitor the occluded area.",
+    "dataset_tags": [
+      "ind"
+    ],
+    "scenario_tags": [
+      "intersection_vru_interaction",
+      "car_pedestrian"
+    ],
+    "metric_tags": [
+      "min_future_distance",
+      "occlusion",
+      "VRU"
+    ],
+    "risk_tags": [
+      "hard_braking",
+      "vru_conflict",
+      "occlusion",
+      "crossing_conflict"
+    ],
+    "condition": {
+      "vrus_present": true,
+      "occlusion_risk": true,
+      "speed_gt": 8.0,
+      "min_future_distance_lt": 3.0
+    },
+    "risk_mechanism": "Occlusion reduces the visible time of the pedestrian. If the vehicle maintains a high speed, the remaining braking distance may be insufficient for a sudden crossing risk.",
+    "recommended_action": [
+      "decelerate",
+      "yield",
+      "monitor_occluded_area"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "maintain_high_speed",
+      "close_pass"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "original_priority_score": 0.94,
+    "source": "ind_dataset_casebook_extended",
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for ind scenarios tagged as intersection_vru_interaction, car_pedestrian using risk evidence from min_future_distance, occlusion, VRU. Source case: Pedestrian Suddenly Emerging from Occluded Area Case.",
+    "legacy": {
+      "id": "case_ind_pedestrian_occluded_crossing_002",
+      "kb_type": "case",
+      "scene_type": "inD",
+      "event_type": "car_pedestrian",
+      "pair_type": "vehicle_pedestrian"
+    }
+  },
+  {
+    "chunk_id": "case_ind_bicycle_close_pass_lateral_001",
+    "doc_type": "case",
+    "title": "Urban Motor Vehicle Close-Passing Cyclist Case",
+    "text": "When a motor vehicle overtakes a cyclist, if the lateral clearance and DCPA are too low, it should decelerate and increase lateral spacing instead of passing closely.",
+    "dataset_tags": [
+      "ind"
+    ],
+    "scenario_tags": [
+      "intersection_vru_interaction",
+      "car_bicycle"
+    ],
+    "metric_tags": [
+      "DCPA",
+      "relative_speed",
+      "lateral_clearance",
+      "VRU"
+    ],
+    "risk_tags": [
+      "lateral_conflict",
+      "vru_conflict"
+    ],
+    "condition": {
+      "vrus_present": true,
+      "dcpa_lt": 1.2,
+      "lateral_clearance_lt": 1.5,
+      "speed_difference_gt": 5.0
+    },
+    "risk_mechanism": "When a motor vehicle passes a cyclist at close range with a large speed difference, the lateral safety margin is insufficient, and a slight cyclist deviation can create a conflict.",
+    "recommended_action": [
+      "decelerate",
+      "increase_lateral_clearance",
+      "monitor_vru"
+    ],
+    "forbidden_action": [
+      "close_pass",
+      "accelerate",
+      "aggressive_lane_change"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "original_priority_score": 0.95,
+    "source": "ind_dataset_casebook_extended",
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for ind scenarios tagged as intersection_vru_interaction, car_bicycle using risk evidence from DCPA, relative_speed, lateral_clearance, VRU. Source case: Urban Motor Vehicle Close-Passing Cyclist Case.",
+    "legacy": {
+      "id": "case_ind_bicycle_close_pass_lateral_001",
+      "kb_type": "case",
+      "scene_type": "inD",
+      "event_type": "car_bicycle",
+      "pair_type": "vehicle_cyclist"
+    }
+  },
+  {
+    "chunk_id": "case_ind_bicycle_parallel_drift_002",
+    "doc_type": "case",
+    "title": "Parallel Cyclist Minor-Drift Conflict Case",
+    "text": "If a cyclist is parallel to the vehicle and lateral-speed fluctuations are evident, the vehicle should reduce speed and increase lateral distance.",
+    "dataset_tags": [
+      "ind"
+    ],
+    "scenario_tags": [
+      "intersection_vru_interaction",
+      "car_bicycle"
+    ],
+    "metric_tags": [
+      "DCPA",
+      "min_future_distance",
+      "lateral_clearance",
+      "VRU"
+    ],
+    "risk_tags": [
+      "lateral_conflict",
+      "vru_conflict"
+    ],
+    "condition": {
+      "vrus_present": true,
+      "dcpa_lt": 1.5,
+      "lateral_velocity_abs_gt": 0.3,
+      "min_future_distance_lt": 2.0
+    },
+    "risk_mechanism": "In a parallel state, cyclist lateral motion is unstable, and low DCPA can turn a slight deviation into a lateral conflict.",
+    "recommended_action": [
+      "monitor_vru",
+      "decelerate",
+      "increase_lateral_clearance"
+    ],
+    "forbidden_action": [
+      "close_pass",
+      "accelerate",
+      "ignore_lateral_motion"
+    ],
+    "severity": "high",
+    "priority": 2,
+    "original_priority_score": 0.9,
+    "source": "ind_dataset_casebook_extended",
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for ind scenarios tagged as intersection_vru_interaction, car_bicycle using risk evidence from DCPA, min_future_distance, lateral_clearance, VRU. Source case: Parallel Cyclist Minor-Drift Conflict Case.",
+    "legacy": {
+      "id": "case_ind_bicycle_parallel_drift_002",
+      "kb_type": "case",
+      "scene_type": "inD",
+      "event_type": "car_bicycle",
+      "pair_type": "vehicle_cyclist"
+    }
+  },
+  {
+    "chunk_id": "case_ind_left_turn_pedestrian_conflict_001",
+    "doc_type": "case",
+    "title": "Turning Vehicle and Crossing Pedestrian Conflict Case",
+    "text": "When a vehicle turns left or right across a crosswalk and a pedestrian is approaching the conflict point, the vehicle should stop or significantly decelerate to yield.",
+    "dataset_tags": [
+      "ind"
+    ],
+    "scenario_tags": [
+      "intersection_vru_interaction",
+      "intersection_crossing",
+      "intersection_turning_conflict",
+      "turn_across_pedestrian"
+    ],
+    "metric_tags": [
+      "TTC",
+      "DCPA",
+      "headway",
+      "VRU"
+    ],
+    "risk_tags": [
+      "low_ttc",
+      "gap_acceptance",
+      "yielding",
+      "vru_conflict",
+      "crossing_conflict",
+      "conflict_point"
+    ],
+    "condition": {
+      "vrus_present": true,
+      "turn_intention": true,
+      "dcpa_lt": 2.0,
+      "ttc_lt": 4.0
+    },
+    "risk_mechanism": "A turning vehicle's trajectory crosses the pedestrian crossing path. If the vehicle does not decelerate and yield before turning, the time gap at the conflict point shrinks rapidly.",
+    "recommended_action": [
+      "yield",
+      "stop",
+      "monitor_vru"
+    ],
+    "forbidden_action": [
+      "turn_without_yield",
+      "accelerate",
+      "force_turn"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "original_priority_score": 0.96,
+    "source": "ind_dataset_casebook_extended",
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for ind scenarios tagged as intersection_vru_interaction, intersection_crossing, intersection_turning_conflict using risk evidence from TTC, DCPA, headway, VRU. Source case: Turning Vehicle and Crossing Pedestrian Conflict Case.",
+    "legacy": {
+      "id": "case_ind_left_turn_pedestrian_conflict_001",
+      "kb_type": "case",
+      "scene_type": "inD",
+      "event_type": "turn_across_pedestrian",
+      "pair_type": "vehicle_pedestrian"
+    }
+  },
+  {
+    "chunk_id": "case_ind_intersection_vehicle_crossing_001",
+    "doc_type": "case",
+    "title": "Unsignalized Intersection Vehicle Crossing Conflict Case",
+    "text": "At an unsignalized or complex intersection, when two vehicles' predicted paths cross and their arrival times at the conflict point are close, the vehicle should actively decelerate and yield.",
+    "dataset_tags": [
+      "ind"
+    ],
+    "scenario_tags": [
+      "intersection_vehicle_interaction",
+      "intersection_crossing"
+    ],
+    "metric_tags": [
+      "TTC",
+      "DCPA",
+      "headway",
+      "time_to_conflict"
+    ],
+    "risk_tags": [
+      "low_ttc",
+      "gap_acceptance",
+      "yielding",
+      "crossing_conflict",
+      "conflict_point",
+      "forcing_behavior"
+    ],
+    "condition": {
+      "crossing_paths": true,
+      "ttc_lt": 3.5,
+      "dcpa_lt": 2.0,
+      "time_to_conflict_diff_lt": 1.0
+    },
+    "risk_mechanism": "Two vehicles enter the same conflict point with a very small time gap, and any attempt to force passage by either side can escalate the crossing conflict.",
+    "recommended_action": [
+      "yield",
+      "decelerate",
+      "monitor_conflict_point"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "force_crossing",
+      "ignore_conflict_point"
+    ],
+    "severity": "high",
+    "priority": 2,
+    "original_priority_score": 0.92,
+    "source": "ind_dataset_casebook_extended",
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for ind scenarios tagged as intersection_vehicle_interaction, intersection_crossing using risk evidence from TTC, DCPA, headway, time_to_conflict. Source case: Unsignalized Intersection Vehicle Crossing Conflict Case.",
+    "legacy": {
+      "id": "case_ind_intersection_vehicle_crossing_001",
+      "kb_type": "case",
+      "scene_type": "inD",
+      "event_type": "intersection_crossing",
+      "pair_type": "vehicle_vehicle"
+    }
+  },
+  {
+    "chunk_id": "case_ind_multi_vru_attention_split_001",
+    "doc_type": "case",
+    "title": "Urban Intersection Multi-VRU Attention-Splitting Case",
+    "text": "When multiple pedestrians or cyclists are present at a complex intersection, the vehicle should reduce speed and continuously monitor all potential conflict objects.",
+    "dataset_tags": [
+      "ind"
+    ],
+    "scenario_tags": [
+      "intersection_vehicle_interaction",
+      "intersection_multi_object_conflict"
+    ],
+    "metric_tags": [
+      "DCPA",
+      "min_future_distance",
+      "lateral_clearance",
+      "VRU"
+    ],
+    "risk_tags": [
+      "lateral_conflict",
+      "vru_conflict",
+      "conflict_point",
+      "multi_agent"
+    ],
+    "condition": {
+      "vrus_present": true,
+      "multiple_interaction_objects": true,
+      "min_future_distance_lt": 2.5,
+      "dcpa_lt": 2.0
+    },
+    "risk_mechanism": "When multiple pedestrians or cyclists approach simultaneously, focusing on a single object can cause the vehicle to miss a lateral VRU or a subsequent VRU entering the conflict point.",
+    "recommended_action": [
+      "decelerate",
+      "yield",
+      "monitor_multiple_agents"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "single_target_focus",
+      "force_crossing"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "original_priority_score": 0.93,
+    "source": "ind_dataset_casebook_extended",
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for ind scenarios tagged as intersection_vehicle_interaction, intersection_multi_object_conflict using risk evidence from DCPA, min_future_distance, lateral_clearance, VRU. Source case: Urban Intersection Multi-VRU Attention-Splitting Case.",
+    "legacy": {
+      "id": "case_ind_multi_vru_attention_split_001",
+      "kb_type": "case",
+      "scene_type": "inD",
+      "event_type": "intersection_multi_object_conflict",
+      "pair_type": "all"
+    }
+  },
+  {
+    "chunk_id": "case_ind_unsignalized_bicycle_crossing_001",
+    "doc_type": "case",
+    "title": "Unsignalized Intersection Cyclist Crossing Case",
+    "text": "At an unsignalized intersection, if a cyclist crosses the vehicle's predicted path, the vehicle should prioritize yielding and reduce speed.",
+    "dataset_tags": [
+      "ind"
+    ],
+    "scenario_tags": [
+      "intersection_vru_interaction",
+      "car_bicycle"
+    ],
+    "metric_tags": [
+      "TTC",
+      "min_future_distance",
+      "VRU"
+    ],
+    "risk_tags": [
+      "low_ttc",
+      "yielding",
+      "vru_conflict",
+      "crossing_conflict"
+    ],
+    "condition": {
+      "vrus_present": true,
+      "crossing_paths": true,
+      "ttc_lt": 3.0,
+      "min_future_distance_lt": 2.0
+    },
+    "risk_mechanism": "A cyclist travels faster than a pedestrian and crosses the vehicle trajectory; low TTC leaves the vehicle with insufficient reaction time.",
+    "recommended_action": [
+      "yield",
+      "decelerate",
+      "monitor_vru"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "force_crossing",
+      "close_pass"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "original_priority_score": 0.94,
+    "source": "ind_dataset_casebook_extended",
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for ind scenarios tagged as intersection_vru_interaction, car_bicycle using risk evidence from TTC, min_future_distance, VRU. Source case: Unsignalized Intersection Cyclist Crossing Case.",
+    "legacy": {
+      "id": "case_ind_unsignalized_bicycle_crossing_001",
+      "kb_type": "case",
+      "scene_type": "inD",
+      "event_type": "car_bicycle",
+      "pair_type": "vehicle_cyclist"
+    }
+  },
+  {
+    "chunk_id": "case_round_entry_fast_approach_003",
+    "doc_type": "case",
+    "title": "High-Speed Approach to Roundabout Entry Merging Case",
+    "text": "When a vehicle approaches a roundabout entry at high speed and a vehicle inside the roundabout is already near the conflict point, it should decelerate early and yield.",
+    "dataset_tags": [
+      "round"
+    ],
+    "scenario_tags": [
+      "roundabout_vehicle_interaction",
+      "roundabout_merging"
+    ],
+    "metric_tags": [
+      "DCPA",
+      "min_future_distance"
+    ],
+    "risk_tags": [
+      "merging_conflict",
+      "yielding",
+      "roundabout_conflict",
+      "conflict_point"
+    ],
+    "condition": {
+      "approach_speed_gt": 8.0,
+      "dcpa_lt": 2.2,
+      "min_future_distance_lt": 2.5,
+      "inside_vehicle_present": true
+    },
+    "risk_mechanism": "A fast-approaching entry vehicle compresses the time available to judge vehicles inside the roundabout, and low DCPA indicates an obvious spatial conflict at the merge point.",
+    "recommended_action": [
+      "yield",
+      "decelerate",
+      "monitor_conflict_point"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "force_merge",
+      "ignore_inside_vehicle"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "original_priority_score": 0.94,
+    "source": "round_dataset_casebook_extended",
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for round scenarios tagged as roundabout_vehicle_interaction, roundabout_merging using risk evidence from DCPA, min_future_distance. Source case: High-Speed Approach to Roundabout Entry Merging Case.",
+    "legacy": {
+      "id": "case_round_entry_fast_approach_003",
+      "kb_type": "case",
+      "scene_type": "rounD",
+      "event_type": "roundabout_merging",
+      "pair_type": "vehicle_vehicle"
+    }
+  },
+  {
+    "chunk_id": "case_round_inside_vehicle_priority_004",
+    "doc_type": "case",
+    "title": "Compressed Priority of Vehicle Inside Roundabout Case",
+    "text": "When a vehicle inside the roundabout is already approaching the entry conflict point, the entering vehicle should delay merging and yield.",
+    "dataset_tags": [
+      "round"
+    ],
+    "scenario_tags": [
+      "roundabout_vehicle_interaction",
+      "roundabout_merging"
+    ],
+    "metric_tags": [
+      "TTC",
+      "min_future_distance"
+    ],
+    "risk_tags": [
+      "low_ttc",
+      "yielding",
+      "roundabout_conflict",
+      "conflict_point",
+      "forcing_behavior"
+    ],
+    "condition": {
+      "entering_vehicle": true,
+      "inside_vehicle_present": true,
+      "ttc_lt": 3.5,
+      "min_future_distance_lt": 2.5
+    },
+    "risk_mechanism": "Forced entry by an approaching vehicle makes the vehicle inside the roundabout change speed or trajectory, disrupting the existing priority relationship within the roundabout.",
+    "recommended_action": [
+      "yield",
+      "delay_merge",
+      "decelerate"
+    ],
+    "forbidden_action": [
+      "force_merge",
+      "accelerate"
+    ],
+    "severity": "high",
+    "priority": 2,
+    "original_priority_score": 0.92,
+    "source": "round_dataset_casebook_extended",
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for round scenarios tagged as roundabout_vehicle_interaction, roundabout_merging using risk evidence from TTC, min_future_distance. Source case: Compressed Priority of Vehicle Inside Roundabout Case.",
+    "legacy": {
+      "id": "case_round_inside_vehicle_priority_004",
+      "kb_type": "case",
+      "scene_type": "rounD",
+      "event_type": "roundabout_merging",
+      "pair_type": "vehicle_vehicle"
+    }
+  },
+  {
+    "chunk_id": "case_round_exit_bicycle_same_direction_003",
+    "doc_type": "case",
+    "title": "Roundabout Exit Same-Direction Cyclist Conflict Case",
+    "text": "When a vehicle exits a roundabout and a cyclist is present ahead and to the side, it should delay exiting and maintain yielding behavior.",
+    "dataset_tags": [
+      "round"
+    ],
+    "scenario_tags": [
+      "roundabout_vru_interaction",
+      "roundabout_exit_conflict",
+      "roundabout_exit_cyclist_conflict"
+    ],
+    "metric_tags": [
+      "DCPA",
+      "min_future_distance",
+      "VRU"
+    ],
+    "risk_tags": [
+      "yielding",
+      "roundabout_conflict",
+      "vru_conflict"
+    ],
+    "condition": {
+      "vrus_present": true,
+      "dcpa_lt": 1.5,
+      "min_future_distance_lt": 2.0,
+      "exit_intention": true
+    },
+    "risk_mechanism": "When a vehicle exits a roundabout, it moves outward. If a same-direction cyclist is ahead and to the side, the exit trajectory can easily cross the cyclist's trajectory.",
+    "recommended_action": [
+      "yield",
+      "decelerate",
+      "monitor_vru"
+    ],
+    "forbidden_action": [
+      "force_exit",
+      "accelerate",
+      "close_pass"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "original_priority_score": 0.96,
+    "source": "round_dataset_casebook_extended",
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for round scenarios tagged as roundabout_vru_interaction, roundabout_exit_conflict, roundabout_exit_cyclist_conflict using risk evidence from DCPA, min_future_distance, VRU. Source case: Roundabout Exit Same-Direction Cyclist Conflict Case.",
+    "legacy": {
+      "id": "case_round_exit_bicycle_same_direction_003",
+      "kb_type": "case",
+      "scene_type": "rounD",
+      "event_type": "roundabout_exit_cyclist_conflict",
+      "pair_type": "vehicle_cyclist"
+    }
+  },
+  {
+    "chunk_id": "case_round_cyclist_cut_across_exit_004",
+    "doc_type": "case",
+    "title": "Cyclist Crossing a Roundabout Exit Case",
+    "text": "If a cyclist crosses the vehicle's exit path at a roundabout exit, the vehicle should stop or significantly decelerate to yield.",
+    "dataset_tags": [
+      "round"
+    ],
+    "scenario_tags": [
+      "roundabout_vru_interaction",
+      "roundabout_exit_conflict",
+      "roundabout_exit_cyclist_conflict"
+    ],
+    "metric_tags": [
+      "TTC",
+      "DCPA",
+      "VRU"
+    ],
+    "risk_tags": [
+      "low_ttc",
+      "yielding",
+      "roundabout_conflict",
+      "vru_conflict",
+      "crossing_conflict"
+    ],
+    "condition": {
+      "vrus_present": true,
+      "crossing_paths": true,
+      "ttc_lt": 3.0,
+      "dcpa_lt": 2.0
+    },
+    "risk_mechanism": "When a cyclist crosses the exit, the vehicle's exit path and the cyclist's path form a short-horizon crossing conflict at the exit.",
+    "recommended_action": [
+      "yield",
+      "stop",
+      "monitor_vru"
+    ],
+    "forbidden_action": [
+      "force_exit",
+      "accelerate",
+      "ignore_vru"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "original_priority_score": 0.97,
+    "source": "round_dataset_casebook_extended",
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for round scenarios tagged as roundabout_vru_interaction, roundabout_exit_conflict, roundabout_exit_cyclist_conflict using risk evidence from TTC, DCPA, VRU. Source case: Cyclist Crossing a Roundabout Exit Case.",
+    "legacy": {
+      "id": "case_round_cyclist_cut_across_exit_004",
+      "kb_type": "case",
+      "scene_type": "rounD",
+      "event_type": "roundabout_exit_cyclist_conflict",
+      "pair_type": "vehicle_cyclist"
+    }
+  },
+  {
+    "chunk_id": "case_round_multi_vehicle_gap_competition_003",
+    "doc_type": "case",
+    "title": "Roundabout Multi-Vehicle Gap Competition Case",
+    "text": "When multiple vehicles in a roundabout approach the same conflict area at the same time, the vehicle should avoid occupying the gap aggressively and continuously monitor multiple objects.",
+    "dataset_tags": [
+      "round"
+    ],
+    "scenario_tags": [
+      "roundabout_vehicle_interaction",
+      "roundabout_multi_object_conflict"
+    ],
+    "metric_tags": [
+      "DCPA",
+      "min_future_distance",
+      "headway",
+      "time_to_conflict"
+    ],
+    "risk_tags": [
+      "hard_braking",
+      "gap_acceptance",
+      "roundabout_conflict",
+      "conflict_point",
+      "multi_agent"
+    ],
+    "condition": {
+      "multiple_interaction_objects": true,
+      "dcpa_lt": 2.0,
+      "min_future_distance_lt": 2.5,
+      "time_to_conflict_diff_lt": 1.2
+    },
+    "risk_mechanism": "When multiple vehicles compete for the same merging or exiting gap, their arrival times at the conflict point are similar, making forcing behavior and chain braking likely.",
+    "recommended_action": [
+      "decelerate",
+      "yield",
+      "monitor_multiple_agents"
+    ],
+    "forbidden_action": [
+      "force_merge",
+      "accelerate",
+      "single_target_focus"
+    ],
+    "severity": "medium",
+    "priority": 2,
+    "original_priority_score": 0.88,
+    "source": "round_dataset_casebook_extended",
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for round scenarios tagged as roundabout_vehicle_interaction, roundabout_multi_object_conflict using risk evidence from DCPA, min_future_distance, headway, time_to_conflict. Source case: Roundabout Multi-Vehicle Gap Competition Case.",
+    "legacy": {
+      "id": "case_round_multi_vehicle_gap_competition_003",
+      "kb_type": "case",
+      "scene_type": "rounD",
+      "event_type": "roundabout_multi_object_conflict",
+      "pair_type": "vehicle_vehicle"
+    }
+  },
+  {
+    "chunk_id": "case_round_parallel_motor_vehicle_side_conflict_002",
+    "doc_type": "case",
+    "title": "Roundabout Parallel Motor-Vehicle Lateral Compression Case",
+    "text": "When parallel vehicles inside a roundabout have insufficient lateral clearance, the vehicle should maintain a stable trajectory and decelerate appropriately to avoid lateral squeezing.",
+    "dataset_tags": [
+      "round"
+    ],
+    "scenario_tags": [
+      "roundabout_vehicle_interaction",
+      "roundabout_parallel_conflict"
+    ],
+    "metric_tags": [
+      "min_future_distance",
+      "lateral_clearance"
+    ],
+    "risk_tags": [
+      "lateral_conflict",
+      "roundabout_conflict"
+    ],
+    "condition": {
+      "lateral_clearance_lt": 1.0,
+      "min_future_distance_lt": 1.8,
+      "yaw_rate_abs_gt": 0.15,
+      "parallel_motion": true
+    },
+    "risk_mechanism": "Vehicle lateral trajectories vary significantly during curved roundabout driving. If parallel vehicles have insufficient lateral clearance, lateral squeezing risk arises.",
+    "recommended_action": [
+      "maintain_lane",
+      "decelerate",
+      "increase_lateral_clearance"
+    ],
+    "forbidden_action": [
+      "aggressive_lane_change",
+      "accelerate",
+      "close_pass"
+    ],
+    "severity": "medium",
+    "priority": 1,
+    "original_priority_score": 0.84,
+    "source": "round_dataset_casebook_extended",
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for round scenarios tagged as roundabout_vehicle_interaction, roundabout_parallel_conflict using risk evidence from min_future_distance, lateral_clearance. Source case: Roundabout Parallel Motor-Vehicle Lateral Compression Case.",
+    "legacy": {
+      "id": "case_round_parallel_motor_vehicle_side_conflict_002",
+      "kb_type": "case",
+      "scene_type": "rounD",
+      "event_type": "roundabout_parallel_conflict",
+      "pair_type": "vehicle_vehicle"
+    }
+  },
+  {
+    "chunk_id": "case_round_exit_vehicle_vehicle_cut_out_001",
+    "doc_type": "case",
+    "title": "Roundabout Exit Vehicle Lateral Cut-Out Case",
+    "text": "When a vehicle cuts from the inner roundabout lane toward the exit and an adjacent vehicle is too close, it should delay exiting and keep its lane stable.",
+    "dataset_tags": [
+      "round"
+    ],
+    "scenario_tags": [
+      "roundabout_vehicle_interaction",
+      "roundabout_exit_conflict"
+    ],
+    "metric_tags": [
+      "DCPA",
+      "min_future_distance",
+      "lateral_clearance"
+    ],
+    "risk_tags": [
+      "cut_in",
+      "lateral_conflict",
+      "roundabout_conflict"
+    ],
+    "condition": {
+      "exit_intention": true,
+      "lateral_overlap": true,
+      "dcpa_lt": 2.0,
+      "min_future_distance_lt": 2.5
+    },
+    "risk_mechanism": "When an exiting vehicle cuts outward toward the exit, it crosses the potential trajectory of adjacent vehicles. If lateral overlap and low DCPA occur together, a lateral conflict can easily form.",
+    "recommended_action": [
+      "decelerate",
+      "maintain_lane",
+      "monitor_conflict_point"
+    ],
+    "forbidden_action": [
+      "force_exit",
+      "aggressive_lane_change",
+      "accelerate"
+    ],
+    "severity": "medium",
+    "priority": 1,
+    "original_priority_score": 0.86,
+    "source": "round_dataset_casebook_extended",
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for round scenarios tagged as roundabout_vehicle_interaction, roundabout_exit_conflict using risk evidence from DCPA, min_future_distance, lateral_clearance. Source case: Roundabout Exit Vehicle Lateral Cut-Out Case.",
+    "legacy": {
+      "id": "case_round_exit_vehicle_vehicle_cut_out_001",
+      "kb_type": "case",
+      "scene_type": "rounD",
+      "event_type": "roundabout_exit_conflict",
+      "pair_type": "vehicle_vehicle"
+    }
+  },
+  {
+    "chunk_id": "case_round_entry_cyclist_near_crosswalk_001",
+    "doc_type": "case",
+    "title": "Roundabout Entry Cyclist Near Crosswalk Case",
+    "text": "If a cyclist near the roundabout entry approaches a lateral conflict area, the vehicle should yield before merging and monitor the cyclist.",
+    "dataset_tags": [
+      "round"
+    ],
+    "scenario_tags": [
+      "roundabout_vru_interaction",
+      "roundabout_merging",
+      "roundabout_entry_cyclist_conflict"
+    ],
+    "metric_tags": [
+      "TTC",
+      "min_future_distance",
+      "lateral_clearance",
+      "VRU"
+    ],
+    "risk_tags": [
+      "low_ttc",
+      "lateral_conflict",
+      "yielding",
+      "roundabout_conflict",
+      "vru_conflict",
+      "crossing_conflict"
+    ],
+    "condition": {
+      "vrus_present": true,
+      "crossing_paths": true,
+      "ttc_lt": 3.2,
+      "min_future_distance_lt": 2.0
+    },
+    "risk_mechanism": "When the entering vehicle focuses on traffic inside the roundabout, it can easily overlook a laterally approaching cyclist at the entry, causing conflict with the VRU during start-up or acceleration.",
+    "recommended_action": [
+      "yield",
+      "decelerate",
+      "monitor_vru"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "force_merge",
+      "ignore_vru"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "original_priority_score": 0.95,
+    "source": "round_dataset_casebook_extended",
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for round scenarios tagged as roundabout_vru_interaction, roundabout_merging, roundabout_entry_cyclist_conflict using risk evidence from TTC, min_future_distance, lateral_clearance, VRU. Source case: Roundabout Entry Cyclist Near Crosswalk Case.",
+    "legacy": {
+      "id": "case_round_entry_cyclist_near_crosswalk_001",
+      "kb_type": "case",
+      "scene_type": "rounD",
+      "event_type": "roundabout_entry_cyclist_conflict",
+      "pair_type": "vehicle_cyclist"
+    }
+  },
+  {
+    "chunk_id": "case_ind_pedestrian_near_crosswalk_hesitation_003",
+    "doc_type": "case",
+    "title": "Pedestrian Hesitant Crossing Near Unprotected Crosswalk Case",
+    "text": "Near an unprotected crosswalk, a pedestrian crossing slowly or in a stop-and-go manner has unstable intent. The vehicle should decelerate early and yield instead of using a brief gap to pass first.",
+    "dataset_tags": [
+      "ind"
+    ],
+    "scenario_tags": [
+      "intersection_vru_interaction",
+      "car_pedestrian"
+    ],
+    "metric_tags": [
+      "TTC",
+      "DCPA",
+      "headway",
+      "lateral_clearance",
+      "VRU"
+    ],
+    "risk_tags": [
+      "low_ttc",
+      "gap_acceptance",
+      "lateral_conflict",
+      "yielding",
+      "vru_conflict",
+      "crossing_conflict"
+    ],
+    "condition": {
+      "vrus_present": true,
+      "near_crosswalk": true,
+      "ttc_lt": 3.5,
+      "dcpa_lt": 2.0,
+      "pedestrian_speed_lt": 1.0
+    },
+    "risk_mechanism": "A pedestrian hesitating at low speed near a crosswalk increases trajectory uncertainty. If the vehicle passes with an efficiency-first strategy, a short-horizon lateral crossing conflict can easily form.",
+    "recommended_action": [
+      "yield",
+      "decelerate",
+      "monitor_vru"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "force_pass",
+      "aggressive_lane_change"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "original_priority_score": 0.94,
+    "source": "ind_dataset_casebook_extended_v2",
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for ind scenarios tagged as intersection_vru_interaction, car_pedestrian using risk evidence from TTC, DCPA, headway, lateral_clearance, VRU. Source case: Pedestrian Hesitant Crossing Near Unprotected Crosswalk Case.",
+    "legacy": {
+      "id": "case_ind_pedestrian_near_crosswalk_hesitation_003",
+      "kb_type": "case",
+      "scene_type": "inD",
+      "event_type": "car_pedestrian",
+      "pair_type": "vehicle_pedestrian"
+    }
+  },
+  {
+    "chunk_id": "case_ind_child_pedestrian_slow_crossing_004",
+    "doc_type": "case",
+    "title": "Slow Vulnerable Pedestrian Crossing High-Risk Case",
+    "text": "When a slow pedestrian is near the vehicle's predicted path, the vehicle should handle the situation with a more conservative safety margin, yield early, and reduce speed.",
+    "dataset_tags": [
+      "ind"
+    ],
+    "scenario_tags": [
+      "intersection_vru_interaction",
+      "car_pedestrian"
+    ],
+    "metric_tags": [
+      "TTC",
+      "DCPA",
+      "min_future_distance",
+      "lateral_clearance",
+      "VRU"
+    ],
+    "risk_tags": [
+      "low_ttc",
+      "yielding",
+      "vru_conflict",
+      "crossing_conflict"
+    ],
+    "condition": {
+      "vrus_present": true,
+      "ttc_lt": 4.0,
+      "dcpa_lt": 2.0,
+      "min_future_distance_lt": 2.0,
+      "pedestrian_speed_lt": 0.8
+    },
+    "risk_mechanism": "A slow pedestrian needs a longer clearance time. Even if the current TTC is not extremely low, future path overlap can continuously increase exposure risk.",
+    "recommended_action": [
+      "yield",
+      "decelerate",
+      "increase_safety_margin",
+      "monitor_vru"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "close_pass",
+      "force_pass"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "original_priority_score": 0.96,
+    "source": "ind_dataset_casebook_extended_v2",
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for ind scenarios tagged as intersection_vru_interaction, car_pedestrian using risk evidence from TTC, DCPA, min_future_distance, lateral_clearance, VRU. Source case: Slow Vulnerable Pedestrian Crossing High-Risk Case.",
+    "legacy": {
+      "id": "case_ind_child_pedestrian_slow_crossing_004",
+      "kb_type": "case",
+      "scene_type": "inD",
+      "event_type": "car_pedestrian",
+      "pair_type": "vehicle_pedestrian"
+    }
+  },
+  {
+    "chunk_id": "case_ind_pedestrian_group_crossing_005",
+    "doc_type": "case",
+    "title": "Multiple Pedestrians Crossing with Occlusion Case",
+    "text": "In a scenario with multiple pedestrians crossing consecutively, the vehicle should not resume speed immediately just because the nearest pedestrian has left the path; it should confirm that the entire conflict area is clear.",
+    "dataset_tags": [
+      "ind"
+    ],
+    "scenario_tags": [
+      "intersection_vru_interaction",
+      "car_pedestrian"
+    ],
+    "metric_tags": [
+      "DCPA",
+      "min_future_distance",
+      "occlusion",
+      "VRU"
+    ],
+    "risk_tags": [
+      "cut_in",
+      "yielding",
+      "vru_conflict",
+      "occlusion",
+      "crossing_conflict",
+      "multi_agent"
+    ],
+    "condition": {
+      "vrus_present": true,
+      "num_vrus_gte": 2,
+      "occlusion_risk": true,
+      "dcpa_lt": 2.5,
+      "min_future_distance_lt": 2.5
+    },
+    "risk_mechanism": "When multiple pedestrians cross, pedestrians in front may occlude those behind. Accelerating immediately after yielding to a single target may miss VRUs still in the conflict area.",
+    "recommended_action": [
+      "yield",
+      "decelerate",
+      "monitor_vru"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "force_pass",
+      "close_pass"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "original_priority_score": 0.95,
+    "source": "ind_dataset_casebook_extended_v2",
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for ind scenarios tagged as intersection_vru_interaction, car_pedestrian using risk evidence from DCPA, min_future_distance, occlusion, VRU. Source case: Multiple Pedestrians Crossing with Occlusion Case.",
+    "legacy": {
+      "id": "case_ind_pedestrian_group_crossing_005",
+      "kb_type": "case",
+      "scene_type": "inD",
+      "event_type": "car_pedestrian",
+      "pair_type": "vehicle_pedestrian"
+    }
+  },
+  {
+    "chunk_id": "case_ind_bicycle_dooring_lateral_escape_003",
+    "doc_type": "case",
+    "title": "Cyclist Lateral Avoidance Causing Close-Conflict Case",
+    "text": "When a cyclist shows an obvious lateral-shift tendency and the lateral spacing is insufficient, the motor vehicle should reduce speed and increase lateral buffer rather than overtaking closely.",
+    "dataset_tags": [
+      "ind"
+    ],
+    "scenario_tags": [
+      "intersection_vru_interaction",
+      "car_bicycle"
+    ],
+    "metric_tags": [
+      "DCPA",
+      "min_future_distance",
+      "lateral_clearance",
+      "VRU"
+    ],
+    "risk_tags": [
+      "lateral_conflict",
+      "vru_conflict"
+    ],
+    "condition": {
+      "vrus_present": true,
+      "lateral_distance_lt": 1.2,
+      "dcpa_lt": 1.5,
+      "cyclist_lateral_velocity_gt": 0.4,
+      "min_future_distance_lt": 1.8
+    },
+    "risk_mechanism": "A cyclist may suddenly shift laterally to avoid roadside obstacles. If a motor vehicle passes closely, DCPA can drop rapidly and create a side-swipe risk.",
+    "recommended_action": [
+      "decelerate",
+      "increase_lateral_clearance",
+      "monitor_vru"
+    ],
+    "forbidden_action": [
+      "close_pass",
+      "accelerate",
+      "aggressive_lane_change"
+    ],
+    "severity": "high",
+    "priority": 2,
+    "original_priority_score": 0.92,
+    "source": "ind_dataset_casebook_extended_v2",
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for ind scenarios tagged as intersection_vru_interaction, car_bicycle using risk evidence from DCPA, min_future_distance, lateral_clearance, VRU. Source case: Cyclist Lateral Avoidance Causing Close-Conflict Case.",
+    "legacy": {
+      "id": "case_ind_bicycle_dooring_lateral_escape_003",
+      "kb_type": "case",
+      "scene_type": "inD",
+      "event_type": "car_bicycle",
+      "pair_type": "vehicle_cyclist"
+    }
+  },
+  {
+    "chunk_id": "case_ind_bicycle_wrong_way_approach_004",
+    "doc_type": "case",
+    "title": "Oncoming Wrong-Way Cyclist Encounter Case",
+    "text": "When facing a wrong-way approaching cyclist, the vehicle should prioritize speed reduction and maintain a lateral buffer because the higher relative speed quickly compresses reaction time.",
+    "dataset_tags": [
+      "ind"
+    ],
+    "scenario_tags": [
+      "intersection_vru_interaction",
+      "car_bicycle"
+    ],
+    "metric_tags": [
+      "TTC",
+      "DCPA",
+      "relative_speed",
+      "lateral_clearance",
+      "VRU"
+    ],
+    "risk_tags": [
+      "closing_speed",
+      "low_ttc",
+      "lateral_conflict",
+      "vru_conflict",
+      "wrong_way"
+    ],
+    "condition": {
+      "vrus_present": true,
+      "opposite_direction": true,
+      "ttc_lt": 3.0,
+      "dcpa_lt": 1.5,
+      "closing_speed_gt": 1.0
+    },
+    "risk_mechanism": "Wrong-way approach increases relative speed, making it difficult for both driver and cyclist to restore sufficient safety margin through minor trajectory adjustments.",
+    "recommended_action": [
+      "decelerate",
+      "yield",
+      "increase_lateral_clearance",
+      "monitor_vru"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "close_pass",
+      "force_pass"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "original_priority_score": 0.93,
+    "source": "ind_dataset_casebook_extended_v2",
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for ind scenarios tagged as intersection_vru_interaction, car_bicycle using risk evidence from TTC, DCPA, relative_speed, lateral_clearance, VRU. Source case: Oncoming Wrong-Way Cyclist Encounter Case.",
+    "legacy": {
+      "id": "case_ind_bicycle_wrong_way_approach_004",
+      "kb_type": "case",
+      "scene_type": "inD",
+      "event_type": "car_bicycle",
+      "pair_type": "vehicle_cyclist"
+    }
+  },
+  {
+    "chunk_id": "case_ind_scooter_fast_crossing_001",
+    "doc_type": "case",
+    "title": "Fast Light-Rider Crossing Case",
+    "text": "When a fast cyclist or light-mobility user crosses in front of the vehicle, prediction uncertainty should be included in risk assessment, and the vehicle should decelerate early until the conflict point is clear.",
+    "dataset_tags": [
+      "ind"
+    ],
+    "scenario_tags": [
+      "intersection_vru_interaction",
+      "car_bicycle"
+    ],
+    "metric_tags": [
+      "TTC",
+      "DCPA",
+      "prediction_uncertainty",
+      "VRU"
+    ],
+    "risk_tags": [
+      "low_ttc",
+      "vru_conflict",
+      "crossing_conflict",
+      "conflict_point",
+      "prediction_uncertainty"
+    ],
+    "condition": {
+      "vrus_present": true,
+      "vru_speed_gt": 3.0,
+      "ttc_lt": 3.0,
+      "dcpa_lt": 2.0,
+      "prediction_uncertainty_gt": 0.6
+    },
+    "risk_mechanism": "A fast light rider reaches the conflict point quickly and changes trajectory rapidly. If the vehicle judges only by current distance, it may underestimate future crossing risk.",
+    "recommended_action": [
+      "yield",
+      "decelerate",
+      "monitor_vru"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "force_pass",
+      "ignore_vru"
+    ],
+    "severity": "high",
+    "priority": 2,
+    "original_priority_score": 0.91,
+    "source": "ind_dataset_casebook_extended_v2",
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for ind scenarios tagged as intersection_vru_interaction, car_bicycle using risk evidence from TTC, DCPA, prediction_uncertainty, VRU. Source case: Fast Light-Rider Crossing Case.",
+    "legacy": {
+      "id": "case_ind_scooter_fast_crossing_001",
+      "kb_type": "case",
+      "scene_type": "inD",
+      "event_type": "car_bicycle",
+      "pair_type": "vehicle_cyclist"
+    }
+  },
+  {
+    "chunk_id": "case_ind_vehicle_vru_shared_space_low_speed_001",
+    "doc_type": "case",
+    "title": "Low-Speed Close Mixed-Traffic Case in Shared Space",
+    "text": "In low-speed shared spaces, close mixed-traffic risk should not be ignored just because speed is low. The vehicle should maintain low speed and actively leave space for VRU movement.",
+    "dataset_tags": [
+      "ind"
+    ],
+    "scenario_tags": [
+      "intersection_vru_interaction",
+      "shared_space_vru_interaction",
+      "shared_space_vru"
+    ],
+    "metric_tags": [
+      "DCPA",
+      "min_future_distance",
+      "VRU"
+    ],
+    "risk_tags": [
+      "vru_conflict",
+      "shared_space"
+    ],
+    "condition": {
+      "vrus_present": true,
+      "speed_lt": 8.0,
+      "dcpa_lt": 1.5,
+      "min_future_distance_lt": 1.5,
+      "num_vrus_gte": 1
+    },
+    "risk_mechanism": "Although speed is low in shared space, VRU and vehicle paths overlap heavily, and low DCPA plus low future distance still represents contact risk.",
+    "recommended_action": [
+      "decelerate",
+      "yield",
+      "monitor_vru",
+      "increase_safety_margin"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "close_pass",
+      "force_pass"
+    ],
+    "severity": "medium",
+    "priority": 1,
+    "original_priority_score": 0.86,
+    "source": "ind_dataset_casebook_extended_v2",
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for ind scenarios tagged as intersection_vru_interaction, shared_space_vru_interaction, shared_space_vru using risk evidence from DCPA, min_future_distance, VRU. Source case: Low-Speed Close Mixed-Traffic Case in Shared Space.",
+    "legacy": {
+      "id": "case_ind_vehicle_vru_shared_space_low_speed_001",
+      "kb_type": "case",
+      "scene_type": "inD",
+      "event_type": "shared_space_vru",
+      "pair_type": "vehicle_pedestrian"
+    }
+  },
+  {
+    "chunk_id": "case_ind_unprotected_left_turn_cyclist_001",
+    "doc_type": "case",
+    "title": "Unprotected Turn Crossing Cyclist Path Case",
+    "text": "When making an unprotected turn across a cyclist's path, the vehicle should complete the yielding decision before the conflict point and avoid compressing the cyclist's space by accelerating to turn first.",
+    "dataset_tags": [
+      "ind"
+    ],
+    "scenario_tags": [
+      "intersection_vru_interaction",
+      "intersection_crossing",
+      "intersection_turning_conflict",
+      "turn_across_cyclist"
+    ],
+    "metric_tags": [
+      "TTC",
+      "DCPA",
+      "lateral_clearance",
+      "conflict_point",
+      "VRU"
+    ],
+    "risk_tags": [
+      "low_ttc",
+      "lateral_conflict",
+      "yielding",
+      "vru_conflict",
+      "crossing_conflict",
+      "conflict_point"
+    ],
+    "condition": {
+      "vrus_present": true,
+      "turning_vehicle": true,
+      "dcpa_lt": 2.0,
+      "ttc_lt": 3.5,
+      "conflict_point_distance_lt": 12.0
+    },
+    "risk_mechanism": "A turning vehicle and a straight-moving cyclist meet at the conflict point, and the vehicle's changing body orientation reduces the driver's continuous perception of lateral VRUs.",
+    "recommended_action": [
+      "yield",
+      "decelerate",
+      "monitor_vru",
+      "monitor_conflict_point"
+    ],
+    "forbidden_action": [
+      "force_turn",
+      "accelerate",
+      "ignore_vru"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "original_priority_score": 0.94,
+    "source": "ind_dataset_casebook_extended_v2",
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for ind scenarios tagged as intersection_vru_interaction, intersection_crossing, intersection_turning_conflict using risk evidence from TTC, DCPA, lateral_clearance, conflict_point, VRU. Source case: Unprotected Turn Crossing Cyclist Path Case.",
+    "legacy": {
+      "id": "case_ind_unprotected_left_turn_cyclist_001",
+      "kb_type": "case",
+      "scene_type": "inD",
+      "event_type": "turn_across_cyclist",
+      "pair_type": "vehicle_cyclist"
+    }
+  },
+  {
+    "chunk_id": "case_ind_bus_stop_pedestrian_emergence_001",
+    "doc_type": "case",
+    "title": "Pedestrian Emergence from Bus Stop or Parked-Vehicle Occlusion Case",
+    "text": "When there is an occlusion source on the roadside, even if the pedestrian is not fully observed, the vehicle should reduce speed and enlarge the safety margin to avoid a sudden crossing conflict from behind the occlusion.",
+    "dataset_tags": [
+      "ind"
+    ],
+    "scenario_tags": [
+      "intersection_vru_interaction",
+      "intersection_occlusion",
+      "occluded_pedestrian_conflict"
+    ],
+    "metric_tags": [
+      "min_future_distance",
+      "occlusion",
+      "VRU"
+    ],
+    "risk_tags": [
+      "hard_braking",
+      "merging_conflict",
+      "vru_conflict",
+      "occlusion",
+      "crossing_conflict"
+    ],
+    "condition": {
+      "vrus_present": true,
+      "occlusion_risk": true,
+      "roadside_static_vehicle_present": true,
+      "speed_gt": 5.0,
+      "min_future_distance_lt": 2.5
+    },
+    "risk_mechanism": "A stopped vehicle or bus stop can occlude the pedestrian's initial position, causing the vehicle to detect the crossing target only when visible distance is insufficient and significantly compressing braking margin.",
+    "recommended_action": [
+      "decelerate",
+      "monitor_occlusion",
+      "yield"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "close_pass",
+      "ignore_occlusion"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "original_priority_score": 0.97,
+    "source": "ind_dataset_casebook_extended_v2",
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for ind scenarios tagged as intersection_vru_interaction, intersection_occlusion, occluded_pedestrian_conflict using risk evidence from min_future_distance, occlusion, VRU. Source case: Pedestrian Emergence from Bus Stop or Parked-Vehicle Occlusion Case.",
+    "legacy": {
+      "id": "case_ind_bus_stop_pedestrian_emergence_001",
+      "kb_type": "case",
+      "scene_type": "inD",
+      "event_type": "occluded_pedestrian_conflict",
+      "pair_type": "vehicle_pedestrian"
+    }
+  },
+  {
+    "chunk_id": "case_ind_pedestrian_reverse_direction_001",
+    "doc_type": "case",
+    "title": "Pedestrian Sudden U-Turn Causing Prediction Failure Case",
+    "text": "When a pedestrian shows clear direction reversal or stop-and-go behavior, the vehicle should extend the observation window and maintain a conservative speed to avoid secondary conflicts caused by prediction failure.",
+    "dataset_tags": [
+      "ind"
+    ],
+    "scenario_tags": [
+      "intersection_vru_interaction",
+      "car_pedestrian"
+    ],
+    "metric_tags": [
+      "DCPA",
+      "min_future_distance",
+      "prediction_uncertainty",
+      "VRU"
+    ],
+    "risk_tags": [
+      "vru_conflict",
+      "prediction_uncertainty"
+    ],
+    "condition": {
+      "vrus_present": true,
+      "heading_change_gt": 90.0,
+      "dcpa_lt": 2.0,
+      "min_future_distance_lt": 2.0,
+      "prediction_uncertainty_gt": 0.7
+    },
+    "risk_mechanism": "A pedestrian's sudden reversal can invalidate predictions based on short historical trajectories. If the vehicle resumes acceleration early, it may re-enter the conflict path.",
+    "recommended_action": [
+      "yield",
+      "decelerate",
+      "monitor_vru",
+      "increase_safety_margin"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "force_pass",
+      "ignore_prediction_uncertainty"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "original_priority_score": 0.93,
+    "source": "ind_dataset_casebook_extended_v2",
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for ind scenarios tagged as intersection_vru_interaction, car_pedestrian using risk evidence from DCPA, min_future_distance, prediction_uncertainty, VRU. Source case: Pedestrian Sudden U-Turn Causing Prediction Failure Case.",
+    "legacy": {
+      "id": "case_ind_pedestrian_reverse_direction_001",
+      "kb_type": "case",
+      "scene_type": "inD",
+      "event_type": "car_pedestrian",
+      "pair_type": "vehicle_pedestrian"
+    }
+  },
+  {
+    "chunk_id": "case_round_weaving_inner_outer_lane_001",
+    "doc_type": "case",
+    "title": "Roundabout Inner-Outer Lane Weaving Conflict Case",
+    "text": "In inner-outer lane weaving areas of a roundabout, the vehicle should prioritize monitoring future conflict points and minimum distance, and avoid forced lane changes through deceleration and yielding.",
+    "dataset_tags": [
+      "round"
+    ],
+    "scenario_tags": [
+      "roundabout_vehicle_interaction",
+      "roundabout_weaving"
+    ],
+    "metric_tags": [
+      "DCPA",
+      "min_future_distance",
+      "conflict_point"
+    ],
+    "risk_tags": [
+      "yielding",
+      "roundabout_conflict",
+      "crossing_conflict",
+      "conflict_point",
+      "forcing_behavior"
+    ],
+    "condition": {
+      "dcpa_lt": 2.0,
+      "min_future_distance_lt": 2.5,
+      "relative_heading_change_gt": 20.0,
+      "conflict_point_distance_lt": 15.0
+    },
+    "risk_mechanism": "Weaving between inner and outer roundabout lanes creates crossing curved trajectories. If vehicles adjust lanes or exit directions simultaneously, closest distance can decrease rapidly.",
+    "recommended_action": [
+      "decelerate",
+      "yield",
+      "monitor_conflict_point",
+      "increase_headway"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "force_merge",
+      "aggressive_lane_change"
+    ],
+    "severity": "high",
+    "priority": 2,
+    "original_priority_score": 0.9,
+    "source": "round_dataset_casebook_extended_v2",
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for round scenarios tagged as roundabout_vehicle_interaction, roundabout_weaving using risk evidence from DCPA, min_future_distance, conflict_point. Source case: Roundabout Inner-Outer Lane Weaving Conflict Case.",
+    "legacy": {
+      "id": "case_round_weaving_inner_outer_lane_001",
+      "kb_type": "case",
+      "scene_type": "rounD",
+      "event_type": "roundabout_weaving",
+      "pair_type": "vehicle_vehicle"
+    }
+  },
+  {
+    "chunk_id": "case_round_yield_line_rolling_entry_001",
+    "doc_type": "case",
+    "title": "Roundabout Yield-Line Rolling Entry Case",
+    "text": "When an entry vehicle reaches the yield line and a vehicle inside the roundabout is approaching the conflict point, it should wait for a clearly safe gap and should not force the other party to yield by rolling forward.",
+    "dataset_tags": [
+      "round"
+    ],
+    "scenario_tags": [
+      "roundabout_vehicle_interaction",
+      "roundabout_merging"
+    ],
+    "metric_tags": [
+      "DCPA",
+      "min_future_distance",
+      "headway"
+    ],
+    "risk_tags": [
+      "gap_acceptance",
+      "merging_conflict",
+      "yielding",
+      "roundabout_conflict",
+      "conflict_point",
+      "forcing_behavior"
+    ],
+    "condition": {
+      "at_yield_line": true,
+      "entry_vehicle_speed_gt": 2.0,
+      "dcpa_lt": 2.0,
+      "min_future_distance_lt": 2.5,
+      "mainstream_vehicle_present": true
+    },
+    "risk_mechanism": "If an entry vehicle rolls into the roundabout without fully confirming the internal gap, it forces vehicles inside the roundabout to change speed or trajectory, creating forced-merge risk.",
+    "recommended_action": [
+      "yield",
+      "decelerate",
+      "prepare_to_stop",
+      "monitor_conflict_point"
+    ],
+    "forbidden_action": [
+      "force_merge",
+      "accelerate"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "original_priority_score": 0.93,
+    "source": "round_dataset_casebook_extended_v2",
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for round scenarios tagged as roundabout_vehicle_interaction, roundabout_merging using risk evidence from DCPA, min_future_distance, headway. Source case: Roundabout Yield-Line Rolling Entry Case.",
+    "legacy": {
+      "id": "case_round_yield_line_rolling_entry_001",
+      "kb_type": "case",
+      "scene_type": "rounD",
+      "event_type": "roundabout_merging",
+      "pair_type": "vehicle_vehicle"
+    }
+  },
+  {
+    "chunk_id": "case_round_exit_pedestrian_crosswalk_001",
+    "doc_type": "case",
+    "title": "Roundabout Exit Crosswalk Pedestrian Conflict Case",
+    "text": "When pedestrians are crossing near a roundabout exit, the exiting vehicle should prioritize yielding and reduce speed to avoid a short-horizon conflict caused by accelerating at the exit.",
+    "dataset_tags": [
+      "round"
+    ],
+    "scenario_tags": [
+      "roundabout_vru_interaction",
+      "roundabout_exit_conflict",
+      "roundabout_exit_pedestrian_conflict"
+    ],
+    "metric_tags": [
+      "TTC",
+      "DCPA",
+      "VRU"
+    ],
+    "risk_tags": [
+      "rear_end",
+      "low_ttc",
+      "yielding",
+      "roundabout_conflict",
+      "vru_conflict",
+      "crossing_conflict"
+    ],
+    "condition": {
+      "vrus_present": true,
+      "near_crosswalk": true,
+      "exiting_vehicle": true,
+      "ttc_lt": 3.5,
+      "dcpa_lt": 2.0
+    },
+    "risk_mechanism": "When exiting a roundabout, the driver's attention can easily focus on the exit trajectory and rear vehicles, potentially underestimating the crossing risk of pedestrians at the exit crosswalk.",
+    "recommended_action": [
+      "yield",
+      "decelerate",
+      "monitor_vru",
+      "monitor_crosswalk"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "force_exit",
+      "ignore_vru"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "original_priority_score": 0.96,
+    "source": "round_dataset_casebook_extended_v2",
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for round scenarios tagged as roundabout_vru_interaction, roundabout_exit_conflict, roundabout_exit_pedestrian_conflict using risk evidence from TTC, DCPA, VRU. Source case: Roundabout Exit Crosswalk Pedestrian Conflict Case.",
+    "legacy": {
+      "id": "case_round_exit_pedestrian_crosswalk_001",
+      "kb_type": "case",
+      "scene_type": "rounD",
+      "event_type": "roundabout_exit_pedestrian_conflict",
+      "pair_type": "vehicle_pedestrian"
+    }
+  },
+  {
+    "chunk_id": "case_round_cyclist_priority_uncertainty_001",
+    "doc_type": "case",
+    "title": "Roundabout Cyclist Priority Uncertainty Case",
+    "text": "At a roundabout entry or exit, if cyclist priority is unclear, the vehicle should adopt a conservative yielding strategy and avoid entering the conflict point simultaneously with the cyclist.",
+    "dataset_tags": [
+      "round"
+    ],
+    "scenario_tags": [
+      "roundabout_vru_interaction",
+      "roundabout_cyclist_priority_uncertainty"
+    ],
+    "metric_tags": [
+      "TTC",
+      "DCPA",
+      "conflict_point",
+      "VRU"
+    ],
+    "risk_tags": [
+      "low_ttc",
+      "yielding",
+      "roundabout_conflict",
+      "vru_conflict",
+      "conflict_point"
+    ],
+    "condition": {
+      "vrus_present": true,
+      "dcpa_lt": 1.8,
+      "ttc_lt": 3.5,
+      "priority_uncertainty": true,
+      "conflict_point_distance_lt": 12.0
+    },
+    "risk_mechanism": "When a motor vehicle and cyclist understand priority differently, both may enter the conflict point at the same time, quickly making the low-DCPA risk explicit.",
+    "recommended_action": [
+      "yield",
+      "decelerate",
+      "monitor_vru",
+      "increase_safety_margin"
+    ],
+    "forbidden_action": [
+      "force_merge",
+      "accelerate",
+      "close_pass"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "original_priority_score": 0.94,
+    "source": "round_dataset_casebook_extended_v2",
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for round scenarios tagged as roundabout_vru_interaction, roundabout_cyclist_priority_uncertainty using risk evidence from TTC, DCPA, conflict_point, VRU. Source case: Roundabout Cyclist Priority Uncertainty Case.",
+    "legacy": {
+      "id": "case_round_cyclist_priority_uncertainty_001",
+      "kb_type": "case",
+      "scene_type": "rounD",
+      "event_type": "roundabout_cyclist_priority_uncertainty",
+      "pair_type": "vehicle_cyclist"
+    }
+  },
+  {
+    "chunk_id": "case_round_large_vehicle_occlusion_001",
+    "doc_type": "case",
+    "title": "Roundabout Large-Vehicle Occlusion Compound-Conflict Case",
+    "text": "When a large vehicle creates occlusion in a roundabout, the invisible area should be treated as a potential conflict source; the vehicle should reduce speed and wait until visibility is restored before deciding.",
+    "dataset_tags": [
+      "round"
+    ],
+    "scenario_tags": [
+      "roundabout_vehicle_interaction",
+      "roundabout_occlusion"
+    ],
+    "metric_tags": [
+      "min_future_distance",
+      "prediction_uncertainty",
+      "occlusion"
+    ],
+    "risk_tags": [
+      "roundabout_conflict",
+      "vru_conflict",
+      "occlusion",
+      "forcing_behavior",
+      "prediction_uncertainty"
+    ],
+    "condition": {
+      "occlusion_risk": true,
+      "large_vehicle_present": true,
+      "num_conflict_agents_gte": 2,
+      "min_future_distance_lt": 3.0,
+      "prediction_uncertainty_gt": 0.6
+    },
+    "risk_mechanism": "A large vehicle can occlude vehicles inside the roundabout, cyclists, or pedestrians, making the observable target set incomplete. Continuing to force passage can create compound conflict risk.",
+    "recommended_action": [
+      "decelerate",
+      "monitor_occlusion",
+      "yield"
+    ],
+    "forbidden_action": [
+      "force_merge",
+      "accelerate",
+      "ignore_occlusion"
+    ],
+    "severity": "high",
+    "priority": 2,
+    "original_priority_score": 0.92,
+    "source": "round_dataset_casebook_extended_v2",
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for round scenarios tagged as roundabout_vehicle_interaction, roundabout_occlusion using risk evidence from min_future_distance, prediction_uncertainty, occlusion. Source case: Roundabout Large-Vehicle Occlusion Compound-Conflict Case.",
+    "legacy": {
+      "id": "case_round_large_vehicle_occlusion_001",
+      "kb_type": "case",
+      "scene_type": "rounD",
+      "event_type": "roundabout_occlusion",
+      "pair_type": "all"
+    }
+  },
+  {
+    "chunk_id": "case_round_two_stage_merge_conflict_001",
+    "doc_type": "case",
+    "title": "Roundabout Two-Stage Merging Consecutive-Conflict Case",
+    "text": "Roundabout merging may involve consecutive conflict points. The vehicle should not enter using only the first small gap; it should also confirm that later conflict objects have sufficient safety margins.",
+    "dataset_tags": [
+      "round"
+    ],
+    "scenario_tags": [
+      "roundabout_vehicle_interaction",
+      "roundabout_merging",
+      "roundabout_two_stage_merging"
+    ],
+    "metric_tags": [
+      "DCPA",
+      "min_future_distance",
+      "headway",
+      "conflict_point"
+    ],
+    "risk_tags": [
+      "cut_in",
+      "gap_acceptance",
+      "merging_conflict",
+      "roundabout_conflict",
+      "conflict_point"
+    ],
+    "condition": {
+      "dcpa_lt": 2.0,
+      "min_future_distance_lt": 2.5,
+      "num_conflict_agents_gte": 2,
+      "conflict_point_sequence": true
+    },
+    "risk_mechanism": "After completing the first-stage merge, the entry vehicle may immediately face a second internal target. Evaluating only the nearest target can underestimate consecutive conflict risk.",
+    "recommended_action": [
+      "yield",
+      "decelerate",
+      "monitor_multiple_agents",
+      "monitor_conflict_point"
+    ],
+    "forbidden_action": [
+      "force_merge",
+      "accelerate",
+      "ignore_secondary_conflict"
+    ],
+    "severity": "high",
+    "priority": 2,
+    "original_priority_score": 0.91,
+    "source": "round_dataset_casebook_extended_v2",
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for round scenarios tagged as roundabout_vehicle_interaction, roundabout_merging, roundabout_two_stage_merging using risk evidence from DCPA, min_future_distance, headway, conflict_point. Source case: Roundabout Two-Stage Merging Consecutive-Conflict Case.",
+    "legacy": {
+      "id": "case_round_two_stage_merge_conflict_001",
+      "kb_type": "case",
+      "scene_type": "rounD",
+      "event_type": "roundabout_two_stage_merging",
+      "pair_type": "vehicle_vehicle"
+    }
+  },
+  {
+    "chunk_id": "case_round_inner_lane_exit_cut_across_001",
+    "doc_type": "case",
+    "title": "Forced Roundabout Exit Cut-Out from Inner Lane Case",
+    "text": "When a vehicle in the inner lane prepares to exit the roundabout, it should confirm a safe gap in the outer lane and delay exiting if necessary to avoid a forced cut-out.",
+    "dataset_tags": [
+      "round"
+    ],
+    "scenario_tags": [
+      "roundabout_vehicle_interaction",
+      "roundabout_exit_conflict",
+      "roundabout_exit_cut_across"
+    ],
+    "metric_tags": [
+      "DCPA",
+      "min_future_distance",
+      "headway",
+      "relative_speed",
+      "lateral_clearance"
+    ],
+    "risk_tags": [
+      "closing_speed",
+      "cut_in",
+      "gap_acceptance",
+      "lateral_conflict",
+      "roundabout_conflict",
+      "forcing_behavior"
+    ],
+    "condition": {
+      "exiting_vehicle": true,
+      "lane_change_required": true,
+      "dcpa_lt": 2.0,
+      "min_future_distance_lt": 2.5,
+      "closing_speed_gt": 1.0
+    },
+    "risk_mechanism": "A vehicle exiting from the inner lane must cross the outer lane. If an outer-lane vehicle is approaching and distance is insufficient, a lateral exit-cut conflict forms.",
+    "recommended_action": [
+      "decelerate",
+      "yield",
+      "monitor_adjacent_vehicle",
+      "delay_exit"
+    ],
+    "forbidden_action": [
+      "force_exit",
+      "aggressive_lane_change",
+      "accelerate"
+    ],
+    "severity": "high",
+    "priority": 3,
+    "original_priority_score": 0.93,
+    "source": "round_dataset_casebook_extended_v2",
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for round scenarios tagged as roundabout_vehicle_interaction, roundabout_exit_conflict, roundabout_exit_cut_across using risk evidence from DCPA, min_future_distance, headway, relative_speed, lateral_clearance. Source case: Forced Roundabout Exit Cut-Out from Inner Lane Case.",
+    "legacy": {
+      "id": "case_round_inner_lane_exit_cut_across_001",
+      "kb_type": "case",
+      "scene_type": "rounD",
+      "event_type": "roundabout_exit_cut_across",
+      "pair_type": "vehicle_vehicle"
+    }
+  },
+  {
+    "chunk_id": "case_highd_lane_change_abort_low_gap_001",
+    "doc_type": "case",
+    "title": "High-Speed Low-Gap Lane-Change Abort Case",
+    "text": "Before a high-speed lane change, if the target-lane gap is insufficient and the rear vehicle has low TTC, the lane change should be aborted or delayed instead of forcing entry into the target lane.",
+    "dataset_tags": [
+      "highd"
+    ],
+    "scenario_tags": [
+      "highway_lane_change",
+      "lane_change_abort"
+    ],
+    "metric_tags": [
+      "TTC",
+      "DCPA",
+      "headway",
+      "relative_speed"
+    ],
+    "risk_tags": [
+      "rear_end",
+      "closing_speed",
+      "low_ttc",
+      "gap_acceptance",
+      "forcing_behavior"
+    ],
+    "condition": {
+      "lane_change_intent": true,
+      "target_gap_lt": 12.0,
+      "rear_ttc_lt": 3.0,
+      "closing_speed_gt": 0.0,
+      "dcpa_lt": 2.0
+    },
+    "risk_mechanism": "When the rear vehicle in the target lane approaches rapidly and the available gap is insufficient, continuing the lane change forces the rear vehicle to brake hard; aborting the lane change can avoid a low-TTC conflict.",
+    "recommended_action": [
+      "abort_lane_change",
+      "decelerate",
+      "increase_headway",
+      "monitor_rear_vehicle"
+    ],
+    "forbidden_action": [
+      "force_merge",
+      "aggressive_lane_change",
+      "accelerate_into_gap"
+    ],
+    "severity": "high",
+    "priority": 2,
+    "original_priority_score": 0.91,
+    "source": "highd_dataset_casebook_extended_v2",
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for highd scenarios tagged as highway_lane_change, lane_change_abort using risk evidence from TTC, DCPA, headway, relative_speed. Source case: High-Speed Low-Gap Lane-Change Abort Case.",
+    "legacy": {
+      "id": "case_highd_lane_change_abort_low_gap_001",
+      "kb_type": "case",
+      "scene_type": "highD",
+      "event_type": "lane_change_abort",
+      "pair_type": "vehicle_vehicle"
+    }
+  },
+  {
+    "chunk_id": "case_highd_platoon_compression_risk_001",
+    "doc_type": "case",
+    "title": "High-Speed Platoon Compression Propagation Risk Case",
+    "text": "When a high-speed platoon runs with consecutive short gaps, smooth deceleration and increased following distance should be used to suppress disturbance propagation and prevent risk accumulation across multiple vehicles.",
+    "dataset_tags": [
+      "highd"
+    ],
+    "scenario_tags": [
+      "highway_car_following",
+      "highway_platoon_interaction",
+      "platoon_compression"
+    ],
+    "metric_tags": [
+      "TTC",
+      "THW",
+      "headway"
+    ],
+    "risk_tags": [
+      "rear_end",
+      "hard_braking",
+      "low_ttc",
+      "short_headway",
+      "cut_in",
+      "gap_acceptance",
+      "headway_reduction",
+      "multi_agent",
+      "platoon_compression"
+    ],
+    "condition": {
+      "num_conflict_agents_gte": 3,
+      "thw_lt": 1.2,
+      "ttc_lt": 4.0,
+      "lead_deceleration_gt": 2.0,
+      "multi_frame_persistent": true
+    },
+    "risk_mechanism": "In a platoon, consecutive short headways across multiple vehicles amplify upstream deceleration disturbances, and delayed reactions by following vehicles may trigger chain hard braking or rear-end near-misses.",
+    "recommended_action": [
+      "increase_headway",
+      "decelerate",
+      "smooth_deceleration",
+      "monitor_multiple_agents"
+    ],
+    "forbidden_action": [
+      "keep_close_following",
+      "accelerate",
+      "late_brake"
+    ],
+    "severity": "high",
+    "priority": 2,
+    "original_priority_score": 0.89,
+    "source": "highd_dataset_casebook_extended_v2",
+    "jurisdiction": "N/A",
+    "evidence_purpose": "Supports RAG decisions for highd scenarios tagged as highway_car_following, highway_platoon_interaction, platoon_compression using risk evidence from TTC, THW, headway. Source case: High-Speed Platoon Compression Propagation Risk Case.",
+    "legacy": {
+      "id": "case_highd_platoon_compression_risk_001",
+      "kb_type": "case",
+      "scene_type": "highD",
+      "event_type": "platoon_compression",
+      "pair_type": "vehicle_vehicle"
+    }
   }
 ]

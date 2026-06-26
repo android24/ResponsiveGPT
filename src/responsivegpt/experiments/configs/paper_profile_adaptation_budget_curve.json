@@ -1,0 +1,188 @@
+{
+  "name": "paper_profile_adaptation_budget_curve",
+  "datasets": {
+    "highd": {
+      "summary_csv": "data/eval_samples/core_v1/highd_core_sample_seed20260613.csv",
+      "sequence_root": "data/highD/clips_multi_fixed_window"
+    },
+    "ind": {
+      "summary_csv": "data/eval_samples/core_v1/ind_core_sample_seed20260613.csv",
+      "sequence_root": "data/inD/output_ind_risk_v4"
+    },
+    "round": {
+      "summary_csv": "data/eval_samples/core_v1/round_core_sample_seed20260613.csv",
+      "sequence_root": "data/rounD/output_high_risk"
+    }
+  },
+  "defaults": {
+    "mode": "episode",
+    "limit": 0,
+    "job_timeout_s": 43200,
+    "model_role": "cheap",
+    "feedback": "Balance safety, legal compliance, interaction smoothness, and reasonable progress efficiency.",
+    "extra_args": {
+      "reuse_last_decision": 1,
+      "use_trigger": 1,
+      "use_profile_learner": 1,
+      "history_window": 10,
+      "rag_budget": "reactive_low",
+      "rag_top_k": 8,
+      "trace_detail": 0,
+      "frame_selection": "all",
+      "llm_max_stale_frames": 30,
+      "llm_risk_delta_threshold": 0.15,
+      "planning_interval": 100,
+      "planning_min_gap": 20,
+      "planning_risk_threshold": 0.60,
+      "planning_max_history": 8,
+      "planning_peek": 1,
+      "feedback_once_per_episode": 1,
+      "profile_protocol_enabled": 1,
+      "profile_adaptation_pool_episodes": 20,
+      "profile_adaptation_allocation": "neyman"
+    }
+  },
+  "matrix": {
+    "datasets": ["highd", "ind", "round"],
+    "modes": [
+      {
+        "name": "adapt_budget_0",
+        "mode": "episode",
+        "extra_args": {"profile_adaptation_episodes": 0}
+      },
+      {
+        "name": "adapt_budget_5",
+        "mode": "episode",
+        "extra_args": {"profile_adaptation_episodes": 5}
+      },
+      {
+        "name": "adapt_budget_10",
+        "mode": "episode",
+        "extra_args": {"profile_adaptation_episodes": 10}
+      },
+      {
+        "name": "adapt_budget_20",
+        "mode": "episode",
+        "extra_args": {"profile_adaptation_episodes": 20}
+      }
+    ],
+    "profiles": ["balanced"],
+    "rag_variants": [
+      {
+        "name": "full_rag_grounded",
+        "use_retriever": 1,
+        "rag_mode": "full",
+        "require_grounded_decision": 1
+      }
+    ],
+    "planning": [
+      {
+        "name": "planning_adaptive_peek",
+        "use_planning_thread": 1,
+        "planning_mode": "interval_risk"
+      }
+    ],
+    "llm_policies": [
+      {
+        "name": "budget_seed_20260601",
+        "llm_policy": "event_triggered",
+        "llm_stride": 30,
+        "llm_risk_threshold": 0.45,
+        "extra_args": {
+          "repeat_seed": 20260601,
+          "episode_order_seed": 20260601
+        }
+      },
+      {
+        "name": "budget_seed_20260602",
+        "llm_policy": "event_triggered",
+        "llm_stride": 30,
+        "llm_risk_threshold": 0.45,
+        "extra_args": {
+          "repeat_seed": 20260602,
+          "episode_order_seed": 20260602
+        }
+      },
+      {
+        "name": "budget_seed_20260603",
+        "llm_policy": "event_triggered",
+        "llm_stride": 30,
+        "llm_risk_threshold": 0.45,
+        "extra_args": {
+          "repeat_seed": 20260603,
+          "episode_order_seed": 20260603
+        }
+      },
+      {
+        "name": "budget_seed_20260604",
+        "llm_policy": "event_triggered",
+        "llm_stride": 30,
+        "llm_risk_threshold": 0.45,
+        "extra_args": {
+          "repeat_seed": 20260604,
+          "episode_order_seed": 20260604
+        }
+      },
+      {
+        "name": "budget_seed_20260605",
+        "llm_policy": "event_triggered",
+        "llm_stride": 30,
+        "llm_risk_threshold": 0.45,
+        "extra_args": {
+          "repeat_seed": 20260605,
+          "episode_order_seed": 20260605
+        }
+      },
+      {
+        "name": "budget_seed_20260606",
+        "llm_policy": "event_triggered",
+        "llm_stride": 30,
+        "llm_risk_threshold": 0.45,
+        "extra_args": {
+          "repeat_seed": 20260606,
+          "episode_order_seed": 20260606
+        }
+      },
+      {
+        "name": "budget_seed_20260607",
+        "llm_policy": "event_triggered",
+        "llm_stride": 30,
+        "llm_risk_threshold": 0.45,
+        "extra_args": {
+          "repeat_seed": 20260607,
+          "episode_order_seed": 20260607
+        }
+      },
+      {
+        "name": "budget_seed_20260608",
+        "llm_policy": "event_triggered",
+        "llm_stride": 30,
+        "llm_risk_threshold": 0.45,
+        "extra_args": {
+          "repeat_seed": 20260608,
+          "episode_order_seed": 20260608
+        }
+      },
+      {
+        "name": "budget_seed_20260609",
+        "llm_policy": "event_triggered",
+        "llm_stride": 30,
+        "llm_risk_threshold": 0.45,
+        "extra_args": {
+          "repeat_seed": 20260609,
+          "episode_order_seed": 20260609
+        }
+      },
+      {
+        "name": "budget_seed_20260610",
+        "llm_policy": "event_triggered",
+        "llm_stride": 30,
+        "llm_risk_threshold": 0.45,
+        "extra_args": {
+          "repeat_seed": 20260610,
+          "episode_order_seed": 20260610
+        }
+      }
+    ]
+  }
+}

@@ -5,22 +5,54 @@ from pathlib import Path
 from ..application.service import ResponsiveGPTService
 from ..application.trigger_manager import TriggerManager
 from ..application.layered_profile_learner import LayeredProfileLearner
-from ..application.trigger_state import TriggerStateStore
 
 from ..infrastructure.embed_ollama import OllamaEmbedder
 from ..infrastructure.llm_jiekou import JiekouChatModel
 from ..infrastructure.profile_repo import JsonProfileRepository
 from ..infrastructure.knowledge_base import KnowledgeBase
 from ..infrastructure.kb_seed import default_kb_docs
-from ..infrastructure.kb_json_loader import load_kb_json_dir
+from ..infrastructure.kb_json_loader import load_kb_json_dir, resolve_kb_dir
 from ..infrastructure.hybrid_retriever import HybridRetriever
 from ..infrastructure.null_modules import NullRetriever
-from ..infrastructure.null_modules import NullTriggerManager
-from ..infrastructure.null_modules import NullTriggerStateStore
 from ..infrastructure.null_modules import NullTriggerManager
 from ..infrastructure.null_modules import NullProfileLearner
 
 from ..evaluation.run_logger import RunLogger
+
+
+_RESUMABLE_RUN_ARTIFACTS = (
+    "adapted_profile.json",
+    "config.json",
+    "decisions.jsonl",
+    "episode_checkpoint.json.tmp",
+    "episode_summary.jsonl",
+    "final_profile.json",
+    "frame_metrics.csv",
+    "guardrail_trace.jsonl",
+    "initial_profile.json",
+    "planning_trace.jsonl",
+    "profile_delta.jsonl",
+    "profile_split_manifest.json",
+    "profile_trace.jsonl",
+    "rag_trace.jsonl",
+    "runtime_profile.json",
+    "summary.csv",
+    "summary.json",
+    "trigger_summary.csv",
+    "trigger_trace.jsonl",
+)
+
+
+def _prepare_resume_run_dir(run_dir: str) -> None:
+    """Reset an interrupted run that never committed its first episode."""
+    path = Path(run_dir)
+    checkpoint_path = path / "episode_checkpoint.json"
+    if checkpoint_path.exists():
+        return
+    for name in _RESUMABLE_RUN_ARTIFACTS:
+        artifact = path / name
+        if artifact.is_file():
+            artifact.unlink()
 
 
 def load_env(path: str = ".env") -> dict:
@@ -86,6 +118,7 @@ def build_service(
     use_profile_learner: bool,
     use_retriever: bool,
     dataset: str,
+    repeat_seed: int = 0,
 ) -> ResponsiveGPTService:
     embedder = OllamaEmbedder(
         base_url=env.get("OLLAMA_BASE_URL", "http://localhost:11434"),
@@ -93,8 +126,8 @@ def build_service(
     )
 
     if use_retriever:
-        kb_dir = env.get("KB_DIR", "data/kb")
-        if kb_dir and os.path.isdir(kb_dir):
+        kb_dir = resolve_kb_dir(env.get("KB_DIR"))
+        if kb_dir:
             docs = load_kb_json_dir(kb_dir)
         else:
             docs = default_kb_docs()
@@ -112,6 +145,9 @@ def build_service(
         primary_model=selected_model,
         fallback_model=selected_fallback,
         max_completion_tokens=int(env.get("LLM_MAX_COMPLETION_TOKENS", "2048")),
+        timeout_s=float(env.get("LLM_TIMEOUT_S", "120")),
+        max_retries=int(env.get("LLM_MAX_RETRIES", "1")),
+        seed=repeat_seed,
     )
 
     repo = JsonProfileRepository(
@@ -132,10 +168,13 @@ def build_service(
             persistent_risk_ratio_threshold=0.4,
             persistent_window=5,
         )
-        trigger_state_store = TriggerStateStore()
+        # Profile updates are already persisted in the runtime repository.
+        # The legacy trigger store was write-only in this execution path and
+        # accumulated TTL events without affecting decisions.
+        trigger_state_store = None
     else:
         trigger_manager = NullTriggerManager()
-        trigger_state_store = NullTriggerStateStore()
+        trigger_state_store = None
 
     profile_learner = LayeredProfileLearner(lr=0.2) if use_profile_learner else NullProfileLearner()
 
@@ -154,9 +193,16 @@ def build_experiment_context(args):
     if not env.get("JIEKOU_API_KEY"):
         raise RuntimeError("Missing JIEKOU_API_KEY in .env")
 
+    resume_run_dir = str(
+        getattr(args, "resume_run_dir", "") or ""
+    )
+    if resume_run_dir:
+        _prepare_resume_run_dir(resume_run_dir)
+
     logger = RunLogger(
         runs_root="runs",
-        tag=f"{args.tag}_{args.profile_name}"
+        tag=f"{args.tag}_{args.profile_name}",
+        run_dir=resume_run_dir or None,
     )
 
     template_profile_path = resolve_profile_template_path(
@@ -171,8 +217,9 @@ def build_experiment_context(args):
     with open(template_profile_path, "r", encoding="utf-8") as f:
         init_profile = json.load(f)
 
-    with open(initial_profile_copy_path, "w", encoding="utf-8") as f:
-        json.dump(init_profile, f, ensure_ascii=False, indent=2)
+    if not os.path.exists(initial_profile_copy_path):
+        with open(initial_profile_copy_path, "w", encoding="utf-8") as f:
+            json.dump(init_profile, f, ensure_ascii=False, indent=2)
 
     effective_driver_type = args.driver_type or init_profile.get("driver_type", "均衡")
 
@@ -185,6 +232,21 @@ def build_experiment_context(args):
         use_profile_learner=bool(args.use_profile_learner),
         use_retriever=bool(args.use_retriever),
         dataset=args.dataset,
+        repeat_seed=int(getattr(args, "repeat_seed", 0) or 0),
+    )
+    service.llm.configure_budget(
+        "reactive",
+        max_attempts=int(
+            getattr(args, "max_reactive_api_attempts", 0) or 0
+        ),
+        max_tokens=int(getattr(args, "max_reactive_tokens", 0) or 0),
+    )
+    service.llm.configure_budget(
+        "planning",
+        max_attempts=int(
+            getattr(args, "max_planning_api_attempts", 0) or 0
+        ),
+        max_tokens=int(getattr(args, "max_planning_tokens", 0) or 0),
     )
 
     logger.write_config({
@@ -201,6 +263,22 @@ def build_experiment_context(args):
         "feedback": args.feedback,
         "limit": args.limit,
         "model_role": args.model_role,
+        "experiment_fingerprint": getattr(args, "experiment_fingerprint", ""),
+        "method_version": getattr(args, "method_version", ""),
+        "repeat_seed": int(getattr(args, "repeat_seed", 0) or 0),
+        "episode_order_seed": int(getattr(args, "episode_order_seed", 0) or 0),
+        "max_reactive_api_attempts": int(
+            getattr(args, "max_reactive_api_attempts", 0) or 0
+        ),
+        "max_reactive_tokens": int(
+            getattr(args, "max_reactive_tokens", 0) or 0
+        ),
+        "max_planning_api_attempts": int(
+            getattr(args, "max_planning_api_attempts", 0) or 0
+        ),
+        "max_planning_tokens": int(
+            getattr(args, "max_planning_tokens", 0) or 0
+        ),
         "ttc_threshold": getattr(args, "ttc_threshold", None),
         "distance_threshold": getattr(args, "distance_threshold", None),
         "drac_threshold": getattr(args, "drac_threshold", None),
@@ -223,12 +301,18 @@ def build_experiment_context(args):
             "CHEAP_MODEL": env.get("CHEAP_MODEL"),
             "OLLAMA_BASE_URL": env.get("OLLAMA_BASE_URL", "http://localhost:11434"),
             "OLLAMA_EMBED_MODEL": env.get("OLLAMA_EMBED_MODEL", "nomic-embed-text"),
-            "KB_DIR": env.get("KB_DIR", "data/kb"),
+            "KB_DIR": env.get("KB_DIR", "src/responsivegpt/data/kb"),
+            "KB_DIR_EFFECTIVE": resolve_kb_dir(env.get("KB_DIR")) or "default_kb_docs",
+            "LLM_TIMEOUT_S": env.get("LLM_TIMEOUT_S", "120"),
+            "LLM_MAX_RETRIES": env.get("LLM_MAX_RETRIES", "1"),
+            "LLM_MAX_COMPLETION_TOKENS": env.get("LLM_MAX_COMPLETION_TOKENS", "2048"),
         },
         "llm_call_policy": {
             "policy": args.llm_policy,
             "stride": args.llm_stride,
             "risk_threshold": args.llm_risk_threshold,
+            "max_stale_frames": getattr(args, "llm_max_stale_frames", None),
+            "risk_delta_threshold": getattr(args, "llm_risk_delta_threshold", None),
             "reuse_last_decision": bool(args.reuse_last_decision),
         },
         "planning_thread": {
@@ -245,6 +329,17 @@ def build_experiment_context(args):
             "planning_thread": "low-frequency long-horizon reasoning",
             "planning_hint_injection": True,
             "stale_planning_protection": True,
+        },
+        "rag": {
+            "rag_version": "rag_v1_grounded",
+            "use_retriever": bool(args.use_retriever),
+            "rag_mode": getattr(args, "rag_mode", "full"),
+            "rag_budget": getattr(args, "rag_budget", "reactive"),
+            "rag_top_k": getattr(args, "rag_top_k", 12),
+            "require_grounded_decision": bool(getattr(args, "require_grounded_decision", 0)),
+        },
+        "trace": {
+            "detail": bool(getattr(args, "trace_detail", True)),
         },
     })
 

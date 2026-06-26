@@ -1,200 +1,1436 @@
 [
   {
-    "id": "law_highd_following_distance_001",
-    "kb_type": "law",
-    "title": "高速跟车安全距离规则",
-    "text": "高速行驶场景中，车辆应保持足以避免追尾的安全车距。当相对速度较高、前向间距较小时，应优先减速并避免继续压缩车距。",
-    "scene_type": "highD",
-    "event_type": "FOLLOWING_CRITICAL",
-    "pair_type": null,
+    "chunk_id": "law_highd_following_distance_001",
+    "doc_type": "law",
+    "title": "Highway Safe Following Distance Rule",
+    "text": "In highway driving scenarios, the vehicle should maintain a safe following distance sufficient to avoid rear-end collisions. When relative speed is high and longitudinal spacing is small, the vehicle should prioritize deceleration and avoid further compressing the following distance. Trigger condition: ttc_lt=3.0, thw_lt=1.2. Risk mechanism: Insufficient time headway or short TTC reduces reaction time and increases rear-end collision risk. Relevant metrics: TTC, THW, headway, distance, relative_speed.",
+    "risk_mechanism": "Insufficient time headway or short TTC reduces reaction time and increases rear-end collision risk.",
+    "dataset_tags": [
+      "highd"
+    ],
+    "scenario_tags": [
+      "highway_car_following"
+    ],
+    "metric_tags": [
+      "TTC",
+      "THW",
+      "headway",
+      "distance",
+      "relative_speed"
+    ],
+    "risk_tags": [
+      "rear_end",
+      "short_headway",
+      "insufficient_reaction_time",
+      "collision"
+    ],
     "source": "manual_highway_rulebook",
-    "priority": 1.0
+    "jurisdiction": "internal_experimental_rule",
+    "priority": 3,
+    "priority_weight": 1.0,
+    "condition": {
+      "ttc_lt": 3.0,
+      "thw_lt": 1.2
+    },
+    "recommended_action": [
+      "increase_headway",
+      "decelerate",
+      "monitor_lead_vehicle"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "keep_close_following"
+    ],
+    "severity": "high",
+    "legacy_fields": {
+      "old_id": "law_highd_following_distance_001",
+      "old_kb_type": "law",
+      "old_scene_type": "highD",
+      "old_event_type": "car_following",
+      "old_pair_type": "vehicle_vehicle"
+    }
   },
   {
-    "id": "law_highd_following_distance_002",
-    "kb_type": "law",
-    "title": "高速跟驰最小安全距离要求",
-    "text": "在高速公路跟驰场景中，车辆应保持足够的安全车距，以保证在前车减速或紧急制动时具备充分反应时间。持续小车距跟驰将显著增加追尾风险。",
-    "scene_type": "highD",
-    "event_type": "FOLLOWING_CRITICAL",
-    "pair_type": null,
+    "chunk_id": "law_highd_following_compression_001",
+    "doc_type": "law",
+    "title": "Prohibition of Continuously Compressing Following Distance",
+    "text": "During car-following, the vehicle should not continuously accelerate to reduce the distance to the lead vehicle. When relative speed is positive and spacing is continuously decreasing, the vehicle should prioritize reducing speed to restore a safe gap. Trigger condition: closing_speed_gt=0.0, distance_decreasing, ttc_lt=4.0, thw_lt=1.5. Risk mechanism: Insufficient time headway or short TTC reduces reaction time and increases rear-end collision risk. Relevant metrics: TTC, THW, headway, distance, relative_speed.",
+    "risk_mechanism": "Insufficient time headway or short TTC reduces reaction time and increases rear-end collision risk.",
+    "dataset_tags": [
+      "highd"
+    ],
+    "scenario_tags": [
+      "highway_car_following"
+    ],
+    "metric_tags": [
+      "TTC",
+      "THW",
+      "headway",
+      "distance",
+      "relative_speed"
+    ],
+    "risk_tags": [
+      "rear_end",
+      "short_headway",
+      "insufficient_reaction_time",
+      "gap_acceptance",
+      "collision"
+    ],
     "source": "manual_highway_rulebook",
-    "priority": 1.0
+    "jurisdiction": "internal_experimental_rule",
+    "priority": 3,
+    "priority_weight": 1.0,
+    "condition": {
+      "closing_speed_gt": 0.0,
+      "distance_decreasing": true,
+      "ttc_lt": 4.0,
+      "thw_lt": 1.5
+    },
+    "recommended_action": [
+      "increase_headway",
+      "decelerate",
+      "monitor_lead_vehicle"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "keep_close_following"
+    ],
+    "severity": "high",
+    "legacy_fields": {
+      "old_id": "law_highd_following_compression_001",
+      "old_kb_type": "law",
+      "old_scene_type": "highD",
+      "old_event_type": "car_following",
+      "old_pair_type": "vehicle_vehicle"
+    }
   },
   {
-    "id": "law_highd_following_compression_001",
-    "kb_type": "law",
-    "title": "禁止持续压缩跟车间距",
-    "text": "在跟驰过程中，车辆不应通过持续加速来压缩与前车的距离。当相对速度为正且车距持续减小时，应优先降低速度以恢复安全间距。",
-    "scene_type": "highD",
-    "event_type": "FOLLOWING_CRITICAL",
-    "pair_type": null,
+    "chunk_id": "law_highd_lane_change_gap_001",
+    "doc_type": "law",
+    "title": "Highway Lane-Change Gap Acceptance Rule",
+    "text": "Before changing lanes at highway speed, the vehicle should confirm that sufficient safe gaps exist both ahead of and behind it in the target lane. If the rear vehicle is approaching quickly or the available gap is insufficient, the vehicle should not perform a forced cut-in. Trigger condition: target_lane_gap_lt=15.0, rear_vehicle_closing_speed_gt=2.0, ttc_lt=4.0. Risk mechanism: A small target-lane gap or rapidly decreasing TTC can compress the rear vehicle reaction space during lane change. Relevant metrics: TTC, headway, relative_speed.",
+    "risk_mechanism": "A small target-lane gap or rapidly decreasing TTC can compress the rear vehicle reaction space during lane change.",
+    "dataset_tags": [
+      "highd"
+    ],
+    "scenario_tags": [
+      "highway_cut_in",
+      "highway_lane_change"
+    ],
+    "metric_tags": [
+      "TTC",
+      "headway",
+      "relative_speed"
+    ],
+    "risk_tags": [
+      "rear_end",
+      "insufficient_reaction_time",
+      "lane_change_conflict",
+      "cut_in",
+      "gap_acceptance"
+    ],
     "source": "manual_highway_rulebook",
-    "priority": 1.0
+    "jurisdiction": "internal_experimental_rule",
+    "priority": 3,
+    "priority_weight": 1.0,
+    "condition": {
+      "target_lane_gap_lt": 15.0,
+      "rear_vehicle_closing_speed_gt": 2.0,
+      "ttc_lt": 4.0
+    },
+    "recommended_action": [
+      "abort_lane_change",
+      "yield",
+      "decelerate",
+      "monitor_target_lane"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "force_merge",
+      "aggressive_lane_change"
+    ],
+    "severity": "high",
+    "legacy_fields": {
+      "old_id": "law_highd_lane_change_gap_001",
+      "old_kb_type": "law",
+      "old_scene_type": "highD",
+      "old_event_type": "cut_in",
+      "old_pair_type": "vehicle_vehicle"
+    }
   },
   {
-    "id": "law_highd_lane_change_gap_001",
-    "kb_type": "law",
-    "title": "高速变道间隙接受规则",
-    "text": "高速变道前应确认目标车道前后均存在足够安全间隙。若后车接近速度较高或当前可用间隙不足，不应实施强行切入。",
-    "scene_type": "highD",
-    "event_type": "CUTIN_CRITICAL",
-    "pair_type": null,
+    "chunk_id": "law_highd_forced_merge_001",
+    "doc_type": "law",
+    "title": "Prohibition of Forced Merging",
+    "text": "A lane-changing vehicle must not force its way into a lane by compressing the safety space of the rear vehicle. Such behavior significantly increases the risk of emergency braking or collision for the rear vehicle. Trigger condition: target_lane_gap_lt=15.0, dcpa_lt=2.0, min_future_distance_lt=2.5. Risk mechanism: A small target-lane gap or rapidly decreasing TTC can compress the rear vehicle reaction space during lane change. Relevant metrics: TTC, DCPA, min_future_distance, distance, headway.",
+    "risk_mechanism": "A small target-lane gap or rapidly decreasing TTC can compress the rear vehicle reaction space during lane change.",
+    "dataset_tags": [
+      "highd"
+    ],
+    "scenario_tags": [
+      "highway_cut_in",
+      "highway_lane_change"
+    ],
+    "metric_tags": [
+      "TTC",
+      "DCPA",
+      "min_future_distance",
+      "distance",
+      "headway"
+    ],
+    "risk_tags": [
+      "rear_end",
+      "insufficient_reaction_time",
+      "lane_change_conflict",
+      "merging_conflict",
+      "gap_acceptance",
+      "hard_braking",
+      "collision"
+    ],
     "source": "manual_highway_rulebook",
-    "priority": 1.0
+    "jurisdiction": "internal_experimental_rule",
+    "priority": 3,
+    "priority_weight": 1.0,
+    "condition": {
+      "target_lane_gap_lt": 15.0,
+      "dcpa_lt": 2.0,
+      "min_future_distance_lt": 2.5
+    },
+    "recommended_action": [
+      "abort_lane_change",
+      "yield",
+      "decelerate",
+      "monitor_target_lane"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "force_merge",
+      "aggressive_lane_change"
+    ],
+    "severity": "high",
+    "legacy_fields": {
+      "old_id": "law_highd_forced_merge_001",
+      "old_kb_type": "law",
+      "old_scene_type": "highD",
+      "old_event_type": "cut_in",
+      "old_pair_type": "vehicle_vehicle"
+    }
   },
   {
-    "id": "law_highd_lane_change_gap_002",
-    "kb_type": "law",
-    "title": "变道需满足安全间隙条件",
-    "text": "在高速行驶中进行变道时，车辆应确保目标车道前后均存在足够安全间隙。若后车接近速度较高，不应依赖强制切入获得通行机会。",
-    "scene_type": "highD",
-    "event_type": "CUTIN_CRITICAL",
-    "pair_type": null,
+    "chunk_id": "law_highd_forced_cutin_001",
+    "doc_type": "law",
+    "title": "Avoid Forced Cut-in on Highways",
+    "text": "In highway scenarios, the vehicle should not rely on forced cut-in behavior to obtain passage. If the lane change would significantly compress the rear vehicle's reaction space or cause the minimum TTC to drop rapidly, the maneuver should be aborted immediately. Trigger condition: target_lane_gap_lt=15.0, ttc_lt=3.0, min_future_distance_lt=2.0. Risk mechanism: A small target-lane gap or rapidly decreasing TTC can compress the rear vehicle reaction space during lane change. Relevant metrics: TTC, min_future_distance, distance, headway.",
+    "risk_mechanism": "A small target-lane gap or rapidly decreasing TTC can compress the rear vehicle reaction space during lane change.",
+    "dataset_tags": [
+      "highd"
+    ],
+    "scenario_tags": [
+      "highway_cut_in",
+      "highway_lane_change"
+    ],
+    "metric_tags": [
+      "TTC",
+      "min_future_distance",
+      "distance",
+      "headway"
+    ],
+    "risk_tags": [
+      "rear_end",
+      "insufficient_reaction_time",
+      "lane_change_conflict",
+      "cut_in",
+      "gap_acceptance"
+    ],
     "source": "manual_highway_rulebook",
-    "priority": 1.0
+    "jurisdiction": "internal_experimental_rule",
+    "priority": 3,
+    "priority_weight": 1.0,
+    "condition": {
+      "target_lane_gap_lt": 15.0,
+      "ttc_lt": 3.0,
+      "min_future_distance_lt": 2.0
+    },
+    "recommended_action": [
+      "abort_lane_change",
+      "yield",
+      "decelerate",
+      "monitor_target_lane"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "force_merge",
+      "aggressive_lane_change"
+    ],
+    "severity": "high",
+    "legacy_fields": {
+      "old_id": "law_highd_forced_cutin_001",
+      "old_kb_type": "law",
+      "old_scene_type": "highD",
+      "old_event_type": "cut_in",
+      "old_pair_type": "vehicle_vehicle"
+    }
   },
   {
-    "id": "law_highd_forced_merge_001",
-    "kb_type": "law",
-    "title": "禁止强制并线行为",
-    "text": "变道车辆不得通过压缩后车安全空间的方式强制并入车道。此类行为会显著增加后车紧急制动或碰撞风险。",
-    "scene_type": "highD",
-    "event_type": "CUTIN_CRITICAL",
-    "pair_type": null,
-    "source": "manual_highway_rulebook",
-    "priority": 1.0
-  },
-  {
-    "id": "law_highd_forced_cutin_001",
-    "kb_type": "law",
-    "title": "高速避免强制 cut-in 规则",
-    "text": "在高速场景中，不应依赖强制切入来换取通行机会。若变道会显著压缩后车反应空间或导致最小 TTC 快速下降，应立即放弃该操作。",
-    "scene_type": "highD",
-    "event_type": "CUTIN_CRITICAL",
-    "pair_type": null,
-    "source": "manual_highway_rulebook",
-    "priority": 1.0
-  },
-  {
-    "id": "law_round_entry_yield_001",
-    "kb_type": "law",
-    "title": "环岛入口需让行已在环岛内车辆",
-    "text": "车辆进入环岛时，应优先让行已在环岛内行驶的车辆，不得通过加速抢行或压缩间隙强行汇入。",
-    "scene_type": "rounD",
-    "event_type": null,
-    "pair_type": "vehicle_vehicle",
+    "chunk_id": "law_round_entry_yield_001",
+    "doc_type": "law",
+    "title": "Roundabout Entry Yield Rule for Circulating Vehicles",
+    "text": "When entering a roundabout, the vehicle should yield first to vehicles already circulating inside the roundabout, and must not force its way in by accelerating, rushing ahead, or compressing the available gap. Trigger condition: in_roundabout_vehicle_present, dcpa_lt=2.0, min_future_distance_lt=2.5. Risk mechanism: Roundabout entry conflicts are dominated by closest approach distance and future spatial proximity to circulating vehicles. Relevant metrics: DCPA, min_future_distance, distance, headway.",
+    "risk_mechanism": "Roundabout entry conflicts are dominated by closest approach distance and future spatial proximity to circulating vehicles.",
+    "dataset_tags": [
+      "round"
+    ],
+    "scenario_tags": [
+      "roundabout_vehicle_interaction"
+    ],
+    "metric_tags": [
+      "DCPA",
+      "min_future_distance",
+      "distance",
+      "headway"
+    ],
+    "risk_tags": [
+      "gap_acceptance",
+      "roundabout_conflict",
+      "yielding",
+      "spatial_conflict"
+    ],
     "source": "manual_round_rulebook",
-    "priority": 1.0
+    "jurisdiction": "internal_experimental_rule",
+    "priority": 3,
+    "priority_weight": 1.0,
+    "condition": {
+      "in_roundabout_vehicle_present": true,
+      "dcpa_lt": 2.0,
+      "min_future_distance_lt": 2.5
+    },
+    "recommended_action": [
+      "yield",
+      "decelerate",
+      "monitor_conflict_point"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "force_merge"
+    ],
+    "severity": "high",
+    "legacy_fields": {
+      "old_id": "law_round_entry_yield_001",
+      "old_kb_type": "law",
+      "old_scene_type": "rounD",
+      "old_event_type": "roundabout_merging",
+      "old_pair_type": "vehicle_vehicle"
+    }
   },
   {
-    "id": "law_round_inside_priority_001",
-    "kb_type": "law",
-    "title": "环岛内车辆优先通行原则",
-    "text": "在环岛内部运行时，车辆应遵循既有行驶顺序，避免突然变道或加速穿插，以维持整体交通流稳定性。",
-    "scene_type": "rounD",
-    "event_type": null,
-    "pair_type": "vehicle_vehicle",
+    "chunk_id": "law_round_inside_priority_001",
+    "doc_type": "law",
+    "title": "Priority Principle for Vehicles Inside a Roundabout",
+    "text": "When driving inside a roundabout, the vehicle should follow the existing order of movement and avoid sudden lane changes or acceleration through gaps, in order to maintain overall traffic-flow stability. Trigger condition: in_roundabout, dcpa_lt=2.0, min_future_distance_lt=2.5. Risk mechanism: Sudden speed or lane-order changes inside a roundabout can disturb priority order and create short-distance conflicts. Relevant metrics: DCPA, min_future_distance, distance, headway.",
+    "risk_mechanism": "Sudden speed or lane-order changes inside a roundabout can disturb priority order and create short-distance conflicts.",
+    "dataset_tags": [
+      "round"
+    ],
+    "scenario_tags": [
+      "roundabout_vehicle_interaction"
+    ],
+    "metric_tags": [
+      "DCPA",
+      "min_future_distance",
+      "distance",
+      "headway"
+    ],
+    "risk_tags": [
+      "lane_change_conflict",
+      "gap_acceptance",
+      "roundabout_conflict",
+      "priority_forcing"
+    ],
     "source": "manual_round_rulebook",
-    "priority": 1.0
+    "jurisdiction": "internal_experimental_rule",
+    "priority": 2,
+    "priority_weight": 1.0,
+    "condition": {
+      "in_roundabout": true,
+      "dcpa_lt": 2.0,
+      "min_future_distance_lt": 2.5
+    },
+    "recommended_action": [
+      "maintain_order",
+      "decelerate",
+      "monitor_surroundings"
+    ],
+    "forbidden_action": [
+      "sudden_lane_change",
+      "accelerate",
+      "cut_through"
+    ],
+    "severity": "medium",
+    "legacy_fields": {
+      "old_id": "law_round_inside_priority_001",
+      "old_kb_type": "law",
+      "old_scene_type": "rounD",
+      "old_event_type": "roundabout_inner_driving",
+      "old_pair_type": "vehicle_vehicle"
+    }
   },
   {
-    "id": "law_round_exit_cyclist_priority_001",
-    "kb_type": "law",
-    "title": "环岛出口骑行者优先保护",
-    "text": "车辆从环岛驶出时，若出口附近存在骑行者，应降低速度并保留足够安全距离，不得抢在骑行者前穿出。",
-    "scene_type": "rounD",
-    "event_type": null,
-    "pair_type": "vehicle_cyclist",
+    "chunk_id": "law_round_exit_cyclist_priority_001",
+    "doc_type": "law",
+    "title": "Cyclist Priority Protection at Roundabout Exits",
+    "text": "When exiting a roundabout, if cyclists are present near the exit, the vehicle should reduce speed and preserve sufficient safety distance, and must not cut out ahead of the cyclist. Trigger condition: vrus_present, roundabout_exit, dcpa_lt=2.0, min_future_distance_lt=2.0. Risk mechanism: A cyclist near the roundabout exit has low physical protection, and low future distance can create a crossing or close-pass conflict. Relevant metrics: DCPA, min_future_distance, distance.",
+    "risk_mechanism": "A cyclist near the roundabout exit has low physical protection, and low future distance can create a crossing or close-pass conflict.",
+    "dataset_tags": [
+      "round"
+    ],
+    "scenario_tags": [
+      "roundabout_vru_interaction",
+      "roundabout_exit"
+    ],
+    "metric_tags": [
+      "DCPA",
+      "min_future_distance",
+      "distance"
+    ],
+    "risk_tags": [
+      "roundabout_conflict",
+      "priority_forcing",
+      "vru_conflict",
+      "spatial_conflict"
+    ],
     "source": "manual_round_rulebook",
-    "priority": 1.0
+    "jurisdiction": "internal_experimental_rule",
+    "priority": 3,
+    "priority_weight": 1.0,
+    "condition": {
+      "vrus_present": true,
+      "roundabout_exit": true,
+      "dcpa_lt": 2.0,
+      "min_future_distance_lt": 2.0
+    },
+    "recommended_action": [
+      "yield",
+      "decelerate",
+      "monitor_vru",
+      "increase_lateral_clearance"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "aggressive_lane_change",
+      "close_pass"
+    ],
+    "severity": "high",
+    "legacy_fields": {
+      "old_id": "law_round_exit_cyclist_priority_001",
+      "old_kb_type": "law",
+      "old_scene_type": "rounD",
+      "old_event_type": "roundabout_exit_cyclist",
+      "old_pair_type": "vehicle_cyclist"
+    }
   },
   {
-    "id": "law_round_parallel_spacing_001",
-    "kb_type": "law",
-    "title": "环岛近距离并行需保持安全间距",
-    "text": "在环岛内存在并行行驶或交汇时，车辆应降低速度并保持足够横向和纵向间距，避免形成危险交互。",
-    "scene_type": "rounD",
-    "event_type": null,
-    "pair_type": "all",
+    "chunk_id": "law_round_parallel_spacing_001",
+    "doc_type": "law",
+    "title": "Maintain Safe Spacing During Close Parallel Movement in Roundabouts",
+    "text": "When parallel movement or merging interactions occur inside a roundabout, the vehicle should reduce speed and maintain sufficient lateral and longitudinal spacing to avoid dangerous interactions. Trigger condition: dcpa_lt=2.0, min_future_distance_lt=2.5. Risk mechanism: Parallel or converging movement with low lateral/longitudinal clearance increases the probability of side-swipe or merging conflict. Relevant metrics: DCPA, min_future_distance, distance, lateral_clearance.",
+    "risk_mechanism": "Parallel or converging movement with low lateral/longitudinal clearance increases the probability of side-swipe or merging conflict.",
+    "dataset_tags": [
+      "round"
+    ],
+    "scenario_tags": [
+      "roundabout_vehicle_interaction"
+    ],
+    "metric_tags": [
+      "DCPA",
+      "min_future_distance",
+      "distance",
+      "lateral_clearance"
+    ],
+    "risk_tags": [
+      "roundabout_conflict",
+      "low_lateral_clearance"
+    ],
     "source": "manual_round_rulebook",
-    "priority": 0.95
+    "jurisdiction": "internal_experimental_rule",
+    "priority": 2,
+    "priority_weight": 0.95,
+    "condition": {
+      "dcpa_lt": 2.0,
+      "min_future_distance_lt": 2.5
+    },
+    "recommended_action": [
+      "decelerate",
+      "increase_headway",
+      "increase_lateral_clearance",
+      "monitor_conflict_point"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "keep_close_following",
+      "close_pass"
+    ],
+    "severity": "medium",
+    "legacy_fields": {
+      "old_id": "law_round_parallel_spacing_001",
+      "old_kb_type": "law",
+      "old_scene_type": "rounD",
+      "old_event_type": "roundabout_parallel_conflict",
+      "old_pair_type": "all"
+    }
   },
   {
-    "id": "law_general_vru_priority_002",
-    "kb_type": "law",
-    "title": "弱势交通参与者优先保护原则",
-    "text": "在涉及骑行者或行人等弱势交通参与者的场景中，机动车应主动降低速度并提高安全裕度，优先保障其通行安全。",
-    "scene_type": "all",
-    "event_type": null,
-    "pair_type": "vehicle_cyclist",
+    "chunk_id": "law_general_vru_priority_002",
+    "doc_type": "law",
+    "title": "Priority Protection Principle for Vulnerable Road Users",
+    "text": "In scenarios involving vulnerable road users such as cyclists or pedestrians, motor vehicles should actively reduce speed and increase safety margins, prioritizing the safety of vulnerable road users. Trigger condition: vrus_present, dcpa_lt=2.0, min_future_distance_lt=2.0. Risk mechanism: Low clearance to a cyclist leaves limited room for sudden deviation and increases vulnerable-road-user collision severity. Relevant metrics: DCPA, min_future_distance, distance.",
+    "risk_mechanism": "Low clearance to a cyclist leaves limited room for sudden deviation and increases vulnerable-road-user collision severity.",
+    "dataset_tags": [
+      "highd",
+      "round",
+      "ind"
+    ],
+    "scenario_tags": [
+      "generic_interaction",
+      "roundabout_vru_interaction",
+      "intersection_vru_interaction"
+    ],
+    "metric_tags": [
+      "DCPA",
+      "min_future_distance",
+      "distance"
+    ],
+    "risk_tags": [
+      "priority_forcing",
+      "vru_conflict",
+      "low_lateral_clearance",
+      "collision",
+      "low_safety_margin"
+    ],
     "source": "general_traffic_principles",
-    "priority": 1.0
+    "jurisdiction": "internal_experimental_rule",
+    "priority": 3,
+    "priority_weight": 1.0,
+    "condition": {
+      "vrus_present": true,
+      "dcpa_lt": 2.0,
+      "min_future_distance_lt": 2.0
+    },
+    "recommended_action": [
+      "yield",
+      "decelerate",
+      "monitor_vru",
+      "increase_lateral_clearance"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "aggressive_lane_change",
+      "close_pass"
+    ],
+    "severity": "high",
+    "legacy_fields": {
+      "old_id": "law_general_vru_priority_002",
+      "old_kb_type": "law",
+      "old_scene_type": "all",
+      "old_event_type": "car_bicycle",
+      "old_pair_type": "vehicle_cyclist"
+    }
   },
   {
-    "id": "law_general_safety_over_efficiency_001",
-    "kb_type": "law",
-    "title": "安全优先于通行效率",
-    "text": "在交通决策中，当安全性与效率发生冲突时，应优先保证安全，避免通过压缩间距或抢行来提升通行效率。",
-    "scene_type": "all",
-    "event_type": null,
-    "pair_type": "all",
+    "chunk_id": "law_general_safety_over_efficiency_001",
+    "doc_type": "law",
+    "title": "Safety Takes Priority Over Traffic Efficiency",
+    "text": "In traffic decision-making, when safety conflicts with efficiency, safety should be prioritized. The vehicle should avoid improving travel efficiency by compressing spacing or forcing passage. Trigger condition: safety_efficiency_conflict. Risk mechanism: Choosing efficiency over safety can shrink margins and amplify collision risk under uncertainty. Relevant metrics: TTC, DCPA, min_future_distance.",
+    "risk_mechanism": "Choosing efficiency over safety can shrink margins and amplify collision risk under uncertainty.",
+    "dataset_tags": [
+      "highd",
+      "round",
+      "ind"
+    ],
+    "scenario_tags": [
+      "generic_interaction"
+    ],
+    "metric_tags": [
+      "TTC",
+      "DCPA",
+      "min_future_distance"
+    ],
+    "risk_tags": [
+      "priority_forcing",
+      "collision"
+    ],
     "source": "general_traffic_principles",
-    "priority": 1.0
+    "jurisdiction": "internal_experimental_rule",
+    "priority": 3,
+    "priority_weight": 1.0,
+    "condition": {
+      "safety_efficiency_conflict": true
+    },
+    "recommended_action": [
+      "decelerate",
+      "yield",
+      "increase_safety_margin"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "force_merge",
+      "risk_taking"
+    ],
+    "severity": "high",
+    "legacy_fields": {
+      "old_id": "law_general_safety_over_efficiency_001",
+      "old_kb_type": "law",
+      "old_scene_type": "all",
+      "old_event_type": "general_safety",
+      "old_pair_type": "all"
+    }
   },
   {
-    "id": "law_round_entry_yield_001",
-    "kb_type": "law",
-    "title": "环岛汇入让行规则",
-    "text": "车辆进入环岛前，应优先观察已在环岛内运行的车辆，并根据相对位置和速度主动让行，不应通过抢行方式压缩对方通行空间。",
-    "scene_type": "rounD",
-    "event_type": null,
-    "pair_type": "vehicle_vehicle",
+    "chunk_id": "law_round_exit_yield_001",
+    "doc_type": "law",
+    "title": "Roundabout Exit Passing and Yielding Rule",
+    "text": "When exiting a roundabout, the vehicle should consider the positions and speeds of nearby vehicles and other traffic participants near the exit, and should not cut out ahead when safety distance is insufficient. Trigger condition: roundabout_exit, dcpa_lt=2.0, min_future_distance_lt=2.5. Risk mechanism: At a roundabout exit, limited spacing or visibility can create short-horizon conflicts with nearby traffic participants. Relevant metrics: DCPA, min_future_distance, distance, visibility.",
+    "risk_mechanism": "At a roundabout exit, limited spacing or visibility can create short-horizon conflicts with nearby traffic participants.",
+    "dataset_tags": [
+      "round"
+    ],
+    "scenario_tags": [
+      "roundabout_vehicle_interaction",
+      "roundabout_exit"
+    ],
+    "metric_tags": [
+      "DCPA",
+      "min_future_distance",
+      "distance",
+      "visibility"
+    ],
+    "risk_tags": [
+      "roundabout_conflict",
+      "yielding",
+      "limited_visibility"
+    ],
     "source": "manual_round_rulebook",
-    "priority": 1.0
+    "jurisdiction": "internal_experimental_rule",
+    "priority": 2,
+    "priority_weight": 1.0,
+    "condition": {
+      "roundabout_exit": true,
+      "dcpa_lt": 2.0,
+      "min_future_distance_lt": 2.5
+    },
+    "recommended_action": [
+      "yield",
+      "decelerate",
+      "monitor_conflict_point"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "force_merge"
+    ],
+    "severity": "medium",
+    "legacy_fields": {
+      "old_id": "law_round_exit_yield_001",
+      "old_kb_type": "law",
+      "old_scene_type": "rounD",
+      "old_event_type": "roundabout_exit",
+      "old_pair_type": "vehicle_vehicle"
+    }
   },
   {
-    "id": "law_round_exit_yield_001",
-    "kb_type": "law",
-    "title": "环岛出口通行与让行规则",
-    "text": "车辆驶出环岛时，应同时考虑出口附近车辆与其他交通参与者的位置和速度，不应在安全距离不足时抢先切出。",
-    "scene_type": "rounD",
-    "event_type": null,
-    "pair_type": "vehicle_vehicle",
+    "chunk_id": "law_round_cyclist_priority_001",
+    "doc_type": "law",
+    "title": "Cyclist Priority Protection Rule in Roundabouts",
+    "text": "When interacting with cyclists in a roundabout, motor vehicles should adopt a more conservative strategy, maintain sufficient longitudinal and lateral safety distance, and avoid compressing the cyclist's space through priority forcing or close passing. Trigger condition: vrus_present, dcpa_lt=2.0, min_future_distance_lt=2.0. Risk mechanism: Low clearance to a cyclist leaves limited room for sudden deviation and increases vulnerable-road-user collision severity. Relevant metrics: DCPA, min_future_distance, distance, lateral_clearance.",
+    "risk_mechanism": "Low clearance to a cyclist leaves limited room for sudden deviation and increases vulnerable-road-user collision severity.",
+    "dataset_tags": [
+      "round"
+    ],
+    "scenario_tags": [
+      "roundabout_vru_interaction"
+    ],
+    "metric_tags": [
+      "DCPA",
+      "min_future_distance",
+      "distance",
+      "lateral_clearance"
+    ],
+    "risk_tags": [
+      "roundabout_conflict",
+      "priority_forcing",
+      "vru_conflict",
+      "low_lateral_clearance",
+      "collision"
+    ],
     "source": "manual_round_rulebook",
-    "priority": 1.0
+    "jurisdiction": "internal_experimental_rule",
+    "priority": 3,
+    "priority_weight": 1.0,
+    "condition": {
+      "vrus_present": true,
+      "dcpa_lt": 2.0,
+      "min_future_distance_lt": 2.0
+    },
+    "recommended_action": [
+      "yield",
+      "decelerate",
+      "monitor_vru",
+      "increase_lateral_clearance"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "aggressive_lane_change",
+      "close_pass"
+    ],
+    "severity": "high",
+    "legacy_fields": {
+      "old_id": "law_round_cyclist_priority_001",
+      "old_kb_type": "law",
+      "old_scene_type": "rounD",
+      "old_event_type": "car_bicycle",
+      "old_pair_type": "vehicle_cyclist"
+    }
   },
   {
-    "id": "law_round_cyclist_priority_001",
-    "kb_type": "law",
-    "title": "环岛骑行者优先保护规则",
-    "text": "在环岛与骑行者交互时，机动车应采用更保守策略，保持足够纵向和横向安全距离，避免通过抢先通行或近距离穿插压缩骑行者空间。",
-    "scene_type": "rounD",
-    "event_type": null,
-    "pair_type": "vehicle_cyclist",
+    "chunk_id": "law_round_no_priority_forcing_002",
+    "doc_type": "law",
+    "title": "Prohibition of Forced Priority in Roundabouts",
+    "text": "In roundabout interactions, the vehicle should not obtain priority by forcing its way through or compressing others' space. It should maintain safe order through deceleration or waiting. Trigger condition: dcpa_lt=2.0, min_future_distance_lt=2.5. Risk mechanism: Forcing priority in a roundabout compresses another participant's safety margin and can trigger emergency braking or collision. Relevant metrics: DCPA, min_future_distance, distance.",
+    "risk_mechanism": "Forcing priority in a roundabout compresses another participant's safety margin and can trigger emergency braking or collision.",
+    "dataset_tags": [
+      "round"
+    ],
+    "scenario_tags": [
+      "roundabout_vehicle_interaction"
+    ],
+    "metric_tags": [
+      "DCPA",
+      "min_future_distance",
+      "distance"
+    ],
+    "risk_tags": [
+      "merging_conflict",
+      "roundabout_conflict",
+      "priority_forcing",
+      "hard_braking",
+      "collision",
+      "low_safety_margin"
+    ],
     "source": "manual_round_rulebook",
-    "priority": 1.0
+    "jurisdiction": "internal_experimental_rule",
+    "priority": 2,
+    "priority_weight": 1.0,
+    "condition": {
+      "dcpa_lt": 2.0,
+      "min_future_distance_lt": 2.5
+    },
+    "recommended_action": [
+      "yield",
+      "decelerate",
+      "monitor_conflict_point"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "force_merge",
+      "priority_forcing"
+    ],
+    "severity": "medium",
+    "legacy_fields": {
+      "old_id": "law_round_no_priority_forcing_002",
+      "old_kb_type": "law",
+      "old_scene_type": "rounD",
+      "old_event_type": "roundabout_priority_conflict",
+      "old_pair_type": "vehicle_vehicle"
+    }
   },
   {
-    "id": "law_round_no_priority_forcing_002",
-    "kb_type": "law",
-    "title": "环岛禁止强制抢行规则",
-    "text": "在环岛交互中，不应通过强制抢行或压缩他人空间来获取通行优先权，应通过减速或等待来维持安全秩序。",
-    "scene_type": "rounD",
-    "event_type": null,
-    "pair_type": "vehicle_vehicle",
+    "chunk_id": "law_round_exit_visibility_002",
+    "doc_type": "law",
+    "title": "Visibility and Deceleration Requirement at Roundabout Exits",
+    "text": "When exiting a roundabout, the vehicle should account for risks caused by limited exit visibility, reduce speed in advance, and preserve reaction space. Trigger condition: roundabout_exit, limited_visibility, min_future_distance_lt=3.0. Risk mechanism: At a roundabout exit, limited spacing or visibility can create short-horizon conflicts with nearby traffic participants. Relevant metrics: min_future_distance, distance, visibility.",
+    "risk_mechanism": "At a roundabout exit, limited spacing or visibility can create short-horizon conflicts with nearby traffic participants.",
+    "dataset_tags": [
+      "round"
+    ],
+    "scenario_tags": [
+      "roundabout_vehicle_interaction",
+      "roundabout_exit"
+    ],
+    "metric_tags": [
+      "min_future_distance",
+      "distance",
+      "visibility"
+    ],
+    "risk_tags": [
+      "insufficient_reaction_time",
+      "roundabout_conflict",
+      "limited_visibility"
+    ],
     "source": "manual_round_rulebook",
-    "priority": 1.0
+    "jurisdiction": "internal_experimental_rule",
+    "priority": 2,
+    "priority_weight": 0.9,
+    "condition": {
+      "roundabout_exit": true,
+      "limited_visibility": true,
+      "min_future_distance_lt": 3.0
+    },
+    "recommended_action": [
+      "yield",
+      "decelerate",
+      "monitor_conflict_point"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "force_merge"
+    ],
+    "severity": "medium",
+    "legacy_fields": {
+      "old_id": "law_round_exit_visibility_002",
+      "old_kb_type": "law",
+      "old_scene_type": "rounD",
+      "old_event_type": "roundabout_exit",
+      "old_pair_type": "vehicle_vehicle"
+    }
   },
   {
-    "id": "law_round_exit_visibility_002",
-    "kb_type": "law",
-    "title": "环岛出口视距与减速要求",
-    "text": "车辆驶出环岛时，应考虑出口视距受限带来的风险，提前降低速度并预留反应空间。",
-    "scene_type": "rounD",
-    "event_type": null,
-    "pair_type": null,
+    "chunk_id": "law_ind_pedestrian_yield_001",
+    "doc_type": "law",
+    "title": "Urban Pedestrian Priority Protection Rule",
+    "text": "When a pedestrian approaches or may enter the vehicle's predicted path, the vehicle should yield proactively and reduce speed. It must not compress the pedestrian's passage space by accelerating or forcing a detour around the pedestrian. Trigger condition: vrus_present, ttc_lt=3.0, dcpa_lt=2.0, min_future_distance_lt=2.0. Risk mechanism: A pedestrian close to the predicted vehicle path creates a short-horizon crossing conflict with limited reaction time. Relevant metrics: TTC, DCPA, min_future_distance, distance.",
+    "risk_mechanism": "A pedestrian close to the predicted vehicle path creates a short-horizon crossing conflict with limited reaction time.",
+    "dataset_tags": [
+      "ind"
+    ],
+    "scenario_tags": [
+      "intersection_vru_interaction"
+    ],
+    "metric_tags": [
+      "TTC",
+      "DCPA",
+      "min_future_distance",
+      "distance"
+    ],
+    "risk_tags": [
+      "insufficient_reaction_time",
+      "priority_forcing",
+      "yielding",
+      "vru_conflict"
+    ],
+    "source": "manual_urban_rulebook",
+    "jurisdiction": "internal_experimental_rule",
+    "priority": 3,
+    "priority_weight": 0.98,
+    "condition": {
+      "vrus_present": true,
+      "ttc_lt": 3.0,
+      "dcpa_lt": 2.0,
+      "min_future_distance_lt": 2.0
+    },
+    "recommended_action": [
+      "yield",
+      "decelerate",
+      "monitor_vru"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "aggressive_lane_change",
+      "force_pass"
+    ],
+    "severity": "high",
+    "legacy_fields": {
+      "old_id": "law_ind_pedestrian_yield_001",
+      "old_kb_type": "law",
+      "old_scene_type": "inD",
+      "old_event_type": "car_pedestrian",
+      "old_pair_type": "vehicle_pedestrian"
+    }
+  },
+  {
+    "chunk_id": "law_ind_crosswalk_yield_001",
+    "doc_type": "law",
+    "title": "Crosswalk Pedestrian Yield Rule",
+    "text": "When approaching a crosswalk, the vehicle should observe in advance and reduce speed. When pedestrians are on or near the crosswalk, the vehicle should yield and be prepared to stop. Trigger condition: vrus_present, near_crosswalk, min_future_distance_lt=3.0. Risk mechanism: Pedestrians near a crosswalk may enter the vehicle path with limited warning, requiring conservative yielding behavior. Relevant metrics: min_future_distance, distance.",
+    "risk_mechanism": "Pedestrians near a crosswalk may enter the vehicle path with limited warning, requiring conservative yielding behavior.",
+    "dataset_tags": [
+      "ind"
+    ],
+    "scenario_tags": [
+      "intersection_vru_interaction",
+      "crosswalk_yield"
+    ],
+    "metric_tags": [
+      "min_future_distance",
+      "distance"
+    ],
+    "risk_tags": [
+      "yielding",
+      "vru_conflict",
+      "crosswalk_conflict"
+    ],
+    "source": "traffic_rulebook",
+    "jurisdiction": "internal_experimental_rule",
+    "priority": 3,
+    "priority_weight": 1.0,
+    "condition": {
+      "vrus_present": true,
+      "near_crosswalk": true,
+      "min_future_distance_lt": 3.0
+    },
+    "recommended_action": [
+      "yield",
+      "decelerate",
+      "prepare_to_stop",
+      "monitor_vru"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "force_pass",
+      "aggressive_lane_change"
+    ],
+    "severity": "high",
+    "legacy_fields": {
+      "old_id": "law_ind_crosswalk_yield_001",
+      "old_kb_type": "law",
+      "old_scene_type": "inD",
+      "old_event_type": "crosswalk_yield",
+      "old_pair_type": "vehicle_pedestrian"
+    }
+  },
+  {
+    "chunk_id": "law_ind_intersection_yield_001",
+    "doc_type": "law",
+    "title": "Cautious Passing and Yielding Rule at Urban Intersections",
+    "text": "When passing through an urban intersection, the vehicle should reduce speed and continuously monitor conflict points. When traffic participants from crossing directions are nearby or their trajectories intersect, the vehicle should yield or stop and wait. Trigger condition: near_intersection, dcpa_lt=2.5, min_future_distance_lt=3.0. Risk mechanism: Intersection conflicts involve crossing trajectories where small future distance can rapidly become a collision conflict. Relevant metrics: DCPA, min_future_distance, distance.",
+    "risk_mechanism": "Intersection conflicts involve crossing trajectories where small future distance can rapidly become a collision conflict.",
+    "dataset_tags": [
+      "ind"
+    ],
+    "scenario_tags": [
+      "intersection_vehicle_interaction",
+      "intersection_crossing"
+    ],
+    "metric_tags": [
+      "DCPA",
+      "min_future_distance",
+      "distance"
+    ],
+    "risk_tags": [
+      "yielding",
+      "intersection_crossing",
+      "spatial_conflict",
+      "collision"
+    ],
+    "source": "manual_urban_rulebook",
+    "jurisdiction": "internal_experimental_rule",
+    "priority": 3,
+    "priority_weight": 0.94,
+    "condition": {
+      "near_intersection": true,
+      "dcpa_lt": 2.5,
+      "min_future_distance_lt": 3.0
+    },
+    "recommended_action": [
+      "decelerate",
+      "yield",
+      "monitor_conflict_point",
+      "prepare_to_stop"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "force_pass",
+      "aggressive_lane_change"
+    ],
+    "severity": "high",
+    "legacy_fields": {
+      "old_id": "law_ind_intersection_yield_001",
+      "old_kb_type": "law",
+      "old_scene_type": "inD",
+      "old_event_type": "intersection_crossing",
+      "old_pair_type": "all"
+    }
+  },
+  {
+    "chunk_id": "law_ind_bicycle_yield_001",
+    "doc_type": "law",
+    "title": "Urban Cyclist Yielding and Protection Rule",
+    "text": "When interacting with cyclists on urban roads, motor vehicles should maintain sufficient lateral and longitudinal safety distance, decelerate and yield when necessary, and avoid close-range priority forcing or close passing. Trigger condition: vrus_present, dcpa_lt=2.0, min_future_distance_lt=2.5. Risk mechanism: Cyclists have unstable trajectories and limited physical protection, so low clearance creates high injury risk. Relevant metrics: DCPA, min_future_distance, distance, lateral_clearance.",
+    "risk_mechanism": "Cyclists have unstable trajectories and limited physical protection, so low clearance creates high injury risk.",
+    "dataset_tags": [
+      "ind"
+    ],
+    "scenario_tags": [
+      "intersection_vru_interaction"
+    ],
+    "metric_tags": [
+      "DCPA",
+      "min_future_distance",
+      "distance",
+      "lateral_clearance"
+    ],
+    "risk_tags": [
+      "priority_forcing",
+      "yielding",
+      "vru_conflict",
+      "low_lateral_clearance"
+    ],
+    "source": "manual_urban_rulebook",
+    "jurisdiction": "internal_experimental_rule",
+    "priority": 3,
+    "priority_weight": 0.96,
+    "condition": {
+      "vrus_present": true,
+      "dcpa_lt": 2.0,
+      "min_future_distance_lt": 2.5
+    },
+    "recommended_action": [
+      "decelerate",
+      "yield",
+      "increase_lateral_clearance",
+      "monitor_vru"
+    ],
+    "forbidden_action": [
+      "close_pass",
+      "accelerate",
+      "force_pass",
+      "aggressive_lane_change"
+    ],
+    "severity": "high",
+    "legacy_fields": {
+      "old_id": "law_ind_bicycle_yield_001",
+      "old_kb_type": "law",
+      "old_scene_type": "inD",
+      "old_event_type": "car_bicycle",
+      "old_pair_type": "vehicle_cyclist"
+    }
+  },
+  {
+    "chunk_id": "law_general_cyclist_lateral_clearance_001",
+    "doc_type": "law",
+    "title": "Cyclist Lateral Safety Clearance Rule",
+    "text": "When a vehicle passes or approaches a cyclist, it should maintain sufficient lateral safety clearance. If lateral clearance is insufficient, the vehicle should slow down and wait for a safe passing opportunity. Trigger condition: vrus_present, dcpa_lt=1.5, min_future_distance_lt=2.0. Risk mechanism: Low lateral clearance to a cyclist leaves insufficient space for unexpected cyclist deviation or vehicle control errors. Relevant metrics: DCPA, min_future_distance, distance, lateral_clearance.",
+    "risk_mechanism": "Low lateral clearance to a cyclist leaves insufficient space for unexpected cyclist deviation or vehicle control errors.",
+    "dataset_tags": [
+      "highd",
+      "round",
+      "ind"
+    ],
+    "scenario_tags": [
+      "generic_interaction",
+      "roundabout_vru_interaction",
+      "intersection_vru_interaction"
+    ],
+    "metric_tags": [
+      "DCPA",
+      "min_future_distance",
+      "distance",
+      "lateral_clearance"
+    ],
+    "risk_tags": [
+      "vru_conflict",
+      "low_lateral_clearance"
+    ],
+    "source": "general_traffic_principles",
+    "jurisdiction": "internal_experimental_rule",
+    "priority": 3,
+    "priority_weight": 0.95,
+    "condition": {
+      "vrus_present": true,
+      "dcpa_lt": 1.5,
+      "min_future_distance_lt": 2.0
+    },
+    "recommended_action": [
+      "decelerate",
+      "increase_lateral_clearance",
+      "monitor_vru"
+    ],
+    "forbidden_action": [
+      "close_pass",
+      "accelerate",
+      "aggressive_lane_change"
+    ],
+    "severity": "high",
+    "legacy_fields": {
+      "old_id": "law_general_cyclist_lateral_clearance_001",
+      "old_kb_type": "law",
+      "old_scene_type": "all",
+      "old_event_type": "car_bicycle",
+      "old_pair_type": "vehicle_cyclist"
+    }
+  },
+  {
+    "chunk_id": "law_general_low_ttc_avoidance_001",
+    "doc_type": "law",
+    "title": "Low-TTC Collision Avoidance Rule",
+    "text": "When time to collision is short or the predicted minimum future distance is small, the vehicle should reduce speed, increase the safety margin, and avoid actions that further compress reaction time. Trigger condition: ttc_lt=3.0, min_future_distance_lt=2.5. Risk mechanism: Low TTC indicates that available reaction time is limited and evasive action must be taken early. Relevant metrics: TTC, min_future_distance, distance.",
+    "risk_mechanism": "Low TTC indicates that available reaction time is limited and evasive action must be taken early.",
+    "dataset_tags": [
+      "highd",
+      "round",
+      "ind"
+    ],
+    "scenario_tags": [
+      "generic_interaction",
+      "highway_car_following",
+      "intersection_vehicle_interaction",
+      "roundabout_vehicle_interaction"
+    ],
+    "metric_tags": [
+      "TTC",
+      "min_future_distance",
+      "distance"
+    ],
+    "risk_tags": [
+      "insufficient_reaction_time",
+      "spatial_conflict",
+      "collision",
+      "low_safety_margin"
+    ],
+    "source": "general_traffic_principles",
+    "jurisdiction": "internal_experimental_rule",
+    "priority": 3,
+    "priority_weight": 0.96,
+    "condition": {
+      "ttc_lt": 3.0,
+      "min_future_distance_lt": 2.5
+    },
+    "recommended_action": [
+      "decelerate",
+      "increase_headway",
+      "prepare_to_stop",
+      "monitor_conflict_point"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "keep_close_following",
+      "force_merge"
+    ],
+    "severity": "high",
+    "legacy_fields": {
+      "old_id": "law_general_low_ttc_avoidance_001",
+      "old_kb_type": "law",
+      "old_scene_type": "all",
+      "old_event_type": "collision_avoidance",
+      "old_pair_type": "all"
+    }
+  },
+  {
+    "chunk_id": "law_general_limited_visibility_001",
+    "doc_type": "law",
+    "title": "Deceleration Rule Under Limited Visibility",
+    "text": "When visibility is limited or potential conflict points are difficult to observe in time, the vehicle should reduce speed in advance and increase safety distance, avoiding high-speed passage or aggressive lane changes. Trigger condition: limited_visibility, min_future_distance_lt=3.0. Risk mechanism: Limited visibility reduces perception range and increases the probability of late conflict detection. Relevant metrics: min_future_distance, distance, visibility.",
+    "risk_mechanism": "Limited visibility reduces perception range and increases the probability of late conflict detection.",
+    "dataset_tags": [
+      "highd",
+      "round",
+      "ind"
+    ],
+    "scenario_tags": [
+      "generic_interaction"
+    ],
+    "metric_tags": [
+      "min_future_distance",
+      "distance",
+      "visibility"
+    ],
+    "risk_tags": [
+      "lane_change_conflict",
+      "limited_visibility"
+    ],
+    "source": "general_traffic_principles",
+    "jurisdiction": "internal_experimental_rule",
+    "priority": 2,
+    "priority_weight": 0.85,
+    "condition": {
+      "limited_visibility": true,
+      "min_future_distance_lt": 3.0
+    },
+    "recommended_action": [
+      "decelerate",
+      "increase_headway",
+      "prepare_to_stop",
+      "monitor_conflict_point"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "aggressive_lane_change",
+      "force_pass"
+    ],
+    "severity": "medium",
+    "legacy_fields": {
+      "old_id": "law_general_limited_visibility_001",
+      "old_kb_type": "law",
+      "old_scene_type": "all",
+      "old_event_type": "limited_visibility",
+      "old_pair_type": "all"
+    }
+  },
+  {
+    "chunk_id": "law_highd_lane_change_check_001",
+    "doc_type": "law",
+    "title": "Target-Lane Safety Check Rule Before Lane Change",
+    "text": "Before changing lanes at highway speed, the vehicle should confirm that vehicles ahead of and behind it in the target lane both have sufficient safety gaps. If the rear vehicle is approaching rapidly or the gap is insufficient, the vehicle should abandon the lane change and wait for a safer opportunity. Trigger condition: target_lane_gap_lt=15.0, rear_vehicle_closing_speed_gt=2.0, ttc_lt=4.0. Risk mechanism: Insufficient target-lane gap and high rear-vehicle closing speed can force the rear vehicle into emergency braking. Relevant metrics: TTC, headway, relative_speed.",
+    "risk_mechanism": "Insufficient target-lane gap and high rear-vehicle closing speed can force the rear vehicle into emergency braking.",
+    "dataset_tags": [
+      "highd"
+    ],
+    "scenario_tags": [
+      "highway_cut_in",
+      "highway_lane_change"
+    ],
+    "metric_tags": [
+      "TTC",
+      "headway",
+      "relative_speed"
+    ],
+    "risk_tags": [
+      "rear_end",
+      "closing_speed",
+      "lane_change_conflict",
+      "merging_conflict",
+      "gap_acceptance",
+      "hard_braking"
+    ],
+    "source": "manual_highway_rulebook",
+    "jurisdiction": "internal_experimental_rule",
+    "priority": 3,
+    "priority_weight": 0.94,
+    "condition": {
+      "target_lane_gap_lt": 15.0,
+      "rear_vehicle_closing_speed_gt": 2.0,
+      "ttc_lt": 4.0
+    },
+    "recommended_action": [
+      "abort_lane_change",
+      "decelerate",
+      "wait_for_safe_gap",
+      "monitor_rear_vehicle"
+    ],
+    "forbidden_action": [
+      "force_merge",
+      "aggressive_lane_change",
+      "accelerate"
+    ],
+    "severity": "high",
+    "legacy_fields": {
+      "old_id": "law_highd_lane_change_check_001",
+      "old_kb_type": "law",
+      "old_scene_type": "highD",
+      "old_event_type": "lane_change_gap_acceptance",
+      "old_pair_type": "vehicle_vehicle"
+    }
+  },
+  {
+    "chunk_id": "law_round_exit_pedestrian_yield_001",
+    "doc_type": "law",
+    "title": "Pedestrian Yield Rule at Roundabout Exits",
+    "text": "When exiting a roundabout, if pedestrians are present near the exit or may enter the vehicle path, the vehicle should decelerate in advance and yield. It must not cut out ahead of them. Trigger condition: vrus_present, near_roundabout_exit, min_future_distance_lt=3.0. Risk mechanism: Pedestrians near a roundabout exit may conflict with exiting vehicles whose paths curve and visibility may be limited. Relevant metrics: min_future_distance, distance, visibility.",
+    "risk_mechanism": "Pedestrians near a roundabout exit may conflict with exiting vehicles whose paths curve and visibility may be limited.",
+    "dataset_tags": [
+      "round"
+    ],
+    "scenario_tags": [
+      "roundabout_vru_interaction",
+      "roundabout_exit"
+    ],
+    "metric_tags": [
+      "min_future_distance",
+      "distance",
+      "visibility"
+    ],
+    "risk_tags": [
+      "roundabout_conflict",
+      "yielding",
+      "vru_conflict",
+      "limited_visibility"
+    ],
     "source": "manual_round_rulebook",
-    "priority": 0.9
+    "jurisdiction": "internal_experimental_rule",
+    "priority": 3,
+    "priority_weight": 0.97,
+    "condition": {
+      "vrus_present": true,
+      "near_roundabout_exit": true,
+      "min_future_distance_lt": 3.0
+    },
+    "recommended_action": [
+      "yield",
+      "decelerate",
+      "prepare_to_stop",
+      "monitor_vru"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "force_pass",
+      "cut_across_vru"
+    ],
+    "severity": "high",
+    "legacy_fields": {
+      "old_id": "law_round_exit_pedestrian_yield_001",
+      "old_kb_type": "law",
+      "old_scene_type": "rounD",
+      "old_event_type": "roundabout_exit_vru",
+      "old_pair_type": "vehicle_pedestrian"
+    }
+  },
+  {
+    "chunk_id": "law_round_entry_vru_yield_001",
+    "doc_type": "law",
+    "title": "Vulnerable Road User Protection Rule at Roundabout Entries",
+    "text": "Before entering a roundabout, if pedestrians or cyclists are present near the entry, the vehicle should reduce speed and yield proactively. It must not compress the vulnerable road users' space by accelerating into the roundabout. Trigger condition: vrus_present, near_roundabout_entry, dcpa_lt=2.0. Risk mechanism: VRUs near a roundabout entry can be occluded by traffic geometry and may cross the entry path unexpectedly. Relevant metrics: DCPA.",
+    "risk_mechanism": "VRUs near a roundabout entry can be occluded by traffic geometry and may cross the entry path unexpectedly.",
+    "dataset_tags": [
+      "round"
+    ],
+    "scenario_tags": [
+      "roundabout_vru_interaction",
+      "roundabout_entry"
+    ],
+    "metric_tags": [
+      "DCPA"
+    ],
+    "risk_tags": [
+      "roundabout_conflict",
+      "yielding",
+      "vru_conflict"
+    ],
+    "source": "manual_round_rulebook",
+    "jurisdiction": "internal_experimental_rule",
+    "priority": 3,
+    "priority_weight": 0.96,
+    "condition": {
+      "vrus_present": true,
+      "near_roundabout_entry": true,
+      "dcpa_lt": 2.0
+    },
+    "recommended_action": [
+      "yield",
+      "decelerate",
+      "monitor_vru",
+      "prepare_to_stop"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "force_merge",
+      "force_pass"
+    ],
+    "severity": "high",
+    "legacy_fields": {
+      "old_id": "law_round_entry_vru_yield_001",
+      "old_kb_type": "law",
+      "old_scene_type": "rounD",
+      "old_event_type": "roundabout_entry_vru",
+      "old_pair_type": "all"
+    }
+  },
+  {
+    "chunk_id": "law_general_emergency_braking_001",
+    "doc_type": "law",
+    "title": "Conservative Control Rule Under Emergency Braking Risk",
+    "text": "When required deceleration is high and time to collision is short, the vehicle should immediately adopt conservative control, reduce speed, and avoid creating new merging, priority-forcing, or close-following conflicts. Trigger condition: drac_gt=6.0, ttc_lt=3.0. Risk mechanism: High required deceleration indicates that maintaining the current motion may soon require emergency braking to avoid collision. Relevant metrics: TTC, DRAC.",
+    "risk_mechanism": "High required deceleration indicates that maintaining the current motion may soon require emergency braking to avoid collision.",
+    "dataset_tags": [
+      "highd",
+      "round",
+      "ind"
+    ],
+    "scenario_tags": [
+      "generic_interaction",
+      "highway_car_following",
+      "intersection_vehicle_interaction"
+    ],
+    "metric_tags": [
+      "TTC",
+      "DRAC"
+    ],
+    "risk_tags": [
+      "short_headway",
+      "merging_conflict",
+      "priority_forcing",
+      "hard_braking",
+      "collision"
+    ],
+    "source": "general_traffic_principles",
+    "jurisdiction": "internal_experimental_rule",
+    "priority": 3,
+    "priority_weight": 0.95,
+    "condition": {
+      "drac_gt": 6.0,
+      "ttc_lt": 3.0
+    },
+    "recommended_action": [
+      "decelerate",
+      "increase_headway",
+      "prepare_to_stop",
+      "avoid_new_conflict"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "force_merge",
+      "keep_close_following"
+    ],
+    "severity": "high",
+    "legacy_fields": {
+      "old_id": "law_general_emergency_braking_001",
+      "old_kb_type": "law",
+      "old_scene_type": "all",
+      "old_event_type": "emergency_braking_required",
+      "old_pair_type": "all"
+    }
+  },
+  {
+    "chunk_id": "law_general_safety_margin_recovery_001",
+    "doc_type": "law",
+    "title": "Safety Margin Recovery Rule",
+    "text": "When the predicted closest approach distance or minimum future distance is too small, the vehicle should prioritize recovering spatial safety margins, including deceleration, increasing longitudinal headway, or increasing lateral clearance. Trigger condition: dcpa_lt=2.0, min_future_distance_lt=2.0. Risk mechanism: Small closest approach distance and low predicted future distance indicate insufficient spatial safety margin. Relevant metrics: DCPA, min_future_distance, headway, distance, lateral_clearance.",
+    "risk_mechanism": "Small closest approach distance and low predicted future distance indicate insufficient spatial safety margin.",
+    "dataset_tags": [
+      "highd",
+      "round",
+      "ind"
+    ],
+    "scenario_tags": [
+      "generic_interaction",
+      "roundabout_vehicle_interaction",
+      "intersection_vehicle_interaction"
+    ],
+    "metric_tags": [
+      "DCPA",
+      "min_future_distance",
+      "headway",
+      "distance",
+      "lateral_clearance"
+    ],
+    "risk_tags": [
+      "short_headway",
+      "low_lateral_clearance",
+      "spatial_conflict",
+      "low_safety_margin"
+    ],
+    "source": "general_traffic_principles",
+    "jurisdiction": "internal_experimental_rule",
+    "priority": 2,
+    "priority_weight": 0.88,
+    "condition": {
+      "dcpa_lt": 2.0,
+      "min_future_distance_lt": 2.0
+    },
+    "recommended_action": [
+      "decelerate",
+      "increase_headway",
+      "increase_lateral_clearance",
+      "monitor_conflict_point"
+    ],
+    "forbidden_action": [
+      "accelerate",
+      "force_pass",
+      "aggressive_lane_change"
+    ],
+    "severity": "medium",
+    "legacy_fields": {
+      "old_id": "law_general_safety_margin_recovery_001",
+      "old_kb_type": "law",
+      "old_scene_type": "all",
+      "old_event_type": "safety_margin_recovery",
+      "old_pair_type": "all"
+    }
   }
 ]

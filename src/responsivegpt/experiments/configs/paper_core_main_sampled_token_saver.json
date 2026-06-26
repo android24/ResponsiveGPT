@@ -1,0 +1,94 @@
+{
+  "name": "paper_core_main_sampled_token_saver",
+  "dataset_registry_path": "datasets.json",
+  "datasets": {
+    "highd": {
+      "summary_csv": "data/eval_samples/core_v1/highd_core_sample_seed20260613.csv",
+      "sequence_root": "data/highD/clips_multi_fixed_window"
+    },
+    "ind": {
+      "summary_csv": "data/eval_samples/core_v1/ind_core_sample_seed20260613.csv",
+      "sequence_root": "data/inD/output_ind_risk_v4"
+    },
+    "round": {
+      "summary_csv": "data/eval_samples/core_v1/round_core_sample_seed20260613.csv",
+      "sequence_root": "data/rounD/output_high_risk"
+    }
+  },
+  "defaults": {
+    "mode": "episode",
+    "limit": 0,
+    "job_timeout_s": 43200,
+    "model_role": "cheap",
+    "feedback": "Prioritize safety, legal compliance, and interaction smoothness while avoiding clearly dangerous operations.",
+    "llm_stride": 30,
+    "llm_risk_threshold": 0.45,
+    "extra_args": {
+      "reuse_last_decision": 1,
+      "use_trigger": 1,
+      "use_profile_learner": 1,
+      "history_window": 10,
+      "rag_budget": "reactive_low",
+      "rag_top_k": 8,
+      "trace_detail": 0,
+      "frame_selection": "all",
+      "llm_max_stale_frames": 30,
+      "llm_risk_delta_threshold": 0.15,
+      "planning_interval": 100,
+      "planning_min_gap": 100,
+      "planning_risk_threshold": 0.60,
+      "planning_max_history": 8
+    }
+  },
+  "matrix": {
+    "datasets": [
+      "highd",
+      "ind",
+      "round"
+    ],
+    "profiles": [
+      "aggressive",
+      "balanced",
+      "conservative"
+    ],
+    "rag_variants": [
+      {
+        "name": "no_rag",
+        "use_retriever": 0,
+        "rag_mode": "none",
+        "require_grounded_decision": 0
+      },
+      {
+        "name": "naive_rag",
+        "use_retriever": 1,
+        "rag_mode": "naive",
+        "require_grounded_decision": 0
+      },
+      {
+        "name": "full_rag_grounded",
+        "use_retriever": 1,
+        "rag_mode": "full",
+        "require_grounded_decision": 1
+      }
+    ],
+    "planning": [
+      {
+        "name": "planning_on_adaptive",
+        "use_planning_thread": 1,
+        "planning_mode": "interval_risk",
+        "extra_args": {
+          "planning_peek": 1,
+          "planning_min_gap": 20
+        }
+      }
+    ],
+    "llm_policies": [
+      {
+        "name": "event_triggered_compact",
+        "llm_policy": "event_triggered",
+        "llm_stride": 30,
+        "llm_risk_threshold": 0.45
+      }
+    ]
+  }
+}

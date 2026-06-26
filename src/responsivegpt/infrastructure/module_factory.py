@@ -1,12 +1,10 @@
-import os
-
 from .embed_ollama import OllamaEmbedder
 from .llm_jiekou import JiekouChatModel
 from .profile_repo import JsonProfileRepository
 
 from .knowledge_base import KnowledgeBase
 from .kb_seed import default_kb_docs
-from .kb_json_loader import load_kb_json_dir
+from .kb_json_loader import load_kb_json_dir, resolve_kb_dir
 from .hybrid_retriever import HybridRetriever
 
 from ..application.trigger_manager import TriggerManager
@@ -25,8 +23,8 @@ def build_retriever(env: dict, embedder, use_retriever: bool):
     if not use_retriever:
         return NullRetriever()
 
-    kb_dir = env.get("KB_DIR", "data/kb")
-    if kb_dir and os.path.isdir(kb_dir):
+    kb_dir = resolve_kb_dir(env.get("KB_DIR"))
+    if kb_dir:
         docs = load_kb_json_dir(kb_dir)
     else:
         docs = default_kb_docs()
@@ -73,6 +71,8 @@ def build_chat_model(env: dict, primary_model: str, fallback_model: str | None):
         primary_model=primary_model,
         fallback_model=fallback_model,
         max_completion_tokens=int(env.get("LLM_MAX_COMPLETION_TOKENS", "2048")),
+        timeout_s=float(env.get("LLM_TIMEOUT_S", "120")),
+        max_retries=int(env.get("LLM_MAX_RETRIES", "1")),
     )
 
 
