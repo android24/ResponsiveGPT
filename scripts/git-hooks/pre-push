@@ -13,8 +13,10 @@ do
 
   if [ "$remote_sha" = "0000000000000000000000000000000000000000" ]; then
     range="4b825dc642cb6eb9a060e54bf8d69288fbee4904..$local_sha"
-  else
+  elif git rev-parse --verify "$remote_sha^{commit}" >/dev/null 2>&1; then
     range="$remote_sha..$local_sha"
+  else
+    range="4b825dc642cb6eb9a060e54bf8d69288fbee4904..$local_sha"
   fi
 
   if ! git rev-parse --verify "$local_sha^{commit}" >/dev/null 2>&1; then
