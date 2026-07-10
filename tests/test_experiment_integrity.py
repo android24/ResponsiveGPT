@@ -57,7 +57,11 @@ from responsivegpt.experiments.validate_runs import (
     _expected_event_count,
     latest_usable_completed_statuses,
     matrix_completion_status,
+    validate_experiment_dir,
     validate_run_dir,
+)
+from responsivegpt.experiments.dense_sparse_calibration import (
+    _latest_completed_statuses as latest_dense_sparse_statuses,
 )
 from responsivegpt.experiments.analysis_provenance import (
     write_analysis_provenance,
@@ -71,6 +75,8 @@ from responsivegpt.infrastructure.llm_jiekou import (
 )
 from responsivegpt.experiments.validate_runs import validate_summary
 from responsivegpt.application.planning_memory import PlanningMemory
+from responsivegpt.application.budget_governor import BudgetGovernor
+from responsivegpt.application.case_memory import CausalCaseMemory
 from responsivegpt.application.layered_profile_learner import (
     LayeredProfileLearner,
 )
@@ -106,7 +112,7 @@ from responsivegpt.interface.runner_core import (
 from responsivegpt.interface.experiment_builder import (
     _prepare_resume_run_dir,
 )
-from responsivegpt.interface.llm_call_policy import should_call_llm
+from responsivegpt.interface.llm_call_policy import llm_call_reasons, should_call_llm
 from responsivegpt.rag.rag_metrics import compute_rag_metrics
 
 
@@ -143,6 +149,102 @@ class ExperimentIntegrityTests(unittest.TestCase):
         result = NullProfileLearner().apply(profile=profile)
         self.assertIs(result, profile)
         self.assertIsInstance(result, dict)
+
+    def test_causal_case_memory_only_uses_prior_cases_without_labels(self):
+        memory = CausalCaseMemory(
+            enabled=True,
+            top_k=2,
+            min_similarity=0.1,
+            novelty_threshold=0.2,
+        )
+        memory.records.append({
+            "event_index": 10,
+            "memory_order": 3,
+            "dataset": "highd",
+            "event_type": "cut_in",
+            "pair_type": "vehicle_vehicle",
+            "dominant_risk_phase": "conflict",
+            "profile_name": "balanced",
+            "max_physical_risk_index": 0.8,
+            "avg_ego_speed_mps": 25.0,
+            "avg_headway_m": 12.0,
+            "min_ttc_s": 1.0,
+            "min_dcpa_m": 0.5,
+            "dominant_action": "decelerate",
+            "planning_strategy": "increase_headway",
+        })
+        memory.records.append({
+            "event_index": 11,
+            "memory_order": 9,
+            "dataset": "highd",
+            "event_type": "cut_in",
+            "pair_type": "vehicle_vehicle",
+            "dominant_risk_phase": "conflict",
+            "profile_name": "balanced",
+            "max_physical_risk_index": 0.8,
+            "dataset_risk_label": True,
+        })
+        result = memory.retrieve({
+            "dataset": "highd",
+            "event_type": "cut_in",
+            "pair_type": "vehicle_vehicle",
+            "dominant_risk_phase": "conflict",
+            "profile_name": "balanced",
+            "physical_risk_index": 0.78,
+            "ego_speed_mps": 24.0,
+            "headway_m": 13.0,
+            "ttc_s": 1.1,
+            "dcpa_m": 0.6,
+        }, current_event_index=5)
+        self.assertTrue(result["hit"])
+        self.assertEqual(result["matches"][0]["source_event_index"], 10)
+        self.assertNotIn("dataset_risk_label", result["matches"][0])
+
+    def test_budget_governor_tightens_under_pressure(self):
+        governor = BudgetGovernor(enabled=True, warn_ratio=0.8, critical_ratio=0.95)
+        decision = governor.govern(
+            frame_pos=12,
+            elapsed_s=0.0,
+            reactive_budget={
+                "attempts": 81,
+                "max_attempts": 100,
+                "total_tokens": 0,
+                "max_tokens": 0,
+            },
+            planning_budget={
+                "attempts": 0,
+                "max_attempts": 0,
+                "total_tokens": 0,
+                "max_tokens": 0,
+            },
+            rag_top_k=12,
+            llm_max_stale_frames=30,
+            llm_risk_threshold=0.35,
+            llm_risk_delta_threshold=0.15,
+            planning_interval=20,
+            planning_min_gap=10,
+        )
+        self.assertEqual(decision["mode"], "conserve")
+        self.assertLess(decision["rag_top_k"], 12)
+        self.assertGreater(decision["llm_max_stale_frames"], 30)
+        self.assertGreater(decision["planning_interval"], 20)
+
+    def test_event_triggered_gate_accepts_novelty_and_planning_conflict(self):
+        frame = _SafeFrame()
+        frame.physical_risk_index = 0.7
+        frame.physical_risk_level = "high"
+        reasons = llm_call_reasons(
+            policy="event_triggered",
+            frame_pos=8,
+            frame_safety=frame,
+            last_llm_frame_pos=2,
+            last_llm_risk_level="high",
+            last_llm_risk_index=0.68,
+            novelty_detected=True,
+            planning_reactive_conflict=True,
+        )
+        self.assertIn("novelty_under_risk", reasons)
+        self.assertIn("planning_reactive_conflict_under_risk", reasons)
 
     def test_missing_tuning_suggestion_remains_empty(self):
         self.assertEqual(
@@ -1715,6 +1817,61 @@ class ExperimentIntegrityTests(unittest.TestCase):
                 {"old-job": "stale-fingerprint"},
                 expected_fingerprints_for_experiment(experiment_dir),
             )
+
+    def test_validate_experiment_without_snapshot_is_not_current_usable(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            run_dir = root / "run"
+            run_dir.mkdir()
+            (run_dir / "summary.json").write_text(
+                json.dumps(self._summary()), encoding="utf-8"
+            )
+            (run_dir / "episode_summary.jsonl").write_text(
+                json.dumps({"event_index": 0}) + "\n",
+                encoding="utf-8",
+            )
+            (root / "job_status.jsonl").write_text(
+                json.dumps({
+                    "job_id": "legacy-job",
+                    "status": "completed",
+                    "run_dir": str(run_dir),
+                    "experiment_fingerprint": "legacy-fingerprint",
+                    "job": {},
+                }) + "\n",
+                encoding="utf-8",
+            )
+            rows = validate_experiment_dir(root)
+            self.assertEqual(1, len(rows))
+            self.assertFalse(rows[0]["current_method_compatible"])
+            self.assertFalse(rows[0]["usable_for_current_method"])
+            validation_csv = (
+                root / "validation_summary.csv"
+            ).read_text(encoding="utf-8")
+            self.assertIn("job_id", validation_csv.splitlines()[0])
+
+    def test_dense_sparse_statuses_require_current_fingerprint(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            run_dir = root / "run"
+            run_dir.mkdir()
+            (run_dir / "summary.json").write_text(
+                json.dumps(self._summary()), encoding="utf-8"
+            )
+            (run_dir / "episode_summary.jsonl").write_text(
+                json.dumps({"event_index": 0}) + "\n",
+                encoding="utf-8",
+            )
+            (root / "job_status.jsonl").write_text(
+                json.dumps({
+                    "job_id": "legacy-job",
+                    "status": "completed",
+                    "run_dir": str(run_dir),
+                    "experiment_fingerprint": "legacy-fingerprint",
+                    "job": {},
+                }) + "\n",
+                encoding="utf-8",
+            )
+            self.assertEqual([], latest_dense_sparse_statuses(root))
 
     def test_planning_schema_preserves_slow_to_fast_evidence(self):
         validated = validate_planning_output({

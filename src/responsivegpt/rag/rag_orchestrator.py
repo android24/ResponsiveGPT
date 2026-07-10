@@ -1,6 +1,7 @@
 from .rag_query_builder import build_rag_query
 from .evidence_reranker import rerank_evidence
 from .evidence_pack import build_evidence_pack
+from ..infrastructure.json_disk_cache import JsonDiskCache
 
 
 class RAGOrchestrator:
@@ -11,11 +12,15 @@ class RAGOrchestrator:
         rag_mode: str = "full",
         budget: str = "reactive",
         top_k: int = 12,
+        cache_dir: str | None = None,
+        cache_enabled: bool = True,
     ):
         self.retriever = retriever
         self.rag_mode = rag_mode
         self.budget = budget
         self.top_k = top_k
+        self.cache = JsonDiskCache(cache_dir, enabled=cache_enabled)
+        self.last_cache_hit = False
 
     def run(
         self,
@@ -42,6 +47,27 @@ class RAGOrchestrator:
             planning_hint=planning_hint,
             rag_mode=self.rag_mode,
         )
+        cache_key = self._cache_key(
+            dataset=dataset,
+            rag_query=rag_query,
+            scene=scene,
+            frame_safety=frame_safety,
+            metadata=metadata,
+            driver_type=driver_type,
+            feedback=feedback,
+            planning_hint=planning_hint,
+            profile=profile,
+        )
+        self.last_cache_hit = False
+        cached = self.cache.get(cache_key)
+        if isinstance(cached, dict):
+            self.last_cache_hit = True
+            cached["cache"] = {
+                "hit": True,
+                "key": cache_key,
+                "type": "rag_evidence",
+            }
+            return cached
 
         retrieved = self._retrieve(
             query_text=rag_query["query_text"],
@@ -52,13 +78,114 @@ class RAGOrchestrator:
         reranked = rerank_evidence(retrieved, rag_query)
         evidence_pack = build_evidence_pack(reranked, budget=self.budget)
 
-        return {
+        result = {
             "rag_mode": self.rag_mode,
             "rag_query": rag_query,
             "retrieved": _compact_docs(retrieved),
             "reranked": _compact_docs(reranked),
             "evidence_pack": evidence_pack,
+            "cache": {
+                "hit": False,
+                "key": cache_key,
+                "type": "rag_evidence",
+            },
         }
+        self.cache.set(
+            cache_key,
+            result,
+            metadata={
+                "cache_version": "rag_evidence_v1",
+                "dataset": dataset,
+                "rag_mode": self.rag_mode,
+                "budget": self.budget,
+                "top_k": self.top_k,
+                "query_chars": len(rag_query.get("query_text", "") or ""),
+            },
+        )
+        return result
+
+    def _cache_key(
+        self,
+        *,
+        dataset: str,
+        rag_query: dict,
+        scene,
+        frame_safety=None,
+        metadata=None,
+        driver_type: str = "",
+        feedback: str = "",
+        planning_hint: str = "",
+        profile=None,
+    ) -> str:
+        safety_payload = {}
+        if frame_safety is not None:
+            safety_payload = {
+                "ttc_s": getattr(frame_safety, "ttc_s", None),
+                "thw_s": getattr(frame_safety, "thw_s", None),
+                "drac_mps2": getattr(frame_safety, "drac_mps2", None),
+                "dcpa_m": getattr(frame_safety, "dcpa_m", None),
+                "physical_risk_index": getattr(
+                    frame_safety, "physical_risk_index", None
+                ),
+                "physical_risk_level": getattr(
+                    frame_safety, "physical_risk_level", None
+                ),
+            }
+        return JsonDiskCache.stable_hash({
+            "cache_version": "rag_evidence_v1",
+            "retrieval_fingerprint": getattr(
+                self.retriever, "retrieval_fingerprint", ""
+            ),
+            "dataset": dataset,
+            "rag_mode": self.rag_mode,
+            "budget": self.budget,
+            "top_k": self.top_k,
+            "query_text": rag_query.get("query_text", ""),
+            "driver_type": driver_type,
+            "profile_signature": self._profile_signature(profile),
+            "feedback": feedback,
+            "planning_hint": planning_hint,
+            "metadata": metadata or {},
+            "scene": {
+                "event_type": getattr(scene, "event_type", None),
+                "frame_index": getattr(scene, "frame_index", None),
+                "ego_speed_mps": getattr(scene, "ego_speed_mps", None),
+                "rel_speed_mps": getattr(scene, "rel_speed_mps", None),
+                "headway_m": getattr(scene, "headway_m", None),
+                "vrus_present": getattr(scene, "vrus_present", None),
+            },
+            "frame_safety": safety_payload,
+        })
+
+    def _profile_signature(self, profile) -> dict:
+        if profile is None:
+            return {}
+        if isinstance(profile, dict):
+            global_profile = profile.get("global", {}) or {}
+            return {
+                "driver_type": profile.get("driver_type", "unknown"),
+                "safety_weight": global_profile.get(
+                    "safety_weight",
+                    profile.get("safety_weight", 0.65),
+                ),
+                "efficiency_weight": global_profile.get(
+                    "efficiency_weight",
+                    profile.get("efficiency_weight", 0.35),
+                ),
+                "risk_sensitivity": global_profile.get(
+                    "risk_sensitivity",
+                    profile.get("risk_sensitivity"),
+                ),
+            }
+        return {
+            "driver_type": getattr(profile, "driver_type", "unknown"),
+            "safety_weight": getattr(profile, "safety_weight", 0.65),
+            "efficiency_weight": getattr(profile, "efficiency_weight", 0.35),
+            "risk_sensitivity": getattr(profile, "risk_sensitivity", None),
+        }
+
+    def cache_stats(self) -> dict:
+        return self.cache.stats()
 
     def _retrieve(self, *, query_text: str, scene, profile=None, top_k: int = 12):
         r = self.retriever

@@ -17,19 +17,10 @@ from ..evaluation.trigger_plotter import TriggerPlotter
 from ..application.trigger_manager import TriggerManager
 from ..application.layered_profile_learner import LayeredProfileLearner
 from ..application.trigger_state import TriggerStateStore
+from ..infrastructure.account_config import load_private_env
 
 def load_env(path: str = ".env") -> dict:
-    env = {}
-    if not os.path.exists(path):
-        return env
-    with open(path, "r", encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if not line or line.startswith("#") or "=" not in line:
-                continue
-            k, v = line.split("=", 1)
-            env[k.strip()] = v.strip()
-    return env
+    return load_private_env(path)
 
 def demo_scene() -> SceneState:
     return SceneState(
@@ -103,10 +94,13 @@ def main():
     parser.add_argument("--tag", type=str, default="demo")
     args = parser.parse_args()
 
-    env = load_env(".env")
+    env = load_private_env()
     api_key = env.get("JIEKOU_API_KEY", "")
     if not api_key:
-        raise RuntimeError("Missing JIEKOU_API_KEY. Put it into .env.")
+        raise RuntimeError(
+            "Missing JIEKOU_API_KEY. Put it into .env or "
+            "config/accounts.local.json."
+        )
     
     service = build_service(env)
 

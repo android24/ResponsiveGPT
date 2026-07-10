@@ -1,3 +1,5 @@
+import hashlib
+import json
 import math
 from typing import Optional
 
@@ -27,6 +29,49 @@ class HybridRetriever:
         self.kb = kb
         self.embedder = embedder
         self._doc_embeddings = {}   # doc_id -> embedding
+        self.retrieval_fingerprint = self._build_retrieval_fingerprint()
+
+    def _build_retrieval_fingerprint(self) -> str:
+        docs_payload = []
+        for doc in getattr(self.kb, "docs", []) or []:
+            docs_payload.append({
+                "id": doc.id,
+                "kb_type": doc.kb_type,
+                "title": doc.title,
+                "text": doc.text,
+                "scene_type": doc.scene_type,
+                "event_type": doc.event_type,
+                "pair_type": doc.pair_type,
+                "source": doc.source,
+                "priority": doc.priority,
+                "dataset_tags": doc.dataset_tags,
+                "scenario_tags": doc.scenario_tags,
+                "metric_tags": doc.metric_tags,
+                "risk_tags": doc.risk_tags,
+                "condition": doc.condition,
+                "risk_mechanism": doc.risk_mechanism,
+                "recommended_action": doc.recommended_action,
+                "forbidden_action": doc.forbidden_action,
+                "severity": doc.severity,
+                "jurisdiction": doc.jurisdiction,
+            })
+        payload = {
+            "retriever": "HybridRetriever_v1",
+            "embedder": {
+                "class": self.embedder.__class__.__name__,
+                "model": getattr(self.embedder, "model", None),
+                "base_url": getattr(self.embedder, "base_url", None),
+            },
+            "docs": docs_payload,
+        }
+        text = json.dumps(
+            payload,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+            default=str,
+        )
+        return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
     def _embed_doc(self, doc: KnowledgeDoc) -> list[float]:
         if doc.id not in self._doc_embeddings:

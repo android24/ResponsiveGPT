@@ -1,0 +1,48 @@
+# Local account and secret material
+.env
+.env.*
+!.env.example
+config/accounts.local.json
+config/accounts.*.local.json
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Generated caches and experiment outputs
+.cache/
+runs/
+.pycache_tmp/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local profiles and runtime state
+driver_profile.json
+*.runtime.json
+*.checkpoint.json
+
+# Local data drops
+highd_strong_interactions_full.csv
+roundD_high_risk_events_summary.csv
+output_ind_risk_v4/
+clips/
+clips_multi_fixed_window/
+
+# OS and editor noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Python packaging
+build/
+dist/
+*.egg-info/
+.venv/
+venv/

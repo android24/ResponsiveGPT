@@ -13,7 +13,11 @@ from dataclasses import asdict
 from ..evaluation.metrics import compute_step_metrics
 from ..evaluation.classification import compute_confusion_and_scores
 from ..evaluation.trigger_plotter import TriggerPlotter
-from .llm_call_policy import should_call_llm, fallback_decision_from_physics
+from .llm_call_policy import (
+    llm_call_reasons,
+    risk_phase_from_safety,
+    fallback_decision_from_physics,
+)
 
 from ..evaluation.safety_metrics import (
     thresholds_for_dataset,
@@ -29,6 +33,12 @@ from ..evaluation.ind_labels import derive_ind_risk_label
 
 from ..application.planning_memory import PlanningMemory
 from ..application.planning_service import PlanningService
+from ..application.budget_governor import BudgetGovernor
+from ..application.case_memory import (
+    CausalCaseMemory,
+    build_case_memory_query,
+    case_memory_hint_text,
+)
 from ..infrastructure.llm_jiekou import LLMBudgetExceeded
 from ..experiments.stratified_sampler import _allocate_quotas
 from ..application.planning_formatter import (
@@ -62,6 +72,11 @@ def _read_jsonl(path: str) -> list[dict]:
             if line.strip():
                 rows.append(json.loads(line))
     return rows
+
+
+def _increment_distribution(summary: dict, field: str, key: str, count: int = 1) -> None:
+    bucket = summary.setdefault(field, {})
+    bucket[str(key or "unknown")] = int(bucket.get(str(key or "unknown"), 0) or 0) + int(count)
 
 
 def _atomic_write_json(path: str, obj: dict) -> None:
@@ -216,6 +231,56 @@ def safe_list_dict(items):
     return [safe_dict(x) for x in items] if items else []
 
 
+def planning_reactive_conflict(planning_memory: PlanningMemory, recent_decisions: list[dict]) -> tuple[bool, dict]:
+    if not recent_decisions:
+        return False, {}
+    planning = planning_memory.get() if planning_memory is not None else {}
+    if not isinstance(planning, dict):
+        return False, {}
+    forecast = planning.get("risk_forecast", {}) or {}
+    strategy = planning.get("recommended_strategy", {}) or {}
+    guidance = planning.get("reactive_guidance", {}) or {}
+    plan_text = " ".join([
+        str(forecast.get("risk_level", "")),
+        str(strategy.get("strategy", "")),
+        " ".join(str(x) for x in guidance.get("avoid_actions", []) or []),
+        " ".join(str(x) for x in guidance.get("preferred_actions", []) or []),
+        str(guidance.get("fast_rule_hint", "")),
+    ]).lower()
+    decision = recent_decisions[-1] or {}
+    decision_text = " ".join([
+        str(decision.get("risk_level", "")),
+        str(decision.get("recommended_action", "")),
+        str(decision.get("warning", "")),
+        str(decision.get("reason", "")),
+    ]).lower()
+    planning_safety = any(
+        token in plan_text
+        for token in (
+            "high", "critical", "decelerate", "brake", "yield",
+            "increase", "headway", "caution", "stop", "slow",
+            "avoid", "危险", "减速", "制动", "让行", "安全距离",
+        )
+    )
+    reactive_relaxed = any(
+        token in decision_text
+        for token in (
+            "low", "maintain", "accelerate", "keep", "proceed",
+            "保持当前", "加速", "低",
+        )
+    )
+    reactive_flags_violation = bool(decision.get("is_potential_violation"))
+    conflict = bool(planning_safety and reactive_relaxed and not reactive_flags_violation)
+    return conflict, {
+        "planning_safety_oriented": planning_safety,
+        "reactive_relaxed": reactive_relaxed,
+        "reactive_flags_violation": reactive_flags_violation,
+        "planning_strategy": strategy.get("strategy"),
+        "planning_risk_level": forecast.get("risk_level"),
+        "reactive_risk_level": decision.get("risk_level"),
+    }
+
+
 def derive_dataset_risk_label(dataset: str, row: dict, args) -> bool:
     dataset = dataset.lower()
 
@@ -301,6 +366,8 @@ def init_summary(args, template_profile_path: str):
         
         # LLM 调用统计
         "llm_calls": 0,
+        "llm_cache_hits": 0,
+        "llm_cache_misses": 0,
         "llm_attempts": 0,
         "llm_error_count": 0,
         "timeout_count": 0,
@@ -311,13 +378,44 @@ def init_summary(args, template_profile_path: str):
         "llm_call_rate": 0.0,
         "fallback_frame_count": 0,
         "fallback_frame_rate": 0.0,
+        "llm_error_cooldown_frames": int(
+            getattr(args, "llm_error_cooldown_frames", 0) or 0
+        ),
+        "llm_error_cooldown_activations": 0,
+        "llm_error_cooldown_skipped_frames": 0,
+        "rag_evidence_debounce_frames": int(
+            getattr(args, "rag_evidence_debounce_frames", 0) or 0
+        ),
+        "rag_evidence_change_raw_count": 0,
+        "rag_evidence_change_confirmed_count": 0,
+        "rag_evidence_change_debounced_frames": 0,
+        "grounding_refresh_debounce_frames": int(
+            getattr(args, "grounding_refresh_debounce_frames", 0) or 0
+        ),
+        "grounding_refresh_raw_count": 0,
+        "grounding_refresh_confirmed_count": 0,
+        "grounding_refresh_debounced_frames": 0,
         "reactive_frames": 0,
         "dry_run_frames": 0,
         "inspect_frames": 0,
 
         "planning_calls": 0,
+        "planning_cache_hits": 0,
+        "planning_cache_misses": 0,
         "planning_failures": 0,
         "planning_llm_attempts": 0,
+        "planning_reuse_frames": 0,
+        "planning_reactive_conflict_frames": 0,
+        "phase_transition_count": 0,
+        "risk_phase_distribution": {},
+        "planning_refresh_reason_distribution": {},
+        "planning_reuse_reason_distribution": {},
+        "llm_call_reason_distribution": {},
+        "llm_skip_reason_distribution": {},
+        "rag_cache_hits": 0,
+        "rag_cache_misses": 0,
+        "case_memory": {},
+        "budget_governor": {},
 
         "profile_name": args.profile_name,
         "template_profile_path": template_profile_path,
@@ -418,6 +516,35 @@ def compact_evidence_pack_for_trace(evidence_pack: dict) -> dict:
         "items": compact_items,
         "evidence_text": "",
     }
+
+
+def semantic_evidence_signature(evidence_pack: dict, *, top_k: int = 3) -> tuple:
+    """
+    Build a coarse RAG signature for refresh gating.
+
+    Exact evidence_id changes are too sensitive for adjacent traffic frames:
+    a small top-k reorder can otherwise force a reactive LLM call on every
+    risky frame. Grounding validation still uses exact evidence ids; this
+    signature is only for deciding whether the evidence context changed enough
+    to refresh the fast decision.
+    """
+    evidence_pack = evidence_pack or {}
+    top_k = max(1, int(top_k or 1))
+    items = evidence_pack.get("items", []) or []
+    signature_items = []
+    for item in items[:top_k]:
+        if not isinstance(item, dict):
+            continue
+        signature_items.append((
+            str(item.get("doc_type") or ""),
+            str(item.get("source") or ""),
+            str(item.get("severity") or ""),
+            tuple(sorted(str(x) for x in item.get("dataset_tags", []) or [])),
+            tuple(sorted(str(x) for x in item.get("scenario_tags", []) or [])),
+            tuple(sorted(str(x) for x in item.get("metric_tags", []) or [])),
+            tuple(sorted(str(x) for x in item.get("risk_tags", []) or [])),
+        ))
+    return tuple(signature_items)
 
 
 def error_kind(exc: Exception) -> str:
@@ -644,7 +771,11 @@ def run_interaction_experiment(args, ctx):
     dry_run = bool(getattr(args, "dry_run", False))
     event_adapter = build_event_adapter(args.dataset, args.summary_csv)
     thresholds = thresholds_for_dataset(args.dataset)
-    planning_service = PlanningService(service.llm)
+    planning_service = PlanningService(
+        service.llm,
+        cache_dir=str(getattr(args, "planning_cache_dir", "") or ""),
+        cache_enabled=not bool(getattr(args, "disable_planning_cache", False)),
+    )
 
     frame_metrics_path = os.path.join(logger.run_dir, "frame_metrics.csv")
     episode_summary_path = os.path.join(logger.run_dir, "episode_summary.jsonl")
@@ -704,6 +835,8 @@ def run_interaction_experiment(args, ctx):
         rag_mode=getattr(args, "rag_mode", "full"),
         budget=getattr(args, "rag_budget", "reactive"),
         top_k=getattr(args, "rag_top_k", 12),
+        cache_dir=str(getattr(args, "rag_cache_dir", "") or ""),
+        cache_enabled=not bool(getattr(args, "disable_rag_cache", False)),
     )
 
     global_frame_records_for_rag = []
@@ -766,6 +899,69 @@ def run_interaction_experiment(args, ctx):
     )
     summary.setdefault("planning_calls", 0)
     summary.setdefault("planning_enabled", bool(getattr(args, "use_planning_thread", 0)))
+    for field in (
+        "llm_cache_hits",
+        "llm_cache_misses",
+        "planning_cache_hits",
+        "planning_cache_misses",
+        "rag_cache_hits",
+        "rag_cache_misses",
+    ):
+        summary.setdefault(field, 0)
+    for field in (
+        "risk_phase_distribution",
+        "planning_refresh_reason_distribution",
+        "planning_reuse_reason_distribution",
+        "llm_call_reason_distribution",
+        "llm_skip_reason_distribution",
+        "budget_governor_mode_distribution",
+    ):
+        summary.setdefault(field, {})
+    summary.setdefault("planning_reuse_frames", 0)
+    summary.setdefault("planning_reactive_conflict_frames", 0)
+    summary.setdefault("phase_transition_count", 0)
+    summary.setdefault("case_memory", {})
+    summary.setdefault("budget_governor", {})
+    for field in (
+        "llm_error_cooldown_frames",
+        "llm_error_cooldown_activations",
+        "llm_error_cooldown_skipped_frames",
+        "rag_evidence_debounce_frames",
+        "rag_evidence_change_raw_count",
+        "rag_evidence_change_confirmed_count",
+        "rag_evidence_change_debounced_frames",
+        "grounding_refresh_debounce_frames",
+        "grounding_refresh_raw_count",
+        "grounding_refresh_confirmed_count",
+        "grounding_refresh_debounced_frames",
+    ):
+        summary.setdefault(field, 0)
+
+    case_memory = CausalCaseMemory(
+        enabled=bool(getattr(args, "use_case_memory", 0)),
+        top_k=int(getattr(args, "case_memory_top_k", 3) or 3),
+        min_similarity=float(
+            getattr(args, "case_memory_min_similarity", 0.72) or 0.72
+        ),
+        novelty_threshold=float(
+            getattr(args, "case_memory_novelty_threshold", 0.45) or 0.45
+        ),
+    )
+    for episode in _read_jsonl(episode_summary_path):
+        record = episode.get("case_memory_record")
+        if isinstance(record, dict):
+            case_memory.records.append(record)
+    budget_governor = BudgetGovernor(
+        enabled=bool(getattr(args, "use_budget_governor", 0)),
+        warn_ratio=float(
+            getattr(args, "budget_governor_warn_ratio", 0.80) or 0.80
+        ),
+        critical_ratio=float(
+            getattr(args, "budget_governor_critical_ratio", 0.95) or 0.95
+        ),
+        max_wall_time_s=float(getattr(args, "max_wall_time_s", 0.0) or 0.0),
+    )
+    run_started_at = time.perf_counter()
 
     all_y_true = []
     all_y_pred = []
@@ -1095,6 +1291,7 @@ def run_interaction_experiment(args, ctx):
             adapted_profile_saved = True
         summary["rows_seen"] += 1
         processed_events += 1
+        episode_sequence_order = processed_events
         metadata = event_adapter.row_metadata(row)
 
         if args.mode == "batch":
@@ -1161,6 +1358,7 @@ def run_interaction_experiment(args, ctx):
         
         planning_memory = PlanningMemory()
         planning_records = []
+        episode_risk_phase_counts = Counter()
 
         scene_history_for_planning = []
         safety_history_for_planning = []
@@ -1170,7 +1368,15 @@ def run_interaction_experiment(args, ctx):
         last_llm_risk_level = None
         last_llm_risk_index = None
         last_llm_evidence_ids = ()
+        last_llm_evidence_signature = ()
         last_llm_planning_update_frame = None
+        pending_evidence_signature = None
+        pending_evidence_change_start_frame_pos = None
+        pending_grounding_missing_ids = None
+        pending_grounding_missing_start_frame_pos = None
+        llm_cooldown_until_frame_pos = -1
+        previous_risk_phase = None
+        episode_phase_transition_count = 0
 
         # ============================================================
         # inspect_only:
@@ -1373,17 +1579,90 @@ def run_interaction_experiment(args, ctx):
                 else compute_frame_safety_metrics(scene, thresholds)
             )
             frame_safety_metrics_list.append(frame_safety)
+            risk_phase = risk_phase_from_safety(
+                frame_safety,
+                previous_phase=previous_risk_phase,
+            )
+            risk_phase_changed = (
+                previous_risk_phase is not None
+                and risk_phase != previous_risk_phase
+            )
+            if risk_phase_changed:
+                episode_phase_transition_count += 1
+                summary["phase_transition_count"] = (
+                    summary.get("phase_transition_count", 0) + 1
+                )
+            previous_risk_phase = risk_phase
+            _increment_distribution(
+                summary,
+                "risk_phase_distribution",
+                risk_phase,
+            )
+            episode_risk_phase_counts[risk_phase] += 1
 
             scene_history_for_planning.append(summarize_scene(scene))
             safety_history_for_planning.append(summarize_safety(frame_safety))
+
+            base_planning_interval = int(getattr(args, "planning_interval", 20))
+            base_planning_min_gap = int(getattr(args, "planning_min_gap", 10))
+            base_llm_max_stale_frames = int(
+                getattr(args, "llm_max_stale_frames", 30)
+            )
+            base_llm_risk_threshold = float(
+                getattr(args, "llm_risk_threshold", 0.35)
+            )
+            base_llm_risk_delta_threshold = float(
+                getattr(args, "llm_risk_delta_threshold", 0.15)
+            )
+            budget_decision = budget_governor.govern(
+                frame_pos=frame_pos,
+                elapsed_s=time.perf_counter() - run_started_at,
+                reactive_budget=service.llm.budget_status("reactive"),
+                planning_budget=service.llm.budget_status("planning"),
+                rag_top_k=int(getattr(args, "rag_top_k", 12) or 12),
+                llm_max_stale_frames=base_llm_max_stale_frames,
+                llm_risk_threshold=base_llm_risk_threshold,
+                llm_risk_delta_threshold=base_llm_risk_delta_threshold,
+                planning_interval=base_planning_interval,
+                planning_min_gap=base_planning_min_gap,
+            )
+            if budget_decision.get("enabled"):
+                _increment_distribution(
+                    summary,
+                    "budget_governor_mode_distribution",
+                    budget_decision.get("mode", "unknown"),
+                )
+            effective_planning_interval = int(
+                budget_decision.get("planning_interval", base_planning_interval)
+            )
+            effective_planning_min_gap = int(
+                budget_decision.get("planning_min_gap", base_planning_min_gap)
+            )
+            effective_llm_max_stale_frames = int(
+                budget_decision.get(
+                    "llm_max_stale_frames", base_llm_max_stale_frames
+                )
+            )
+            effective_llm_risk_threshold = float(
+                budget_decision.get(
+                    "llm_risk_threshold", base_llm_risk_threshold
+                )
+            )
+            effective_llm_risk_delta_threshold = float(
+                budget_decision.get(
+                    "llm_risk_delta_threshold",
+                    base_llm_risk_delta_threshold,
+                )
+            )
+            rag.top_k = int(budget_decision.get("rag_top_k", rag.top_k))
 
             # ============================================================
             # 3. Planning Thread 调度
             # ============================================================
             planning_enabled = bool(getattr(args, "use_planning_thread", 0))
             planning_mode = str(getattr(args, "planning_mode", "interval_risk") or "interval_risk")
-            planning_interval = int(getattr(args, "planning_interval", 20))
-            planning_min_gap = int(getattr(args, "planning_min_gap", 10))
+            planning_interval = effective_planning_interval
+            planning_min_gap = effective_planning_min_gap
             planning_risk_threshold = float(getattr(args, "planning_risk_threshold", 0.45))
             planning_time_horizon_s = float(getattr(args, "planning_time_horizon_s", 3.0))
             planning_max_history = int(getattr(args, "planning_max_history", 12))
@@ -1391,10 +1670,13 @@ def run_interaction_experiment(args, ctx):
             current_frame_id = scene.frame_index if scene.frame_index is not None else frame_pos
 
             should_plan = False
+            planning_refresh_reasons = []
+            planning_reuse_reason = ""
 
             if planning_enabled and not dry_run and not inspect_only:
                 if frame_pos == 0:
                     should_plan = True
+                    planning_refresh_reasons.append("first_frame")
                 else:
                     interval_due = planning_interval > 0 and frame_pos % planning_interval == 0
                     risk_due = (
@@ -1402,23 +1684,38 @@ def run_interaction_experiment(args, ctx):
                     and frame_safety.physical_risk_index >= planning_risk_threshold
                     )
                     stale_due = planning_memory.is_stale(current_frame_id)
+                    phase_due = risk_phase_changed
 
                     if planning_mode == "interval":
                         should_plan = interval_due
+                        if interval_due:
+                            planning_refresh_reasons.append("interval_due")
                     elif planning_mode == "risk":
                         should_plan = risk_due
+                        if risk_due:
+                            planning_refresh_reasons.append("risk_due")
                     elif planning_mode == "interval_risk":
-                        should_plan = interval_due or risk_due or stale_due
+                        should_plan = interval_due or risk_due or stale_due or phase_due
+                        if interval_due:
+                            planning_refresh_reasons.append("interval_due")
+                        if risk_due:
+                            planning_refresh_reasons.append("risk_due")
+                        if stale_due:
+                            planning_refresh_reasons.append("stale_due")
+                        if phase_due:
+                            planning_refresh_reasons.append(f"phase_changed:{risk_phase}")
                     else:
                         should_plan = False
 
             max_planning_calls = int(getattr(args, "max_planning_calls", 0) or 0)
             if should_plan and max_planning_calls > 0 and summary.get("planning_calls", 0) >= max_planning_calls:
                 should_plan = False
+                planning_reuse_reason = "planning_call_budget_exhausted"
                 summary["planning_budget_exhausted"] = True
                 summary["planning_budget_exhausted_frames"] += 1
             if should_plan and service.llm.budget_exhausted("planning"):
                 should_plan = False
+                planning_reuse_reason = "planning_api_budget_exhausted"
                 summary["planning_budget_exhausted"] = True
                 summary["planning_budget_exhausted_frames"] += 1
 
@@ -1426,6 +1723,8 @@ def run_interaction_experiment(args, ctx):
                 last_planning_frame_pos is None
                 or frame_pos - last_planning_frame_pos >= planning_min_gap
             )
+            if should_plan and not can_plan_by_gap:
+                planning_reuse_reason = "planning_min_gap"
 
             if should_plan and can_plan_by_gap:
                 event_type = metadata.get("eventType") or metadata.get("pair_type") or ""
@@ -1462,6 +1761,19 @@ def run_interaction_experiment(args, ctx):
                 planning_fallback = bool(
                     planning_output.get("diagnostics", {}).get("fallback")
                 )
+                planning_cache_hit = bool(
+                    planning_output.get("diagnostics", {}).get(
+                        "planning_cache_hit", False
+                    )
+                )
+                if planning_cache_hit:
+                    summary["planning_cache_hits"] = (
+                        summary.get("planning_cache_hits", 0) + 1
+                    )
+                else:
+                    summary["planning_cache_misses"] = (
+                        summary.get("planning_cache_misses", 0) + 1
+                    )
                 if not planning_fallback:
                     planning_memory.update(
                         planning_output, current_frame_id
@@ -1478,6 +1790,15 @@ def run_interaction_experiment(args, ctx):
                     "frame_index": scene.frame_index,
                     "planning": planning_output,
                     "planning_success": not planning_fallback,
+                    "planning_cache_hit": planning_cache_hit,
+                    "planning_source": (
+                        "planning_cache_hit"
+                        if planning_cache_hit
+                        else "planning_llm"
+                    ),
+                    "risk_phase": risk_phase,
+                    "risk_phase_changed": risk_phase_changed,
+                    "planning_refresh_reasons": planning_refresh_reasons,
                 }
 
                 planning_records.append(planning_record)
@@ -1485,6 +1806,12 @@ def run_interaction_experiment(args, ctx):
                     global_planning_records.append(planning_record)
 
                 summary["planning_calls"] = summary.get("planning_calls", 0) + 1
+                for reason in planning_refresh_reasons or ["unspecified"]:
+                    _increment_distribution(
+                        summary,
+                        "planning_refresh_reason_distribution",
+                        reason,
+                    )
                 append_jsonl(planning_trace_path, planning_record)
                 if service.llm.budget_exhausted("planning"):
                     summary["planning_budget_exhausted"] = True
@@ -1508,6 +1835,60 @@ def run_interaction_experiment(args, ctx):
                     "planning_age_frames": current_frame_id - planning_memory.last_update_frame,
                     "last_update_frame": planning_memory.last_update_frame,
                 }
+                if not (should_plan and can_plan_by_gap):
+                    if not planning_reuse_reason:
+                        planning_reuse_reason = (
+                            "phase_stable"
+                            if not risk_phase_changed
+                            else f"phase_changed_reused:{risk_phase}"
+                        )
+                    summary["planning_reuse_frames"] = (
+                        summary.get("planning_reuse_frames", 0) + 1
+                    )
+                    _increment_distribution(
+                        summary,
+                        "planning_reuse_reason_distribution",
+                        planning_reuse_reason,
+                    )
+                planning_metadata["risk_phase"] = risk_phase
+                planning_metadata["risk_phase_changed"] = risk_phase_changed
+                planning_metadata["planning_reuse_reason"] = planning_reuse_reason
+
+            case_memory_query = build_case_memory_query(
+                event_index=idx,
+                memory_order=episode_sequence_order,
+                dataset=args.dataset,
+                metadata=metadata,
+                scene=scene,
+                frame_safety=frame_safety,
+                risk_phase=risk_phase,
+                profile_name=args.profile_name,
+            )
+            case_memory_result = case_memory.retrieve(
+                case_memory_query,
+                current_event_index=episode_sequence_order,
+            )
+            case_hint = case_memory_hint_text(case_memory_result)
+            if (
+                case_hint
+                and bool(getattr(args, "case_memory_include_in_prompt", 1))
+            ):
+                planning_hint = (
+                    f"{planning_hint}\n{case_hint}"
+                    if planning_hint
+                    else case_hint
+                )
+                planning_metadata["case_memory"] = case_memory_result
+            elif case_memory_result.get("enabled"):
+                planning_metadata["case_memory"] = case_memory_result
+
+            planning_conflict, planning_conflict_detail = (
+                planning_reactive_conflict(planning_memory, recent_decisions)
+            )
+            if planning_conflict:
+                summary["planning_reactive_conflict_frames"] = (
+                    summary.get("planning_reactive_conflict_frames", 0) + 1
+                )
 
             # ==================================================
             # 3. RAG v1：当前帧只执行一次，并使用当前帧安全指标
@@ -1541,6 +1922,17 @@ def run_interaction_experiment(args, ctx):
                     )
 
                 evidence_pack = rag_result.get("evidence_pack") or evidence_pack
+                rag_cache_info = rag_result.get("cache") or {}
+                if rag_cache_info.get("type") == "rag_evidence":
+                    rag_cache_hit = bool(rag_cache_info.get("hit", False))
+                    if rag_cache_hit:
+                        summary["rag_cache_hits"] = (
+                            summary.get("rag_cache_hits", 0) + 1
+                        )
+                    else:
+                        summary["rag_cache_misses"] = (
+                            summary.get("rag_cache_misses", 0) + 1
+                        )
 
             except Exception as e:
                 print(f"[WARN] RAG failed: event={idx}, frame={scene.frame_index}, error={e}")
@@ -1553,59 +1945,167 @@ def run_interaction_experiment(args, ctx):
             # ============================================================
             # 3. Reactive Thread / LLM 调用策略
             # ============================================================
-            call_llm = should_call_llm(
+            current_evidence_ids = tuple(
+                item.get("evidence_id")
+                for item in evidence_pack.get("items", [])
+                if isinstance(item, dict)
+            )
+            current_evidence_signature = semantic_evidence_signature(
+                evidence_pack,
+                top_k=int(getattr(args, "rag_evidence_signature_top_k", 3) or 3),
+            )
+            raw_evidence_changed = (
+                current_evidence_signature != last_llm_evidence_signature
+            )
+            evidence_changed = False
+            evidence_debounce_frames = max(
+                0,
+                int(getattr(args, "rag_evidence_debounce_frames", 0) or 0),
+            )
+            if raw_evidence_changed:
+                summary["rag_evidence_change_raw_count"] = (
+                    summary.get("rag_evidence_change_raw_count", 0) + 1
+                )
+                if current_evidence_signature != pending_evidence_signature:
+                    pending_evidence_signature = current_evidence_signature
+                    pending_evidence_change_start_frame_pos = frame_pos
+                persisted_frames = (
+                    frame_pos - pending_evidence_change_start_frame_pos
+                    if pending_evidence_change_start_frame_pos is not None
+                    else 0
+                )
+                if persisted_frames >= evidence_debounce_frames:
+                    evidence_changed = True
+                    summary["rag_evidence_change_confirmed_count"] = (
+                        summary.get("rag_evidence_change_confirmed_count", 0) + 1
+                    )
+                else:
+                    summary["rag_evidence_change_debounced_frames"] = (
+                        summary.get("rag_evidence_change_debounced_frames", 0) + 1
+                    )
+            else:
+                pending_evidence_signature = None
+                pending_evidence_change_start_frame_pos = None
+
+            grounding_missing_ids = tuple(sorted(
+                set(
+                    str(x)
+                    for x in recent_decisions[-1].get(
+                        "used_evidence_ids", []
+                    )
+                )
+                - {
+                    str(item.get("evidence_id"))
+                    for item in evidence_pack.get("items", [])
+                    if isinstance(item, dict)
+                    and item.get("evidence_id") is not None
+                }
+            )) if (
+                getattr(args, "require_grounded_decision", 0)
+                and recent_decisions
+            ) else ()
+            grounding_refresh_required = False
+            grounding_debounce_frames = max(
+                0,
+                int(getattr(args, "grounding_refresh_debounce_frames", 0) or 0),
+            )
+            if grounding_missing_ids:
+                summary["grounding_refresh_raw_count"] = (
+                    summary.get("grounding_refresh_raw_count", 0) + 1
+                )
+                if grounding_missing_ids != pending_grounding_missing_ids:
+                    pending_grounding_missing_ids = grounding_missing_ids
+                    pending_grounding_missing_start_frame_pos = frame_pos
+                persisted_frames = (
+                    frame_pos - pending_grounding_missing_start_frame_pos
+                    if pending_grounding_missing_start_frame_pos is not None
+                    else 0
+                )
+                if persisted_frames >= grounding_debounce_frames:
+                    grounding_refresh_required = True
+                    summary["grounding_refresh_confirmed_count"] = (
+                        summary.get("grounding_refresh_confirmed_count", 0) + 1
+                    )
+                else:
+                    summary["grounding_refresh_debounced_frames"] = (
+                        summary.get("grounding_refresh_debounced_frames", 0) + 1
+                    )
+            else:
+                pending_grounding_missing_ids = None
+                pending_grounding_missing_start_frame_pos = None
+            planning_hint_updated = (
+                planning_metadata.get("last_update_frame") is not None
+                and planning_metadata.get("last_update_frame") != last_llm_planning_update_frame
+            )
+            gate_reasons = llm_call_reasons(
                 policy=getattr(args, "llm_policy", "hybrid"),
                 frame_pos=frame_pos,
                 frame_safety=frame_safety,
                 stride=int(getattr(args, "llm_stride", 5)),
-                risk_threshold=float(getattr(args, "llm_risk_threshold", 0.35)),
-                max_stale_frames=int(getattr(args, "llm_max_stale_frames", 30)),
-                risk_delta_threshold=float(getattr(args, "llm_risk_delta_threshold", 0.15)),
+                risk_threshold=effective_llm_risk_threshold,
+                max_stale_frames=effective_llm_max_stale_frames,
+                risk_delta_threshold=effective_llm_risk_delta_threshold,
                 last_llm_frame_pos=last_llm_frame_pos,
                 last_llm_risk_level=last_llm_risk_level,
                 last_llm_risk_index=last_llm_risk_index,
-                evidence_changed=tuple(
-                    item.get("evidence_id")
-                    for item in evidence_pack.get("items", [])
-                    if isinstance(item, dict)
-                ) != last_llm_evidence_ids,
-                grounding_refresh_required=bool(
-                    getattr(args, "require_grounded_decision", 0)
-                    and recent_decisions
-                    and (
-                        set(
-                            str(x)
-                            for x in recent_decisions[-1].get(
-                                "used_evidence_ids", []
-                            )
-                        )
-                        - {
-                            str(item.get("evidence_id"))
-                            for item in evidence_pack.get("items", [])
-                            if isinstance(item, dict)
-                            and item.get("evidence_id") is not None
-                        }
-                    )
+                evidence_changed=evidence_changed,
+                grounding_refresh_required=grounding_refresh_required,
+                planning_hint_updated=planning_hint_updated,
+                risk_phase_changed=risk_phase_changed,
+                novelty_detected=bool(
+                    case_memory_result.get("novelty_detected", False)
                 ),
-                planning_hint_updated=(
-                    planning_metadata.get("last_update_frame") is not None
-                    and planning_metadata.get("last_update_frame") != last_llm_planning_update_frame
-                ),
+                planning_reactive_conflict=planning_conflict,
             )
+            call_llm = bool(gate_reasons)
 
             # dry_run / inspect_only 理论上前面已经 continue，这里再防御一次
             if dry_run or inspect_only:
                 call_llm = False
+                gate_reasons = []
 
             max_llm_calls = int(getattr(args, "max_llm_calls", 0) or 0)
-            if call_llm and max_llm_calls > 0 and summary.get("llm_calls", 0) >= max_llm_calls:
+            if call_llm and frame_pos < llm_cooldown_until_frame_pos:
                 call_llm = False
+                gate_reasons = []
+                llm_skip_reason = "llm_error_cooldown"
+                summary["llm_error_cooldown_skipped_frames"] = (
+                    summary.get("llm_error_cooldown_skipped_frames", 0) + 1
+                )
+            elif call_llm and max_llm_calls > 0 and summary.get("llm_calls", 0) >= max_llm_calls:
+                call_llm = False
+                gate_reasons = []
+                llm_skip_reason = "llm_call_budget_exhausted"
                 summary["llm_budget_exhausted"] = True
                 summary["llm_budget_exhausted_frames"] += 1
-            if call_llm and service.llm.budget_exhausted("reactive"):
+            elif call_llm and service.llm.budget_exhausted("reactive"):
                 call_llm = False
+                gate_reasons = []
+                llm_skip_reason = "llm_api_budget_exhausted"
                 summary["llm_budget_exhausted"] = True
                 summary["llm_budget_exhausted_frames"] += 1
+            else:
+                llm_skip_reason = ""
+            if call_llm:
+                for reason in gate_reasons or ["unspecified"]:
+                    _increment_distribution(
+                        summary,
+                        "llm_call_reason_distribution",
+                        reason,
+                    )
+            else:
+                if not llm_skip_reason:
+                    if recent_decisions and bool(getattr(args, "reuse_last_decision", 1)):
+                        llm_skip_reason = "reuse_last_decision"
+                    elif str(getattr(args, "llm_policy", "hybrid")).lower() == "none":
+                        llm_skip_reason = "policy_none"
+                    else:
+                        llm_skip_reason = "physics_fallback_no_gate_reason"
+                _increment_distribution(
+                    summary,
+                    "llm_skip_reason_distribution",
+                    llm_skip_reason,
+                )
 
             llm_succeeded = False
             if call_llm:
@@ -1642,7 +2142,19 @@ def run_interaction_experiment(args, ctx):
                     grounding = validate_grounding(raw_decision, evidence_pack)
                     decision = repair_decision_evidence_fields(raw_decision, evidence_pack)
                     output_grounding = validate_grounding(decision, evidence_pack)
-                    decision_source = "llm"
+                    llm_cache_hit = bool(
+                        getattr(service.llm, "last_cache_hit", False)
+                    )
+                    if llm_cache_hit:
+                        summary["llm_cache_hits"] = (
+                            summary.get("llm_cache_hits", 0) + 1
+                        )
+                        decision_source = "llm_cache_hit"
+                    else:
+                        summary["llm_cache_misses"] = (
+                            summary.get("llm_cache_misses", 0) + 1
+                        )
+                        decision_source = "llm"
                     summary["llm_calls"] += 1
                     llm_succeeded = True
                     if step_feedback:
@@ -1665,6 +2177,18 @@ def run_interaction_experiment(args, ctx):
                     kind = error_kind(e)
                     summary["llm_error_count"] = summary.get("llm_error_count", 0) + 1
                     summary["fallback_frame_count"] = summary.get("fallback_frame_count", 0) + 1
+                    cooldown_frames = max(
+                        0,
+                        int(getattr(args, "llm_error_cooldown_frames", 0) or 0),
+                    )
+                    if kind in {"timeout", "connection", "rate_limit"} and cooldown_frames > 0:
+                        llm_cooldown_until_frame_pos = max(
+                            llm_cooldown_until_frame_pos,
+                            frame_pos + cooldown_frames,
+                        )
+                        summary["llm_error_cooldown_activations"] = (
+                            summary.get("llm_error_cooldown_activations", 0) + 1
+                        )
                     if kind == "timeout":
                         summary["timeout_count"] = summary.get("timeout_count", 0) + 1
                     elif kind == "connection":
@@ -1698,16 +2222,19 @@ def run_interaction_experiment(args, ctx):
             decision["_source"] = decision_source
             decision["_planning_hint_used"] = bool(planning_hint)
             decision["_planning_age_frames"] = planning_metadata.get("planning_age_frames")
+            decision["_ego_speed_mps"] = scene.ego_speed_mps
+            decision["_headway_m"] = scene.headway_m
 
             if llm_succeeded:
                 last_llm_frame_pos = frame_pos
                 last_llm_risk_level = getattr(frame_safety, "physical_risk_level", None)
                 last_llm_risk_index = getattr(frame_safety, "physical_risk_index", None)
-                last_llm_evidence_ids = tuple(
-                    item.get("evidence_id")
-                    for item in evidence_pack.get("items", [])
-                    if isinstance(item, dict)
-                )
+                last_llm_evidence_ids = current_evidence_ids
+                last_llm_evidence_signature = current_evidence_signature
+                pending_evidence_signature = None
+                pending_evidence_change_start_frame_pos = None
+                pending_grounding_missing_ids = None
+                pending_grounding_missing_start_frame_pos = None
                 last_llm_planning_update_frame = planning_metadata.get("last_update_frame")
 
             decision_list.append(decision)
@@ -1789,7 +2316,17 @@ def run_interaction_experiment(args, ctx):
                 "profile": profile_dict,
                 "decision": decision,
                 "decision_source": decision_source,
+                "risk_phase": risk_phase,
+                "risk_phase_changed": risk_phase_changed,
+                "llm_call_reasons": gate_reasons,
+                "llm_skip_reason": "" if call_llm else llm_skip_reason,
                 "planning_hint": planning_hint,
+                "planning_reuse_reason": planning_reuse_reason,
+                "planning_refresh_reasons": planning_refresh_reasons,
+                "planning_reactive_conflict": planning_conflict,
+                "planning_reactive_conflict_detail": planning_conflict_detail,
+                "case_memory": case_memory_result,
+                "budget_governor": budget_decision,
                 "planning_memory": planning_memory.get() if bool(getattr(args, "use_planning_thread", 0)) else None,
                 "triggers": trigger_dicts,
                 "trigger_count": len(trigger_dicts),
@@ -1800,6 +2337,10 @@ def run_interaction_experiment(args, ctx):
                 # ===== RAG v1 =====
                 "rag_mode": getattr(args, "rag_mode", "none"),
                 "rag_query": (rag_result or {}).get("rag_query", {}),
+                "rag_cache": (rag_result or {}).get("cache", {}),
+                "llm_cache_hit": bool(
+                    decision_source == "llm_cache_hit"
+                ),
                 "evidence_pack": trace_evidence_pack,
                 "grounding": grounding,
                 "output_grounding": output_grounding,
@@ -1847,6 +2388,7 @@ def run_interaction_experiment(args, ctx):
                 "metadata": metadata,
                 "rag_mode": getattr(args, "rag_mode", "full"),
                 "rag_query": (rag_result or {}).get("rag_query", {}),
+                "cache": (rag_result or {}).get("cache", {}),
                 "retrieved": rag_result.get("retrieved"),
                 "reranked": rag_result.get("reranked"),
                 "evidence_pack": trace_evidence_pack,
@@ -1955,6 +2497,17 @@ def run_interaction_experiment(args, ctx):
             global_episode_safety_records.append(asdict(episode_safety))
             global_alignment_records.append(asdict(alignment))
             global_behavior_records.append(asdict(behavior))
+        case_memory_record = case_memory.add_episode(
+            event_index=idx,
+            memory_order=episode_sequence_order,
+            dataset=args.dataset,
+            metadata=metadata,
+            profile_name=args.profile_name,
+            frame_safety_metrics=frame_safety_metrics_list,
+            decisions=decision_list,
+            planning_records=planning_records,
+            risk_phase_counts=dict(episode_risk_phase_counts),
+        )
         episode_summary = {
             "event_index": idx,
             "experiment_phase": experiment_phase,
@@ -1977,6 +2530,8 @@ def run_interaction_experiment(args, ctx):
 
             "planning_quality": planning_quality,
             "planning_call_count": len(planning_records),
+            "risk_phase_transition_count": episode_phase_transition_count,
+            "case_memory_record": case_memory_record,
 
             "trigger_count": episode_trigger_count,
             "trigger_distribution": dict(episode_trigger_stats)
@@ -2196,6 +2751,12 @@ def run_interaction_experiment(args, ctx):
             "reactive_total_tokens": int(
                 reactive_phase.get("total_tokens", 0) or 0
             ),
+            "reactive_cache_hits": int(
+                reactive_phase.get("cache_hits", 0) or 0
+            ),
+            "reactive_cache_misses": int(
+                reactive_phase.get("cache_misses", 0) or 0
+            ),
             "reactive_latency_ms_p50": reactive_phase.get(
                 "latency_ms_p50", 0.0
             ),
@@ -2214,6 +2775,12 @@ def run_interaction_experiment(args, ctx):
             ),
             "planning_total_tokens": int(
                 planning_phase.get("total_tokens", 0) or 0
+            ),
+            "planning_cache_hits": int(
+                planning_phase.get("cache_hits", 0) or 0
+            ),
+            "planning_cache_misses": int(
+                planning_phase.get("cache_misses", 0) or 0
             ),
             "planning_latency_ms_p50": planning_phase.get(
                 "latency_ms_p50", 0.0
@@ -2257,7 +2824,34 @@ def run_interaction_experiment(args, ctx):
     summary["planning_llm_attempts"] = int(
         planning_usage.get("attempts", 0) or 0
     )
+    summary["llm_cache_hits"] = int(
+        reactive_usage.get("cache_hits", summary.get("llm_cache_hits", 0)) or 0
+    )
+    summary["llm_cache_misses"] = int(
+        reactive_usage.get(
+            "cache_misses", summary.get("llm_cache_misses", 0)
+        ) or 0
+    )
+    planning_service_cache_stats = planning_service.cache_stats()
+    rag_cache_stats = rag.cache_stats()
+    summary["planning_cache_hits"] = int(
+        summary.get("planning_cache_hits", 0) or 0
+    )
+    summary["planning_cache_misses"] = int(
+        summary.get("planning_cache_misses", 0) or 0
+    )
+    summary["rag_cache_hits"] = int(
+        summary.get("rag_cache_hits", 0) or 0
+    )
+    summary["rag_cache_misses"] = int(
+        summary.get("rag_cache_misses", 0) or 0
+    )
     summary["api_usage"] = api_usage
+    summary["cache_stats"] = {
+        "llm": service.llm.cache.stats(),
+        "planning": planning_service_cache_stats,
+        "rag": rag_cache_stats,
+    }
     reactive_budget = service.llm.budget_status("reactive")
     planning_budget = service.llm.budget_status("planning")
     summary["llm_budget_exhausted"] = bool(
@@ -2286,11 +2880,24 @@ def run_interaction_experiment(args, ctx):
     summary["planning_token_overshoot"] = int(
         planning_budget["token_overshoot"]
     )
+    summary["case_memory"] = case_memory.stats()
+    summary["budget_governor"] = budget_governor.stats()
     summary["token_time_efficiency"] = {
         "llm_calls": summary.get("llm_calls", 0),
+        "llm_cache_hits": summary.get("llm_cache_hits", 0),
+        "llm_cache_misses": summary.get("llm_cache_misses", 0),
         "llm_attempts": summary.get("llm_attempts", 0),
         "planning_calls": summary.get("planning_calls", 0),
+        "planning_cache_hits": summary.get("planning_cache_hits", 0),
+        "planning_cache_misses": summary.get("planning_cache_misses", 0),
         "planning_llm_attempts": summary.get("planning_llm_attempts", 0),
+        "planning_reuse_frames": summary.get("planning_reuse_frames", 0),
+        "planning_reactive_conflict_frames": summary.get(
+            "planning_reactive_conflict_frames", 0
+        ),
+        "phase_transition_count": summary.get("phase_transition_count", 0),
+        "rag_cache_hits": summary.get("rag_cache_hits", 0),
+        "rag_cache_misses": summary.get("rag_cache_misses", 0),
         "non_llm_frames": summary.get("non_llm_frames", 0),
         "dry_run_frames": summary.get("dry_run_frames", 0),
         "inspect_frames": summary.get("inspect_frames", 0),
@@ -2312,6 +2919,49 @@ def run_interaction_experiment(args, ctx):
         "planning_budget_exhausted": summary.get("planning_budget_exhausted", False),
         "llm_budget_exhausted_frames": summary.get("llm_budget_exhausted_frames", 0),
         "planning_budget_exhausted_frames": summary.get("planning_budget_exhausted_frames", 0),
+        "case_memory": summary["case_memory"],
+        "budget_governor": summary["budget_governor"],
+        "llm_cache_hit_rate": (
+            summary.get("llm_cache_hits", 0)
+            / (
+                summary.get("llm_cache_hits", 0)
+                + summary.get("llm_cache_misses", 0)
+            )
+            if (
+                summary.get("llm_cache_hits", 0)
+                + summary.get("llm_cache_misses", 0)
+            ) else 0.0
+        ),
+        "planning_cache_hit_rate": (
+            summary.get("planning_cache_hits", 0)
+            / (
+                summary.get("planning_cache_hits", 0)
+                + summary.get("planning_cache_misses", 0)
+            )
+            if (
+                summary.get("planning_cache_hits", 0)
+                + summary.get("planning_cache_misses", 0)
+            ) else 0.0
+        ),
+        "rag_cache_hit_rate": (
+            summary.get("rag_cache_hits", 0)
+            / (
+                summary.get("rag_cache_hits", 0)
+                + summary.get("rag_cache_misses", 0)
+            )
+            if (
+                summary.get("rag_cache_hits", 0)
+                + summary.get("rag_cache_misses", 0)
+            ) else 0.0
+        ),
+        "planning_reuse_rate": (
+            summary.get("planning_reuse_frames", 0) / summary["reactive_frames"]
+            if summary.get("reactive_frames", 0) else 0.0
+        ),
+        "risk_phase_transition_rate": (
+            summary.get("phase_transition_count", 0) / summary["reactive_frames"]
+            if summary.get("reactive_frames", 0) else 0.0
+        ),
 
         "reactive_llm_call_rate": (
             summary.get("llm_calls", 0) / summary["reactive_frames"]

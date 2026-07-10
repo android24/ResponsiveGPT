@@ -16,6 +16,7 @@ from ..infrastructure.hybrid_retriever import HybridRetriever
 from ..infrastructure.null_modules import NullRetriever
 from ..infrastructure.null_modules import NullTriggerManager
 from ..infrastructure.null_modules import NullProfileLearner
+from ..infrastructure.account_config import load_private_env
 
 from ..evaluation.run_logger import RunLogger
 
@@ -56,18 +57,7 @@ def _prepare_resume_run_dir(run_dir: str) -> None:
 
 
 def load_env(path: str = ".env") -> dict:
-    env = {}
-    if not os.path.exists(path):
-        return env
-
-    with open(path, "r", encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if not line or line.startswith("#") or "=" not in line:
-                continue
-            k, v = line.split("=", 1)
-            env[k.strip()] = v.strip()
-    return env
+    return load_private_env(path)
 
 
 def resolve_profile_template_path(profiles_dir: str, profile_name: str) -> str:
@@ -119,6 +109,8 @@ def build_service(
     use_retriever: bool,
     dataset: str,
     repeat_seed: int = 0,
+    llm_cache_dir: str | None = None,
+    llm_cache_enabled: bool = True,
 ) -> ResponsiveGPTService:
     embedder = OllamaEmbedder(
         base_url=env.get("OLLAMA_BASE_URL", "http://localhost:11434"),
@@ -148,6 +140,8 @@ def build_service(
         timeout_s=float(env.get("LLM_TIMEOUT_S", "120")),
         max_retries=int(env.get("LLM_MAX_RETRIES", "1")),
         seed=repeat_seed,
+        cache_dir=llm_cache_dir,
+        cache_enabled=llm_cache_enabled,
     )
 
     repo = JsonProfileRepository(
@@ -189,9 +183,11 @@ def build_service(
 
 
 def build_experiment_context(args):
-    env = load_env(".env")
+    env = load_private_env()
     if not env.get("JIEKOU_API_KEY"):
-        raise RuntimeError("Missing JIEKOU_API_KEY in .env")
+        raise RuntimeError(
+            "Missing JIEKOU_API_KEY in .env or config/accounts.local.json"
+        )
 
     resume_run_dir = str(
         getattr(args, "resume_run_dir", "") or ""
@@ -233,6 +229,10 @@ def build_experiment_context(args):
         use_retriever=bool(args.use_retriever),
         dataset=args.dataset,
         repeat_seed=int(getattr(args, "repeat_seed", 0) or 0),
+        llm_cache_dir=str(getattr(args, "llm_cache_dir", "") or ""),
+        llm_cache_enabled=not bool(
+            getattr(args, "disable_llm_cache", False)
+        ),
     )
     service.llm.configure_budget(
         "reactive",
@@ -279,6 +279,26 @@ def build_experiment_context(args):
         "max_planning_tokens": int(
             getattr(args, "max_planning_tokens", 0) or 0
         ),
+        "cache": {
+            "llm_cache_enabled": not bool(
+                getattr(args, "disable_llm_cache", False)
+            ),
+            "llm_cache_dir": str(
+                getattr(args, "llm_cache_dir", "") or ""
+            ),
+            "rag_cache_enabled": not bool(
+                getattr(args, "disable_rag_cache", False)
+            ),
+            "rag_cache_dir": str(
+                getattr(args, "rag_cache_dir", "") or ""
+            ),
+            "planning_cache_enabled": not bool(
+                getattr(args, "disable_planning_cache", False)
+            ),
+            "planning_cache_dir": str(
+                getattr(args, "planning_cache_dir", "") or ""
+            ),
+        },
         "ttc_threshold": getattr(args, "ttc_threshold", None),
         "distance_threshold": getattr(args, "distance_threshold", None),
         "drac_threshold": getattr(args, "drac_threshold", None),

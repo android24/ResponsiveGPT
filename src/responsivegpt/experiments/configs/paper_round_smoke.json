@@ -1,0 +1,75 @@
+{
+  "name": "paper_round_smoke",
+  "dataset_registry_path": "datasets.json",
+  "datasets": [
+    "round"
+  ],
+  "defaults": {
+    "mode": "episode",
+    "limit": 6,
+    "job_timeout_s": 7200,
+    "model_role": "cheap",
+    "feedback": "Prioritize safety, legal compliance, and interaction smoothness while avoiding clearly dangerous operations.",
+    "llm_stride": 5,
+    "llm_risk_threshold": 0.35,
+    "extra_args": {
+      "reuse_last_decision": 1,
+      "use_trigger": 1,
+      "use_profile_learner": 1,
+      "history_window": 10,
+      "planning_interval": 100,
+      "planning_min_gap": 100,
+      "planning_risk_threshold": 0.60,
+      "planning_max_history": 8
+    }
+  },
+  "matrix": {
+    "datasets": [
+      "round"
+    ],
+    "profiles": [
+      "balanced"
+    ],
+    "rag_variants": [
+      {
+        "name": "full_rag_grounded",
+        "use_retriever": 1,
+        "rag_mode": "full",
+        "require_grounded_decision": 1
+      }
+    ],
+    "planning": [
+      {
+        "name": "planning_on_interval",
+        "use_planning_thread": 1,
+        "planning_mode": "interval"
+      }
+    ],
+    "llm_policies": [
+      {
+        "name": "hybrid_stride5_full_trace",
+        "llm_policy": "hybrid",
+        "llm_stride": 5,
+        "llm_risk_threshold": 0.35,
+        "extra_args": {
+          "rag_budget": "reactive",
+          "rag_top_k": 12,
+          "trace_detail": 1
+        }
+      },
+      {
+        "name": "event_triggered_compact",
+        "llm_policy": "event_triggered",
+        "llm_stride": 30,
+        "llm_risk_threshold": 0.45,
+        "extra_args": {
+          "rag_budget": "reactive_low",
+          "rag_top_k": 8,
+          "trace_detail": 0,
+          "llm_max_stale_frames": 30,
+          "llm_risk_delta_threshold": 0.15
+        }
+      }
+    ]
+  }
+}

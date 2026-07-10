@@ -1,0 +1,47 @@
+#!/usr/bin/env sh
+set -eu
+
+blocked_paths='(^|/)(\.env(\..*)?|accounts\.local\.json|accounts\..*\.local\.json)$|(^|/)(\.cache|runs|\.pycache_tmp|__pycache__)(/|$)|\.pyc$|(^|/)\.DS_Store$'
+secret_assignment_pattern='^\+[^+].*(JIEKOU_API_KEY|OPENAI_API_KEY|API_KEY|ACCESS_TOKEN|AUTH_TOKEN|PASSWORD|PRIVATE_KEY)[^:=]{0,40}[:=][[:space:]]*["'\''"]?[A-Za-z0-9_./+=-]{16,}'
+private_key_pattern='^\+[^+].*BEGIN (RSA |OPENSSH |EC )?PRIVATE KEY'
+
+while read -r local_ref local_sha remote_ref remote_sha
+do
+  case "$local_sha" in
+    0000000000000000000000000000000000000000) continue ;;
+  esac
+
+  if [ "$remote_sha" = "0000000000000000000000000000000000000000" ]; then
+    range="4b825dc642cb6eb9a060e54bf8d69288fbee4904..$local_sha"
+  else
+    range="$remote_sha..$local_sha"
+  fi
+
+  if ! git rev-parse --verify "$local_sha^{commit}" >/dev/null 2>&1; then
+    echo "pre-push blocked: local commit cannot be resolved: $local_sha" >&2
+    exit 1
+  fi
+
+  blocked_files=$(
+    git diff --name-status "$range" \
+      | awk '$1 !~ /^D/ {print $2}' \
+      | grep -Ev '(^|/)\.env\.example$' \
+      | grep -E "$blocked_paths" \
+      | sed -n '1,80p' || true
+  )
+  if [ -n "$blocked_files" ]; then
+    echo "pre-push blocked: generated output or local secret files would be pushed." >&2
+    echo "Showing first 80 matches:" >&2
+    echo "$blocked_files" >&2
+    exit 1
+  fi
+
+  secret_hits=$(git diff -U0 "$range" | grep -E "$secret_assignment_pattern|$private_key_pattern" | sed -n '1,40p' || true)
+  if [ -n "$secret_hits" ]; then
+    echo "pre-push blocked: possible credential assignment found in pushed diff:" >&2
+    echo "$secret_hits" >&2
+    exit 1
+  fi
+done
+
+exit 0

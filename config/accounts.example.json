@@ -1,0 +1,20 @@
+{
+  "active": "jiekou",
+  "accounts": {
+    "jiekou": {
+      "JIEKOU_API_KEY": "",
+      "JIEKOU_BASE_URL": "https://api.jiekou.ai/openai",
+      "PRIMARY_MODEL": "gpt-5.2",
+      "FALLBACK_MODEL": "gpt-4.1",
+      "CHEAP_MODEL": "gpt-4o-mini",
+      "LLM_TIMEOUT_S": "120",
+      "LLM_MAX_RETRIES": "1",
+      "LLM_MAX_COMPLETION_TOKENS": "2048"
+    }
+  },
+  "local": {
+    "OLLAMA_BASE_URL": "http://localhost:11434",
+    "OLLAMA_EMBED_MODEL": "nomic-embed-text",
+    "KB_DIR": "src/responsivegpt/data/kb"
+  }
+}

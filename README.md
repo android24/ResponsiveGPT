@@ -35,6 +35,19 @@ ollama pull nomic-embed-text
 cp .env.example .env
 ```
 
+也可以使用本地账号隔离文件：
+
+```bash
+cp config/accounts.example.json config/accounts.local.json
+```
+
+`config/accounts.local.json` 和 `.env` 都只保留在本地，已被 `.gitignore`
+忽略；远端只提交脱敏模板。建议启用推送前检查：
+
+```bash
+git config core.hooksPath scripts/git-hooks
+```
+
 ## 运行 demo
 ```bash
 python -m src.responsivegpt.interface.cli --demo --tag demo

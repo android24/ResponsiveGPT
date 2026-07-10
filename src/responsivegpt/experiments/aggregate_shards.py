@@ -23,16 +23,40 @@ ROLLUP_FIELDS = [
     "selected_frames",
     "reactive_frames",
     "llm_calls",
+    "llm_cache_hits",
+    "llm_cache_misses",
+    "llm_cache_hit_rate",
     "llm_attempts",
     "non_llm_frames",
     "planning_calls",
+    "planning_cache_hits",
+    "planning_cache_misses",
+    "planning_cache_hit_rate",
     "planning_llm_attempts",
+    "planning_reuse_frames",
+    "planning_reuse_rate",
+    "phase_transition_count",
+    "risk_phase_transition_rate",
+    "rag_cache_hits",
+    "rag_cache_misses",
+    "rag_cache_hit_rate",
     "llm_error_count",
     "timeout_count",
     "connection_error_count",
     "rate_limit_count",
     "fallback_frame_count",
     "fallback_frame_rate",
+    "llm_error_cooldown_frames",
+    "llm_error_cooldown_activations",
+    "llm_error_cooldown_skipped_frames",
+    "rag_evidence_debounce_frames",
+    "rag_evidence_change_raw_count",
+    "rag_evidence_change_confirmed_count",
+    "rag_evidence_change_debounced_frames",
+    "grounding_refresh_debounce_frames",
+    "grounding_refresh_raw_count",
+    "grounding_refresh_confirmed_count",
+    "grounding_refresh_debounced_frames",
     "max_reactive_api_attempts",
     "max_reactive_tokens",
     "max_planning_api_attempts",
@@ -153,11 +177,27 @@ def _rollup_group(rows: list[dict]) -> dict:
     reactive_frames = sum(_to_int(r.get("reactive_frames")) for r in rows)
     llm_calls = sum(_to_int(r.get("llm_calls")) for r in rows)
     llm_attempts = sum(_to_int(r.get("llm_attempts")) for r in rows)
+    llm_cache_hits = sum(_to_int(r.get("llm_cache_hits")) for r in rows)
+    llm_cache_misses = sum(_to_int(r.get("llm_cache_misses")) for r in rows)
     non_llm_frames = sum(_to_int(r.get("non_llm_frames")) for r in rows)
     planning_calls = sum(_to_int(r.get("planning_calls")) for r in rows)
+    planning_cache_hits = sum(
+        _to_int(r.get("planning_cache_hits")) for r in rows
+    )
+    planning_cache_misses = sum(
+        _to_int(r.get("planning_cache_misses")) for r in rows
+    )
     planning_llm_attempts = sum(
         _to_int(r.get("planning_llm_attempts")) for r in rows
     )
+    planning_reuse_frames = sum(
+        _to_int(r.get("planning_reuse_frames")) for r in rows
+    )
+    phase_transition_count = sum(
+        _to_int(r.get("phase_transition_count")) for r in rows
+    )
+    rag_cache_hits = sum(_to_int(r.get("rag_cache_hits")) for r in rows)
+    rag_cache_misses = sum(_to_int(r.get("rag_cache_misses")) for r in rows)
     fallback_frame_count = sum(_to_int(r.get("fallback_frame_count")) for r in rows)
 
     cm = {"tp": 0, "fp": 0, "fn": 0, "tn": 0}
@@ -191,16 +231,71 @@ def _rollup_group(rows: list[dict]) -> dict:
         "selected_frames": selected_frames,
         "reactive_frames": reactive_frames,
         "llm_calls": llm_calls,
+        "llm_cache_hits": llm_cache_hits,
+        "llm_cache_misses": llm_cache_misses,
+        "llm_cache_hit_rate": _safe_div(
+            llm_cache_hits, llm_cache_hits + llm_cache_misses
+        ),
         "llm_attempts": llm_attempts,
         "non_llm_frames": non_llm_frames,
         "planning_calls": planning_calls,
+        "planning_cache_hits": planning_cache_hits,
+        "planning_cache_misses": planning_cache_misses,
+        "planning_cache_hit_rate": _safe_div(
+            planning_cache_hits,
+            planning_cache_hits + planning_cache_misses,
+        ),
         "planning_llm_attempts": planning_llm_attempts,
+        "planning_reuse_frames": planning_reuse_frames,
+        "planning_reuse_rate": _safe_div(planning_reuse_frames, reactive_frames),
+        "phase_transition_count": phase_transition_count,
+        "risk_phase_transition_rate": _safe_div(
+            phase_transition_count, reactive_frames
+        ),
+        "rag_cache_hits": rag_cache_hits,
+        "rag_cache_misses": rag_cache_misses,
+        "rag_cache_hit_rate": _safe_div(
+            rag_cache_hits, rag_cache_hits + rag_cache_misses
+        ),
         "llm_error_count": sum(_to_int(r.get("llm_error_count")) for r in rows),
         "timeout_count": sum(_to_int(r.get("timeout_count")) for r in rows),
         "connection_error_count": sum(_to_int(r.get("connection_error_count")) for r in rows),
         "rate_limit_count": sum(_to_int(r.get("rate_limit_count")) for r in rows),
         "fallback_frame_count": fallback_frame_count,
         "fallback_frame_rate": _safe_div(fallback_frame_count, reactive_frames),
+        "llm_error_cooldown_frames": max(
+            _to_int(r.get("llm_error_cooldown_frames")) for r in rows
+        ),
+        "llm_error_cooldown_activations": sum(
+            _to_int(r.get("llm_error_cooldown_activations")) for r in rows
+        ),
+        "llm_error_cooldown_skipped_frames": sum(
+            _to_int(r.get("llm_error_cooldown_skipped_frames")) for r in rows
+        ),
+        "rag_evidence_debounce_frames": max(
+            _to_int(r.get("rag_evidence_debounce_frames")) for r in rows
+        ),
+        "rag_evidence_change_raw_count": sum(
+            _to_int(r.get("rag_evidence_change_raw_count")) for r in rows
+        ),
+        "rag_evidence_change_confirmed_count": sum(
+            _to_int(r.get("rag_evidence_change_confirmed_count")) for r in rows
+        ),
+        "rag_evidence_change_debounced_frames": sum(
+            _to_int(r.get("rag_evidence_change_debounced_frames")) for r in rows
+        ),
+        "grounding_refresh_debounce_frames": max(
+            _to_int(r.get("grounding_refresh_debounce_frames")) for r in rows
+        ),
+        "grounding_refresh_raw_count": sum(
+            _to_int(r.get("grounding_refresh_raw_count")) for r in rows
+        ),
+        "grounding_refresh_confirmed_count": sum(
+            _to_int(r.get("grounding_refresh_confirmed_count")) for r in rows
+        ),
+        "grounding_refresh_debounced_frames": sum(
+            _to_int(r.get("grounding_refresh_debounced_frames")) for r in rows
+        ),
         "max_reactive_api_attempts": sum(
             _to_int(r.get("max_reactive_api_attempts")) for r in rows
         ),

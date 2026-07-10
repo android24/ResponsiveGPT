@@ -13,6 +13,7 @@ from openai import (
     RateLimitError,
 )
 from ..domain.logic import coerce_json
+from .json_disk_cache import JsonDiskCache
 
 
 RECOVERABLE_ERRORS = (
@@ -33,6 +34,8 @@ def _new_usage_stats():
         "completion_tokens": 0,
         "total_tokens": 0,
         "cached_tokens": 0,
+        "cache_hits": 0,
+        "cache_misses": 0,
         "latencies_ms": [],
         "models": defaultdict(int),
     }
@@ -66,6 +69,8 @@ class JiekouChatModel:
         timeout_s: float = 120.0,
         max_retries: int = 1,
         seed: int = 0,
+        cache_dir: str | None = None,
+        cache_enabled: bool = True,
     ):
         self.client = OpenAI(
             api_key=api_key,
@@ -81,6 +86,9 @@ class JiekouChatModel:
         self.timeout_s = timeout_s
         self.max_retries = max_retries
         self.seed = int(seed or 0)
+        self.cache = JsonDiskCache(cache_dir, enabled=cache_enabled)
+        self.last_cache_hit = False
+        self.last_cache_key = ""
         self._usage_context = "unclassified"
         self._phase_usage_context = "unclassified"
         self._budgets = defaultdict(lambda: {
@@ -171,6 +179,8 @@ class JiekouChatModel:
                 "completion_tokens": stats["completion_tokens"],
                 "total_tokens": stats["total_tokens"],
                 "cached_tokens": stats["cached_tokens"],
+                "cache_hits": stats["cache_hits"],
+                "cache_misses": stats["cache_misses"],
                 "latency_ms_mean": (
                     sum(latencies) / len(latencies) if latencies else 0.0
                 ),
@@ -193,6 +203,8 @@ class JiekouChatModel:
                 "completion_tokens": stats["completion_tokens"],
                 "total_tokens": stats["total_tokens"],
                 "cached_tokens": stats["cached_tokens"],
+                "cache_hits": stats["cache_hits"],
+                "cache_misses": stats["cache_misses"],
                 "latency_ms_mean": (
                     sum(latencies) / len(latencies)
                     if latencies else 0.0
@@ -230,6 +242,7 @@ class JiekouChatModel:
                     "attempts", "successes", "failures",
                     "prompt_tokens", "completion_tokens",
                     "total_tokens", "cached_tokens",
+                    "cache_hits", "cache_misses",
                 ):
                     stats[field] = int(value.get(field, 0) or 0)
                 stats["latencies_ms"] = [
@@ -242,10 +255,29 @@ class JiekouChatModel:
         restore(self._phase_usage, state.get("phase_usage", {}))
 
     def complete_json(self, system: str, user: str) -> dict:
+        self.last_cache_hit = False
+        self.last_cache_key = self._cache_key(system, user)
+        context_stats = self._usage[self._usage_context]
+        phase_stats = self._phase_usage[self._phase_usage_context]
+
+        cached = self.cache.get(self.last_cache_key)
+        if isinstance(cached, dict):
+            context_stats["cache_hits"] += 1
+            phase_stats["cache_hits"] += 1
+            self.last_cache_hit = True
+            return deepcopy(cached)
+
+        context_stats["cache_misses"] += 1
+        phase_stats["cache_misses"] += 1
         text = self._complete_with_fallback(system, user)
 
         try:
             obj = coerce_json(text)
+            self.cache.set(
+                self.last_cache_key,
+                obj,
+                metadata=self._cache_metadata(system, user, repaired=False),
+            )
             return obj
         except Exception:
             repair_system = system + "\n如果你刚才输出不是合法 JSON，现在必须只输出合法 JSON。"
@@ -256,7 +288,44 @@ class JiekouChatModel:
             )
 
             repaired = self._complete_with_fallback(repair_system, repair_user)
-            return coerce_json(repaired)
+            obj = coerce_json(repaired)
+            self.cache.set(
+                self.last_cache_key,
+                obj,
+                metadata=self._cache_metadata(system, user, repaired=True),
+            )
+            return obj
+
+    def _cache_key(self, system: str, user: str) -> str:
+        return JsonDiskCache.stable_hash({
+            "cache_version": "llm_json_v1",
+            "primary_model": self.primary_model,
+            "fallback_model": self.fallback_model,
+            "max_completion_tokens": self.max_completion_tokens,
+            "seed": self.seed,
+            "system": system,
+            "user": user,
+        })
+
+    def _cache_metadata(
+        self,
+        system: str,
+        user: str,
+        *,
+        repaired: bool,
+    ) -> dict:
+        return {
+            "cache_version": "llm_json_v1",
+            "primary_model": self.primary_model,
+            "fallback_model": self.fallback_model,
+            "max_completion_tokens": self.max_completion_tokens,
+            "seed": self.seed,
+            "usage_context": self._usage_context,
+            "phase_usage_context": self._phase_usage_context,
+            "system_chars": len(system or ""),
+            "user_chars": len(user or ""),
+            "repaired": bool(repaired),
+        }
 
     def _complete_with_fallback(self, system: str, user: str) -> str:
         models = [self.primary_model]

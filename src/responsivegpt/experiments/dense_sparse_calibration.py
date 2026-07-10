@@ -94,8 +94,10 @@ def _latest_completed_statuses(experiment_dir: Path) -> list[dict]:
         if row.get("status") != "completed":
             continue
         job_id = row.get("job_id")
-        if job_id and fingerprint_is_compatible(
-            row, expected.get(str(job_id))
+        if (
+            job_id
+            and str(job_id) in expected
+            and fingerprint_is_compatible(row, expected.get(str(job_id)))
         ):
             latest[job_id] = row
     return [

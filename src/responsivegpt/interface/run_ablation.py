@@ -39,6 +39,12 @@ def main():
     parser.add_argument("--llm_risk_threshold", type=float, default=0.35)
     parser.add_argument("--llm_max_stale_frames", type=int, default=30)
     parser.add_argument("--llm_risk_delta_threshold", type=float, default=0.15)
+    parser.add_argument(
+        "--llm_error_cooldown_frames",
+        type=int,
+        default=30,
+        help="Frames to suppress reactive LLM retries after a timeout/connection/rate-limit failure.",
+    )
     parser.add_argument("--max_llm_calls", type=int, default=0, help="Maximum LLM calls per run. 0 disables the cap.")
     parser.add_argument(
         "--max_reactive_api_attempts",
@@ -87,6 +93,45 @@ def main():
         help="Whether Reactive Thread can read PlanningMemory hint.",
     )
 
+    parser.add_argument(
+        "--use_case_memory",
+        type=int,
+        default=0,
+        help=(
+            "Enable causal case memory. Only prior completed episodes are "
+            "retrieved and no ground-truth labels are stored."
+        ),
+    )
+    parser.add_argument("--case_memory_top_k", type=int, default=3)
+    parser.add_argument("--case_memory_min_similarity", type=float, default=0.72)
+    parser.add_argument(
+        "--case_memory_novelty_threshold",
+        type=float,
+        default=0.45,
+        help="If the best prior-case similarity is below this value, mark the frame as novel.",
+    )
+    parser.add_argument(
+        "--case_memory_include_in_prompt",
+        type=int,
+        default=1,
+        help="Append compact prior-case hints to the reactive planning hint when available.",
+    )
+
+    parser.add_argument(
+        "--use_budget_governor",
+        type=int,
+        default=0,
+        help="Enable dynamic token/time governor for RAG top-k, stale window, risk gates, and planning cadence.",
+    )
+    parser.add_argument("--budget_governor_warn_ratio", type=float, default=0.80)
+    parser.add_argument("--budget_governor_critical_ratio", type=float, default=0.95)
+    parser.add_argument(
+        "--max_wall_time_s",
+        type=float,
+        default=0.0,
+        help="Optional wall-time budget used by the dynamic governor. 0 disables wall-time pressure.",
+    )
+
     # RAG
     parser.add_argument(
         "--rag_mode",
@@ -104,6 +149,60 @@ def main():
 
     parser.add_argument("--rag_top_k", type=int, default=12)
     parser.add_argument("--require_grounded_decision", type=int, default=0)
+    parser.add_argument(
+        "--rag_evidence_debounce_frames",
+        type=int,
+        default=10,
+        help="Require a semantic RAG evidence change to persist this many frames before it refreshes the reactive LLM.",
+    )
+    parser.add_argument(
+        "--rag_evidence_signature_top_k",
+        type=int,
+        default=3,
+        help="Number of top evidence items used to build the semantic RAG change signature.",
+    )
+    parser.add_argument(
+        "--grounding_refresh_debounce_frames",
+        type=int,
+        default=10,
+        help="Require missing cited evidence to persist this many frames before forcing a grounded refresh.",
+    )
+    parser.add_argument(
+        "--llm_cache_dir",
+        type=str,
+        default=".cache/responsivegpt/llm",
+        help="Persistent cache directory for exact LLM JSON responses.",
+    )
+    parser.add_argument(
+        "--disable_llm_cache",
+        type=int,
+        default=0,
+        help="Set 1 to disable exact LLM response cache.",
+    )
+    parser.add_argument(
+        "--rag_cache_dir",
+        type=str,
+        default=".cache/responsivegpt/rag",
+        help="Persistent cache directory for RAG evidence packs.",
+    )
+    parser.add_argument(
+        "--disable_rag_cache",
+        type=int,
+        default=0,
+        help="Set 1 to disable RAG evidence cache.",
+    )
+    parser.add_argument(
+        "--planning_cache_dir",
+        type=str,
+        default=".cache/responsivegpt/planning",
+        help="Persistent cache directory for validated planning outputs.",
+    )
+    parser.add_argument(
+        "--disable_planning_cache",
+        type=int,
+        default=0,
+        help="Set 1 to disable planning phase cache.",
+    )
 
     parser.add_argument("--model_role", type=str, default="primary", choices=["primary", "fallback", "cheap"])
     parser.add_argument("--tag", type=str, default="ablation")
@@ -219,6 +318,9 @@ def main():
     args.inspect_only = bool(args.inspect_only)
     args.reuse_last_decision = bool(args.reuse_last_decision)
     args.trace_detail = bool(args.trace_detail)
+    args.disable_llm_cache = bool(args.disable_llm_cache)
+    args.disable_rag_cache = bool(args.disable_rag_cache)
+    args.disable_planning_cache = bool(args.disable_planning_cache)
 
     if args.inspect_only and args.dry_run:
         raise ValueError("inspect_only and dry_run should not both be enabled.")

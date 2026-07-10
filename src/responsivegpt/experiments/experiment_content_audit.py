@@ -32,8 +32,12 @@ EXPECTED_DATASET_PATHS = {
 
 APPROVED_ROLES = {
     "paper_cornercase_token_efficiency_smoke": "token_efficiency_smoke",
+    "paper_cornercase_token_efficiency_smoke_cachecheck": "token_efficiency_smoke",
+    "paper_round_smoke": "token_efficiency_smoke",
+    "paper_round_smoke_cachecheck": "token_efficiency_smoke",
     "paper_responsivegpt_main_token_saver": "main_matrix",
     "paper_core_main_sampled_token_saver": "main_matrix",
+    "paper_core_main_sampled_token_saver_final_v2": "main_matrix",
     "paper_core_rag_budget_matched": "rag_budget_matched",
     "paper_planning_ablation_token_saver": "planning_ablation",
     "paper_core_planning_ablation_sampled_token_saver": "planning_ablation",

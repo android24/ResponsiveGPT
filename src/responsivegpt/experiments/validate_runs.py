@@ -10,6 +10,20 @@ from .experiment_fingerprint import (
     fingerprint_is_compatible,
 )
 
+VALIDATION_SUMMARY_FIELDS = [
+    "job_id",
+    "run_dir",
+    "valid",
+    "failure_reasons",
+    "execution_valid",
+    "execution_failure_reasons",
+    "quality_gate_pass",
+    "quality_failures",
+    "quality_observations",
+    "current_method_compatible",
+    "usable_for_current_method",
+]
+
 
 def _file_sha256(path: str | Path) -> str:
     path = Path(path)
@@ -618,6 +632,7 @@ def validate_experiment_dir(experiment_dir: str | Path) -> list[dict]:
     rows = []
     for status in _latest_completed_statuses_for_audit(experiment_dir):
         run_dir = status.get("run_dir")
+        job_id = str(status.get("job_id"))
         job = status.get("job", {})
         validation = validate_run_dir(run_dir, job) if run_dir else {
             "valid": False,
@@ -628,12 +643,11 @@ def validate_experiment_dir(experiment_dir: str | Path) -> list[dict]:
             "quality_failures": [],
             "quality_observations": [],
         }
-        compatible = fingerprint_is_compatible(
-            status,
-            expected.get(str(status.get("job_id"))),
-        ) if (
-            not expected or str(status.get("job_id")) in expected
-        ) else False
+        compatible = bool(
+            expected
+            and job_id in expected
+            and fingerprint_is_compatible(status, expected.get(job_id))
+        )
         rows.append({
             "job_id": status.get("job_id"),
             "run_dir": run_dir,
@@ -673,7 +687,11 @@ def validate_experiment_dir(experiment_dir: str | Path) -> list[dict]:
             "usable_for_current_method": False,
         })
 
-    write_csv(experiment_dir / "validation_summary.csv", rows)
+    write_csv(
+        experiment_dir / "validation_summary.csv",
+        rows,
+        fieldnames=VALIDATION_SUMMARY_FIELDS,
+    )
     return rows
 
 
@@ -682,12 +700,14 @@ def main():
     parser.add_argument("--experiment_dir", required=True)
     args = parser.parse_args()
     rows = validate_experiment_dir(args.experiment_dir)
+    completion = matrix_completion_status(args.experiment_dir)
     valid_count = sum(1 for row in rows if row.get("execution_valid"))
     usable_count = sum(
         1 for row in rows if row.get("usable_for_current_method")
     )
     print(
-        f"Validated {len(rows)} expected matrix jobs; "
+        f"Validated {completion.get('expected_jobs', len(rows))} "
+        f"expected matrix jobs; "
         f"execution_valid={valid_count}; current_method_usable={usable_count}"
     )
 
