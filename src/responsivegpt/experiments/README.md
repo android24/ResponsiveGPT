@@ -36,7 +36,7 @@ Run this before any main matrix:
 
 ```bash
 PYTHONPATH=src python3 -m responsivegpt.experiments.episode_data_audit \
-  --config src/responsivegpt/experiments/configs/paper_responsivegpt_main_token_saver.json \
+  --config src/responsivegpt/experiments/configs/paper_fullpool_census_base.json \
   --out_dir data/episode_audit/cornercase_v1 \
   --coverage_sample 80 \
   --write_available 1
@@ -88,14 +88,18 @@ The audit checks:
 Active paper-facing configs are intentionally limited to:
 
 - `paper_cornercase_token_efficiency_smoke.json`
-- `paper_core_main_sampled_token_saver.json`
+- `paper_fullpool_census_base.json`
+- `paper_core_main_sampled_token_saver_final.json`
 - `paper_core_planning_ablation_sampled_token_saver.json`
+- `paper_case_memory_budget_ablation_token_saver.json`
+- `paper_core_rag_budget_matched.json`
+- `paper_core_profile_learning_ablation.json`
+- `paper_core_robustness_repeats.json`
+- `paper_profile_adaptation_budget_curve.json`
 - `paper_dense_sparse_calibration_token_saver.json`
+- `paper_final_system_fullframe_showcase.json`
 - `paper_mode_comparison_token_saver.json`
 - `paper_fullpool_sparse_balanced_token_saver.json`
-- `paper_fullpass_v1_balanced_token_saver.json`
-- `paper_responsivegpt_main_token_saver.json`
-- `paper_planning_ablation_token_saver.json`
 - `datasets.json`
 
 ## 5. Token Smoke On Corner-Case Episodes
@@ -109,7 +113,9 @@ PYTHONPATH=src python3 -m responsivegpt.experiments.run_matrix \
 ```
 
 This compares dense hybrid LLM calls with the compact event-triggered online
-policy on high-risk candidate episodes.
+policy on high-risk candidate episodes. The current config writes to
+`runs/experiments/paper_cornercase_token_efficiency_smoke_v2` so older smoke
+outputs are not mixed with the refreshed token-saver settings.
 
 ## 6. Full-Pool Census And Core Sample
 
@@ -117,7 +123,7 @@ Build a deterministic full-pool census before the expensive paper matrices:
 
 ```bash
 PYTHONPATH=src python3 -m responsivegpt.experiments.full_pool_census \
-  --config src/responsivegpt/experiments/configs/paper_responsivegpt_main_token_saver.json \
+  --config src/responsivegpt/experiments/configs/paper_fullpool_census_base.json \
   --out_dir data/full_pool_census/cornercase_v1
 ```
 
@@ -133,7 +139,7 @@ run:
 
 ```bash
 PYTHONPATH=src python3 -m responsivegpt.experiments.full_pool_deterministic_scan \
-  --config src/responsivegpt/experiments/configs/paper_responsivegpt_main_token_saver.json \
+  --config src/responsivegpt/experiments/configs/paper_fullpool_census_base.json \
   --out_dir data/full_pool_deterministic_scan/cornercase_v1
 ```
 
@@ -171,7 +177,7 @@ To create cumulative sequential rounds instead of a single fixed sample:
 
 ```bash
 PYTHONPATH=src python3 -m responsivegpt.experiments.sequential_evaluator \
-  --base_config src/responsivegpt/experiments/configs/paper_responsivegpt_main_token_saver.json \
+  --base_config src/responsivegpt/experiments/configs/paper_fullpool_census_base.json \
   --census_csv data/full_pool_census/cornercase_v1/full_pool_episode_census.csv \
   --out_dir data/eval_samples/sequential_v1 \
   --rounds 3 \
@@ -183,9 +189,9 @@ PYTHONPATH=src python3 -m responsivegpt.experiments.sequential_evaluator \
 Each round writes a runnable config under
 `data/eval_samples/sequential_v1/round_XX/`.
 
-## 7. Dense-Sparse Calibration
+## 7. Dense-Sparse Planning Calibration
 
-Run a paired calibration before relying on sparse full-pool LLM estimates:
+Run a paired calibration before relying on sparse planning-ablation estimates:
 
 ```bash
 PYTHONPATH=src python3 -m responsivegpt.experiments.run_matrix \
@@ -197,13 +203,41 @@ Then build the calibration report:
 
 ```bash
 PYTHONPATH=src python3 -m responsivegpt.experiments.dense_sparse_calibration \
-  --experiment_dir runs/experiments/paper_dense_sparse_calibration_token_saver
+  --experiment_dir runs/experiments/paper_dense_sparse_planning_calibration_v2
 ```
 
 Outputs:
 
 - `dense_sparse_episode_calibration.csv`
 - `dense_sparse_calibration_summary.csv`
+
+The v2 calibration uses:
+
+```text
+3 datasets x balanced profile x full_rag_grounded x
+{planning_off, planning_adaptive_peek} x {dense_all, sparse_critical} = 12 jobs
+```
+
+Its purpose is not to replace the main matrix; it verifies that the critical
+frame protocol preserves the dense full-frame trend for the two fast-slow
+reasoning endpoints.
+
+## 7.1 Final Full-Frame Showcase
+
+Run this small full-frame final-system pass for stability/case-study evidence:
+
+```bash
+PYTHONPATH=src python3 -m responsivegpt.experiments.run_matrix \
+  --config src/responsivegpt/experiments/configs/paper_final_system_fullframe_showcase.json \
+  --no_resume
+```
+
+Matrix:
+
+```text
+3 datasets x balanced profile x full_rag_grounded x planning_adaptive_peek
+= 3 jobs
+```
 
 ## 8. Batch-vs-Episode Mode Comparison
 
@@ -227,6 +261,7 @@ Interpretation:
 - `batch`: event-level baseline from the summary row only
 - `episode`: fixed-window multi-frame clip feedback with trigger/history/profile adaptation
 - `planning_off`: isolates the effect of online episode feedback from the slow-planning ablation
+- current output dir: `runs/experiments/paper_mode_comparison_token_saver_v2`
 
 ## 9. Sparse Full-Pool Pass On All Episodes
 
@@ -258,80 +293,27 @@ Primary output:
 
 - `shard_rollup_summary.csv`
 
-## 10. Full-Pass V1 On All Episodes
-
-Use this when you want one full-data system pass without running the complete
-27-job main matrix. It runs:
-
-```text
-3 datasets x balanced profile x full_rag_grounded x planning_on_interval
-```
-
-The config is sharded so each job is smaller and resumable:
-
-```bash
-PYTHONPATH=src python3 -m responsivegpt.experiments.run_matrix \
-  --config src/responsivegpt/experiments/configs/paper_fullpass_v1_balanced_token_saver.json \
-  --no_resume
-```
-
-If interrupted, resume without `--no_resume`:
-
-```bash
-PYTHONPATH=src python3 -m responsivegpt.experiments.run_matrix \
-  --config src/responsivegpt/experiments/configs/paper_fullpass_v1_balanced_token_saver.json
-```
-
-After completed shards are aggregated, build the full-pass rollup:
-
-```bash
-PYTHONPATH=src python3 -m responsivegpt.experiments.aggregate_shards \
-  --experiment_dir runs/experiments/paper_fullpass_v1_balanced_token_saver
-```
-
-Primary output:
-
-- `shard_rollup_summary.csv`
-
-## 11. Main ResponsiveGPT Matrix
+## 10. Main ResponsiveGPT Matrix
 
 Recommended paper run after the core sample has been generated:
 
 ```bash
 PYTHONPATH=src python3 -m responsivegpt.experiments.run_matrix \
-  --config src/responsivegpt/experiments/configs/paper_core_main_sampled_token_saver.json \
+  --config src/responsivegpt/experiments/configs/paper_core_main_sampled_token_saver_final.json \
   --no_resume
 ```
 
 Matrix:
 
 ```text
-3 datasets x 3 driver profiles x 3 RAG variants x planning_on_interval = 27 jobs
+3 datasets x 3 driver profiles x 3 RAG variants x adaptive planning = 27 jobs
 ```
 
 This evaluates dataset transfer, personalized driver adaptation, and
 law/case/scenario RAG grounding under the fast-slow ResponsiveGPT setting on a
-reproducible stratified sample from the full high-risk candidate pool.
-
-The older full-summary config remains available for small `--limit` checks or
-future compute-heavy reruns:
-
-This is the main paper table:
-
-```bash
-PYTHONPATH=src python3 -m responsivegpt.experiments.run_matrix \
-  --config src/responsivegpt/experiments/configs/paper_responsivegpt_main_token_saver.json \
-  --no_resume
-```
-
-Matrix:
-
-```text
-3 datasets x 3 driver profiles x 3 RAG variants x planning_on_interval = 27 jobs
-```
-
-This evaluates dataset transfer, personalized driver adaptation, and
-law/case/scenario RAG grounding under the fast-slow ResponsiveGPT setting.
+reproducible stratified sample from the full high-risk candidate pool. The
+final matrix enables phase-level slow planning, causal case memory, and the
+dynamic budget governor.
 
 After the sampled matrix completes, aggregation now builds the
 design-weighted primary results automatically. The command below remains
@@ -339,7 +321,7 @@ available for an explicit rebuild:
 
 ```bash
 PYTHONPATH=src python3 -m responsivegpt.experiments.weighted_estimator \
-  --experiment_dir runs/experiments/paper_core_main_sampled_token_saver \
+  --experiment_dir runs/experiments/paper_core_main_sampled_token_saver_final_v3 \
   --census_csv data/full_pool_census/cornercase_v1/full_pool_episode_census.csv \
   --sample_dir data/eval_samples/core_v1 \
   --seed 20260613
@@ -371,7 +353,7 @@ PYTHONPATH=src python3 -m responsivegpt.experiments.sequential_stopping \
 The stopping evaluator expands each round's `config.snapshot.json`; a job or
 metric missing from both adjacent rounds therefore forces `continue`.
 
-## 12. Fast-Slow Reasoning Ablation
+## 11. Fast-Slow Reasoning Ablation
 
 Recommended paper run after the core sample has been generated:
 
@@ -389,9 +371,32 @@ Matrix:
 ```
 
 This separates the existence of the slow thread, Slow-to-Fast hint injection,
-and adaptive risk/staleness scheduling.
+and adaptive risk/staleness scheduling. The refreshed config writes to
+`runs/experiments/paper_core_planning_ablation_sampled_token_saver_v3`.
+It intentionally uses critical-frame sparse evaluation plus hard reactive and
+planning token/request caps, so the planning-off baseline cannot monopolize the
+whole matrix. Older v1/v2 output directories are kept only as partial
+diagnostic runs.
 
-## 12.1 Profile Learning Ablation
+## 11.1 Case Memory And Budget Governor Ablation
+
+```bash
+PYTHONPATH=src python3 -m responsivegpt.experiments.run_matrix \
+  --config src/responsivegpt/experiments/configs/paper_case_memory_budget_ablation_token_saver.json \
+  --no_resume
+```
+
+Matrix:
+
+```text
+3 datasets x 3 driver profiles x full_rag_grounded x
+{baseline, case-memory-only, budget-governor-only, memory+governor} = 36 jobs
+```
+
+This isolates whether causal prior-case memory and the dynamic budget governor
+reduce LLM cost without degrading corner-case response quality.
+
+## 11.2 Profile Learning Ablation
 
 ```bash
 PYTHONPATH=src python3 -m responsivegpt.experiments.run_matrix \
@@ -399,11 +404,11 @@ PYTHONPATH=src python3 -m responsivegpt.experiments.run_matrix \
   --no_resume
 ```
 
-The 18-job matrix compares fixed and adaptive profiles for every dataset and
-driver type. It produces `profile_learning_ablation_table.csv` and records
+The 180-job matrix compares fixed and adaptive profiles for every dataset,
+driver type, and order seed. It produces `profile_learning_ablation_table.csv` and records
 parameter L1 movement and changed-parameter counts.
 
-## 12.2 Profile Adaptation Budget Curve
+## 11.3 Profile Adaptation Budget Curve
 
 Current formal runs use method version `responsivegpt_bsse_v15` and analysis
 version `responsivegpt_analysis_v2`.
@@ -420,21 +425,7 @@ PYTHONPATH=src python3 -m responsivegpt.experiments.run_matrix \
   --no_resume
 ```
 
-The older full-summary planning config remains available for small checks:
-
-```bash
-PYTHONPATH=src python3 -m responsivegpt.experiments.run_matrix \
-  --config src/responsivegpt/experiments/configs/paper_planning_ablation_token_saver.json \
-  --no_resume
-```
-
-Matrix:
-
-```text
-3 datasets x 3 driver profiles x full_rag_grounded x planning_off/on = 18 jobs
-```
-
-## 13. Generated Paper Tables
+## 12. Generated Paper Tables
 
 After `run_matrix` finishes, aggregation automatically writes:
 
@@ -454,6 +445,38 @@ After `run_matrix` finishes, aggregation automatically writes:
 - `rag_evidence_examples.md`
 - `shard_rollup_summary.csv` for sharded full-pass runs
 - `report.md`
+- `paper_figures/` and `paper_figures_manifest.csv`
+
+Paper-facing figures are generated automatically after aggregation. They can
+also be rebuilt explicitly:
+
+```bash
+PYTHONPATH=src python3 -m responsivegpt.experiments.paper_figure_plotter \
+  --experiment_dir runs/experiments/paper_core_main_sampled_token_saver_final_v3
+```
+
+Use `--figure_role` only when you want to override auto-detection:
+
+```bash
+PYTHONPATH=src python3 -m responsivegpt.experiments.paper_figure_plotter \
+  --experiment_dir runs/experiments/paper_core_planning_ablation_sampled_token_saver_v3 \
+  --figure_role planning_ablation
+```
+
+The figure generator is role-aware. Use the manifest to check whether each
+paper-facing figure was written or skipped because the corresponding evidence
+table is unavailable.
+
+- Main matrix figures: descriptive F1 by dataset/profile/RAG, design-weighted
+  episode metrics with 95% CIs, RAG-vs-baseline forest effects, RAG evidence
+  composition, and full-pool versus evaluation-sample stratum coverage.
+- Fast-slow planning ablation figures: F1/underreaction/token summaries,
+  planning call/reuse/precision mechanism view, design-weighted planning
+  metrics with 95% CIs, and paired effect forest plots when available.
+- Dense-sparse calibration figures: violation agreement, frame reduction,
+  alignment drift, and cost-reduction versus alignment-drift trade-off.
+- Mode, memory, RAG-budget, profile-adaptation, and profile-learning figures:
+  compact role-specific summaries for supplementary or ablation sections.
 
 Key paper metrics should be interpreted as:
 

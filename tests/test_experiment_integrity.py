@@ -42,6 +42,12 @@ from responsivegpt.experiments.run_matrix import (
     _job_command,
     _prepare_experiment_metadata,
 )
+from responsivegpt.experiments.aggregate_runs import AGGREGATE_FIELDS
+from responsivegpt.experiments.io_utils import write_csv
+from responsivegpt.experiments.paper_figure_plotter import (
+    build_paper_figures,
+    infer_figure_role,
+)
 from responsivegpt.experiments.sequential_evaluator import (
     _sample_incremental,
 )
@@ -2138,6 +2144,388 @@ class ExperimentIntegrityTests(unittest.TestCase):
             int(job.extra_args["planning_min_gap"]) == 20
             for job in adaptive_jobs
         ))
+        self.assertTrue(all(
+            job.extra_args.get("frame_selection") == "critical"
+            for job in jobs
+        ))
+        self.assertTrue(all(
+            int(job.extra_args.get("critical_top_k", 0)) >= 8
+            for job in jobs
+        ))
+        self.assertTrue(all(
+            int(job.extra_args.get("max_llm_calls", 0)) > 0
+            for job in jobs
+        ))
+        self.assertTrue(all(
+            int(job.extra_args.get("max_reactive_api_attempts", 0)) > 0
+            for job in jobs
+        ))
+        self.assertTrue(all(
+            int(job.extra_args.get("max_reactive_tokens", 0)) > 0
+            for job in jobs
+        ))
+        self.assertLessEqual(
+            int(config.get("defaults", {}).get("job_timeout_s", 0)),
+            7200,
+        )
+
+    def test_dense_sparse_planning_calibration_covers_dense_and_sparse_endpoints(self):
+        config = load_config(
+            "src/responsivegpt/experiments/configs/"
+            "paper_dense_sparse_calibration_token_saver.json"
+        )
+        jobs = expand_jobs(config)
+        self.assertEqual(12, len(jobs))
+        self.assertEqual(
+            {"highd", "ind", "round"},
+            {job.dataset for job in jobs},
+        )
+        self.assertEqual({"balanced"}, {job.profile_name for job in jobs})
+        self.assertEqual(
+            {"planning_off", "planning_adaptive_peek"},
+            {job.planning_variant for job in jobs},
+        )
+        self.assertEqual(
+            {"dense_all", "sparse_critical"},
+            {job.llm_policy_variant for job in jobs},
+        )
+        self.assertEqual({30}, {int(job.limit) for job in jobs})
+        self.assertTrue(all(
+            int(job.extra_args.get("max_reactive_api_attempts", 0)) > 0
+            for job in jobs
+        ))
+        sparse_jobs = [
+            job for job in jobs if job.llm_policy_variant == "sparse_critical"
+        ]
+        dense_jobs = [
+            job for job in jobs if job.llm_policy_variant == "dense_all"
+        ]
+        self.assertTrue(all(
+            job.extra_args.get("frame_selection") == "critical"
+            and int(job.extra_args.get("critical_top_k", 0)) == 8
+            for job in sparse_jobs
+        ))
+        self.assertTrue(all(
+            job.extra_args.get("frame_selection") == "all"
+            for job in dense_jobs
+        ))
+
+    def test_final_system_fullframe_showcase_is_bounded_and_fullframe(self):
+        config = load_config(
+            "src/responsivegpt/experiments/configs/"
+            "paper_final_system_fullframe_showcase.json"
+        )
+        jobs = expand_jobs(config)
+        self.assertEqual(3, len(jobs))
+        self.assertEqual(
+            {"highd", "ind", "round"},
+            {job.dataset for job in jobs},
+        )
+        self.assertEqual({"balanced"}, {job.profile_name for job in jobs})
+        self.assertEqual(
+            {"full_rag_grounded"},
+            {job.rag_variant for job in jobs},
+        )
+        self.assertEqual(
+            {"planning_adaptive_peek"},
+            {job.planning_variant for job in jobs},
+        )
+        self.assertTrue(all(
+            job.extra_args.get("frame_selection") == "all"
+            for job in jobs
+        ))
+        self.assertEqual({30}, {int(job.limit) for job in jobs})
+        self.assertTrue(all(
+            int(job.extra_args.get("max_reactive_tokens", 0)) > 0
+            for job in jobs
+        ))
+
+    def test_aggregate_fields_include_budgeted_planning_review_metrics(self):
+        required = {
+            "fallback_frame_rate",
+            "llm_budget_exhausted",
+            "planning_budget_exhausted",
+            "llm_budget_exhausted_frames",
+            "planning_budget_exhausted_frames",
+            "max_reactive_api_attempts",
+            "max_reactive_tokens",
+            "max_planning_api_attempts",
+            "max_planning_tokens",
+            "reactive_total_tokens",
+            "planning_total_tokens",
+            "reactive_latency_ms_p95",
+            "planning_latency_ms_p95",
+        }
+        self.assertTrue(required.issubset(set(AGGREGATE_FIELDS)))
+
+    def test_paper_figure_plotter_generates_main_matrix_figures(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "experiment_identity.json").write_text(
+                json.dumps({
+                    "experiment_name": "paper_core_main_sampled_token_saver_final_v3"
+                }),
+                encoding="utf-8",
+            )
+            write_csv(root / "aggregate_summary.csv", [
+                {
+                    "dataset": "highd",
+                    "profile_name": "balanced",
+                    "rag_variant": "no_rag",
+                    "f1": 0.61,
+                    "reactive_total_tokens": 1000,
+                    "grounded_decision_rate": 0.0,
+                },
+                {
+                    "dataset": "highd",
+                    "profile_name": "balanced",
+                    "rag_variant": "full_rag_grounded",
+                    "f1": 0.74,
+                    "reactive_total_tokens": 1200,
+                    "grounded_decision_rate": 0.95,
+                },
+                {
+                    "dataset": "ind",
+                    "profile_name": "conservative",
+                    "rag_variant": "full_rag_grounded",
+                    "f1": 0.70,
+                    "reactive_total_tokens": 1100,
+                    "grounded_decision_rate": 0.93,
+                },
+            ])
+            write_csv(root / "paper_primary_weighted_table.csv", [
+                {
+                    "dataset": "highd",
+                    "profile_name": "balanced",
+                    "rag_variant": "no_rag",
+                    "planning_variant": "planning_adaptive_peek",
+                    "metric": "underreaction_rate",
+                    "weighted_mean": 0.31,
+                    "ci95_low": 0.24,
+                    "ci95_high": 0.38,
+                },
+                {
+                    "dataset": "highd",
+                    "profile_name": "balanced",
+                    "rag_variant": "full_rag_grounded",
+                    "planning_variant": "planning_adaptive_peek",
+                    "metric": "underreaction_rate",
+                    "weighted_mean": 0.18,
+                    "ci95_low": 0.12,
+                    "ci95_high": 0.24,
+                },
+                {
+                    "dataset": "highd",
+                    "profile_name": "balanced",
+                    "rag_variant": "full_rag_grounded",
+                    "planning_variant": "planning_adaptive_peek",
+                    "metric": "rag_grounded_decision_rate",
+                    "weighted_mean": 0.91,
+                    "ci95_low": 0.86,
+                    "ci95_high": 0.96,
+                },
+                {
+                    "dataset": "highd",
+                    "profile_name": "balanced",
+                    "rag_variant": "full_rag_grounded",
+                    "planning_variant": "planning_adaptive_peek",
+                    "metric": "reaction_delay_frames",
+                    "weighted_mean": 4.5,
+                    "ci95_low": 3.7,
+                    "ci95_high": 5.3,
+                },
+            ])
+            write_csv(root / "weighted_significance_vs_no_rag.csv", [
+                {
+                    "dataset": "highd",
+                    "metric": "avg_underreaction_rate",
+                    "treatment_variant": "full_rag_grounded",
+                    "inference_valid": "true",
+                    "mean_delta": -0.11,
+                    "bootstrap_ci_low": -0.18,
+                    "bootstrap_ci_high": -0.04,
+                },
+            ])
+            write_csv(root / "rag_evidence_summary.csv", [
+                {
+                    "dataset": "highd",
+                    "rag_variant": "full_rag_grounded",
+                    "law_coverage": 0.82,
+                    "case_coverage": 0.43,
+                    "scenario_coverage": 0.71,
+                    "grounded_rate": 0.91,
+                },
+            ])
+            write_csv(root / "weighted_stratum_metric_summary.csv", [
+                {
+                    "dataset": "highd",
+                    "risk_stratum": "critical",
+                    "event_type": "cutin",
+                    "dataset_risk_label": "1",
+                    "vru_present": "0",
+                    "population_rows": 30,
+                    "sample_rows": 8,
+                },
+                {
+                    "dataset": "highd",
+                    "risk_stratum": "high",
+                    "event_type": "following",
+                    "dataset_risk_label": "1",
+                    "vru_present": "0",
+                    "population_rows": 50,
+                    "sample_rows": 6,
+                },
+            ])
+            self.assertEqual("main_matrix", infer_figure_role(root))
+            manifest = build_paper_figures(root)
+            written = [row for row in manifest if row["status"] == "written"]
+            self.assertTrue(written)
+            self.assertTrue(
+                (root / "paper_figures" / "paper_figures_manifest.csv").exists()
+            )
+            self.assertTrue(any(
+                Path(row["path"]).name == "main_matrix_rag_f1_by_dataset.png"
+                for row in written
+            ))
+            self.assertTrue(any(
+                Path(row["path"]).name == "main_matrix_weighted_underreaction_rate_ci.png"
+                for row in written
+            ))
+            self.assertTrue(any(
+                Path(row["path"]).name == "main_matrix_weighted_effect_forest.png"
+                for row in written
+            ))
+            self.assertTrue(any(
+                Path(row["path"]).name == "main_matrix_rag_evidence_composition.png"
+                for row in written
+            ))
+            self.assertTrue(any(
+                Path(row["path"]).name == "main_matrix_stratum_coverage.png"
+                for row in written
+            ))
+
+    def test_paper_figure_plotter_generates_dense_sparse_figures(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "experiment_identity.json").write_text(
+                json.dumps({
+                    "experiment_name": "paper_dense_sparse_planning_calibration_v2"
+                }),
+                encoding="utf-8",
+            )
+            write_csv(root / "dense_sparse_calibration_summary.csv", [
+                {
+                    "dataset": "highd",
+                    "profile_name": "balanced",
+                    "rag_variant": "full_rag_grounded",
+                    "planning_variant": "planning_off",
+                    "violation_agreement_rate": 0.92,
+                    "avg_frame_reduction_rate": 0.88,
+                    "avg_abs_alignment_accuracy_delta": 0.04,
+                },
+                {
+                    "dataset": "highd",
+                    "profile_name": "balanced",
+                    "rag_variant": "full_rag_grounded",
+                    "planning_variant": "planning_adaptive_peek",
+                    "violation_agreement_rate": 0.95,
+                    "avg_frame_reduction_rate": 0.89,
+                    "avg_abs_alignment_accuracy_delta": 0.03,
+                },
+            ])
+            self.assertEqual("dense_sparse_calibration", infer_figure_role(root))
+            manifest = build_paper_figures(root)
+            self.assertTrue(any(
+                row["status"] == "written"
+                and Path(row["path"]).name == "dense_sparse_violation_agreement.png"
+                for row in manifest
+            ))
+            self.assertTrue(any(
+                row["status"] == "written"
+                and Path(row["path"]).name
+                == "dense_sparse_tradeoff_frame_reduction_alignment.png"
+                for row in manifest
+            ))
+
+    def test_paper_figure_plotter_generates_planning_mechanism_figures(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "experiment_identity.json").write_text(
+                json.dumps({
+                    "experiment_name": (
+                        "paper_core_planning_ablation_sampled_token_saver_v3"
+                    )
+                }),
+                encoding="utf-8",
+            )
+            write_csv(root / "aggregate_summary.csv", [
+                {
+                    "dataset": "highd",
+                    "planning_variant": "planning_off",
+                    "f1": 0.62,
+                    "avg_underreaction_rate": 0.29,
+                    "reactive_total_tokens": 900,
+                    "planning_reuse_rate": 0.0,
+                    "planning_call_rate": 0.0,
+                    "avg_planning_precision": 0.0,
+                },
+                {
+                    "dataset": "highd",
+                    "planning_variant": "planning_adaptive_peek",
+                    "f1": 0.73,
+                    "avg_underreaction_rate": 0.17,
+                    "reactive_total_tokens": 980,
+                    "planning_reuse_rate": 0.68,
+                    "planning_call_rate": 0.08,
+                    "avg_planning_precision": 0.81,
+                },
+            ])
+            write_csv(root / "paper_primary_weighted_table.csv", [
+                {
+                    "dataset": "highd",
+                    "planning_variant": "planning_adaptive_peek",
+                    "metric": "underreaction_rate",
+                    "weighted_mean": 0.17,
+                    "ci95_low": 0.10,
+                    "ci95_high": 0.24,
+                },
+                {
+                    "dataset": "highd",
+                    "planning_variant": "planning_adaptive_peek",
+                    "metric": "planning_miss_rate",
+                    "weighted_mean": 0.09,
+                    "ci95_low": 0.04,
+                    "ci95_high": 0.15,
+                },
+            ])
+            write_csv(root / "weighted_significance_vs_no_rag.csv", [
+                {
+                    "dataset": "highd",
+                    "metric": "underreaction_rate",
+                    "treatment_variant": "planning_adaptive_peek",
+                    "inference_valid": "true",
+                    "mean_delta": -0.10,
+                    "bootstrap_ci_low": -0.16,
+                    "bootstrap_ci_high": -0.03,
+                },
+            ])
+            self.assertEqual("planning_ablation", infer_figure_role(root))
+            manifest = build_paper_figures(root)
+            written = [row for row in manifest if row["status"] == "written"]
+            self.assertTrue(any(
+                Path(row["path"]).name
+                == "planning_ablation_fast_slow_mechanism.png"
+                for row in written
+            ))
+            self.assertTrue(any(
+                Path(row["path"]).name
+                == "planning_ablation_weighted_underreaction_rate_ci.png"
+                for row in written
+            ))
+            self.assertTrue(any(
+                Path(row["path"]).name == "planning_ablation_effect_forest.png"
+                for row in written
+            ))
 
     def test_profile_learning_ablation_has_fixed_and_adaptive_jobs(self):
         config = load_config(
@@ -3532,12 +3920,12 @@ class ExperimentIntegrityTests(unittest.TestCase):
             )
             manifest = run_experiment_content_audit(
                 "src/responsivegpt/experiments/configs/"
-                "paper_core_main_sampled_token_saver.json",
+                "paper_core_main_sampled_token_saver_final.json",
                 tmp,
                 str(episode_audit),
             )
             self.assertIn(
-                "paper_core_main_sampled_token_saver",
+                "paper_core_main_sampled_token_saver_final_v3",
                 manifest["approved_configs_present"],
             )
             with (Path(tmp) / "experiment_config_audit.csv").open(

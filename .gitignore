@@ -12,6 +12,7 @@ config/accounts.*.local.json
 # Generated caches and experiment outputs
 .cache/
 runs/
+data/
 .pycache_tmp/
 __pycache__/
 *.py[cod]

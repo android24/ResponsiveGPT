@@ -1,5 +1,5 @@
 {
-  "name": "paper_dense_sparse_calibration_token_saver",
+  "name": "paper_dense_sparse_planning_calibration_v2",
   "dataset_registry_path": "datasets.json",
   "datasets": {
     "highd": {
@@ -29,12 +29,31 @@
       "use_profile_learner": 1,
       "history_window": 10,
       "rag_budget": "reactive_low",
-      "rag_top_k": 8,
+      "rag_top_k": 5,
       "trace_detail": 0,
-      "llm_max_stale_frames": 30,
-      "llm_risk_delta_threshold": 0.15,
-      "planning_interval": 100,
-      "planning_min_gap": 100,
+      "llm_max_stale_frames": 60,
+      "llm_risk_delta_threshold": 0.20,
+      "llm_error_cooldown_frames": 60,
+      "rag_evidence_debounce_frames": 10,
+      "rag_evidence_signature_top_k": 3,
+      "grounding_refresh_debounce_frames": 10,
+      "use_case_memory": 1,
+      "case_memory_top_k": 1,
+      "case_memory_min_similarity": 0.72,
+      "case_memory_novelty_threshold": 0.45,
+      "case_memory_include_in_prompt": 1,
+      "use_budget_governor": 1,
+      "budget_governor_warn_ratio": 0.8,
+      "budget_governor_critical_ratio": 0.95,
+      "max_wall_time_s": 7200,
+      "max_llm_calls": 600,
+      "max_reactive_api_attempts": 700,
+      "max_reactive_tokens": 2000000,
+      "max_planning_calls": 300,
+      "max_planning_api_attempts": 350,
+      "max_planning_tokens": 700000,
+      "planning_interval": 40,
+      "planning_min_gap": 40,
       "planning_risk_threshold": 0.60,
       "planning_max_history": 8
     }
@@ -58,9 +77,22 @@
     ],
     "planning": [
       {
-        "name": "planning_on_interval",
+        "name": "planning_off",
+        "use_planning_thread": 0,
+        "planning_mode": "off",
+        "extra_args": {
+          "planning_peek": 0
+        }
+      },
+      {
+        "name": "planning_adaptive_peek",
         "use_planning_thread": 1,
-        "planning_mode": "interval"
+        "planning_mode": "interval_risk",
+        "extra_args": {
+          "planning_peek": 1,
+          "planning_interval": 20,
+          "planning_min_gap": 20
+        }
       }
     ],
     "llm_policies": [
@@ -80,7 +112,7 @@
         "llm_risk_threshold": 0.45,
         "extra_args": {
           "frame_selection": "critical",
-          "critical_top_k": 5
+          "critical_top_k": 8
         }
       }
     ]

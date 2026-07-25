@@ -12,7 +12,7 @@ from .io_utils import write_csv, write_json
 from .stratified_sampler import _allocate_quotas, _group_key, _read_csv, _stable_dataset_seed
 
 
-DEFAULT_CONFIG = "src/responsivegpt/experiments/configs/paper_responsivegpt_main_token_saver.json"
+DEFAULT_CONFIG = "src/responsivegpt/experiments/configs/paper_fullpool_census_base.json"
 DEFAULT_CENSUS = "data/full_pool_census/cornercase_v1/full_pool_episode_census.csv"
 
 

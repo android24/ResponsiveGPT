@@ -691,6 +691,12 @@ def aggregate_experiment(experiment_dir: str | Path) -> list[dict]:
         budget_match_audit=budget_match_audit,
         profile_learning_significance=profile_learning_significance,
     )
+    try:
+        from .paper_figure_plotter import build_paper_figures
+
+        build_paper_figures(experiment_dir)
+    except Exception as exc:
+        print(f"[WARN] Paper figure generation failed: {exc}")
     write_analysis_provenance(experiment_dir, usable_statuses)
     return rows
 

@@ -31,23 +31,19 @@ EXPECTED_DATASET_PATHS = {
 }
 
 APPROVED_ROLES = {
-    "paper_cornercase_token_efficiency_smoke": "token_efficiency_smoke",
-    "paper_cornercase_token_efficiency_smoke_cachecheck": "token_efficiency_smoke",
-    "paper_round_smoke": "token_efficiency_smoke",
-    "paper_round_smoke_cachecheck": "token_efficiency_smoke",
-    "paper_responsivegpt_main_token_saver": "main_matrix",
-    "paper_core_main_sampled_token_saver": "main_matrix",
-    "paper_core_main_sampled_token_saver_final_v2": "main_matrix",
+    "paper_cornercase_token_efficiency_smoke_v2": "token_efficiency_smoke",
+    "paper_fullpool_census_base": "fullpool_census_base",
+    "paper_core_main_sampled_token_saver_final_v3": "main_matrix",
     "paper_core_rag_budget_matched": "rag_budget_matched",
-    "paper_planning_ablation_token_saver": "planning_ablation",
-    "paper_core_planning_ablation_sampled_token_saver": "planning_ablation",
+    "paper_core_planning_ablation_sampled_token_saver_v3": "planning_ablation",
+    "paper_case_memory_budget_ablation_token_saver": "memory_budget_ablation",
     "paper_core_profile_learning_ablation": "profile_learning_ablation",
     "paper_core_robustness_repeats": "robustness_repeats",
     "paper_profile_adaptation_budget_curve": "profile_adaptation_budget_curve",
-    "paper_fullpass_v1_balanced_token_saver": "fullpass_v1",
     "paper_fullpool_sparse_balanced_token_saver": "fullpass_v1",
-    "paper_dense_sparse_calibration_token_saver": "dense_sparse_calibration",
-    "paper_mode_comparison_token_saver": "mode_comparison",
+    "paper_dense_sparse_planning_calibration_v2": "dense_sparse_calibration",
+    "paper_final_system_fullframe_showcase_v1": "final_system_fullframe_showcase",
+    "paper_mode_comparison_token_saver_v2": "mode_comparison",
 }
 
 SKIP_CONFIG_NAMES = {"datasets"}
@@ -248,8 +244,26 @@ def _audit_approved_role(role: str, fields: dict, issues: list[str]) -> None:
             issues.append("dense-sparse calibration should isolate full_rag_grounded")
         if "dense_all" not in llm_policy_variants or "sparse_critical" not in llm_policy_variants:
             issues.append("dense-sparse calibration must include dense_all and sparse_critical variants")
-        if "planning_on_interval" not in planning_variants:
-            issues.append("dense-sparse calibration should run with planning_on_interval")
+        if not {"planning_off", "planning_adaptive_peek"}.issubset(planning_variants):
+            issues.append("dense-sparse calibration must compare planning_off and planning_adaptive_peek")
+        if not {"off", "interval_risk"}.issubset(planning_modes):
+            issues.append("dense-sparse calibration must include off and adaptive slow-thinking modes")
+        if limits != {"30"}:
+            issues.append("dense-sparse calibration should use limit=30 as a bounded dense check")
+
+    if role == "final_system_fullframe_showcase":
+        if not _has_all(datasets, CORE_DATASETS):
+            issues.append("final full-frame showcase must cover all core datasets")
+        if profiles != {"balanced"}:
+            issues.append("final full-frame showcase should isolate the balanced profile")
+        if rag_variants != {"full_rag_grounded"}:
+            issues.append("final full-frame showcase should isolate full_rag_grounded")
+        if planning_variants != {"planning_adaptive_peek"} or planning_modes != {"interval_risk"}:
+            issues.append("final full-frame showcase must use adaptive slow-thinking planning")
+        if "event_triggered" not in llm_policies:
+            issues.append("final full-frame showcase should use event_triggered policy")
+        if limits != {"30"}:
+            issues.append("final full-frame showcase should use limit=30")
 
     if role == "mode_comparison":
         if not _has_all(datasets, CORE_DATASETS):
@@ -266,6 +280,36 @@ def _audit_approved_role(role: str, fields: dict, issues: list[str]) -> None:
             issues.append("mode comparison should use event_triggered policy")
         if limits != {"0"}:
             issues.append("mode comparison should use limit=0 on the sampled core set")
+
+    if role == "memory_budget_ablation":
+        if not _has_all(datasets, CORE_DATASETS):
+            issues.append("memory/budget ablation must cover all core datasets")
+        if not _has_all(profiles, CORE_PROFILES):
+            issues.append("memory/budget ablation must cover all driver profiles")
+        if rag_variants != {"full_rag_grounded"}:
+            issues.append("memory/budget ablation should isolate full_rag_grounded")
+        if not _has_any(planning_modes, ["interval_risk", "interval"]):
+            issues.append("memory/budget ablation must include slow-thinking planning")
+        required_variants = {
+            "no_memory_no_governor",
+            "case_memory_only",
+            "budget_governor_only",
+            "case_memory_budget_governor",
+        }
+        if not required_variants.issubset(llm_policy_variants):
+            issues.append("memory/budget ablation must include all four memory/governor cells")
+        if limits != {"0"}:
+            issues.append("memory/budget ablation should use limit=0 on the sampled core set")
+
+    if role == "fullpool_census_base":
+        if not _has_all(datasets, CORE_DATASETS):
+            issues.append("full-pool census base must cover all core datasets")
+        if not _has_all(profiles, CORE_PROFILES):
+            issues.append("full-pool census base must preserve all driver profiles")
+        if not _has_all(rag_variants, CORE_RAG_VARIANTS):
+            issues.append("full-pool census base should preserve the core RAG variants")
+        if limits != {"0"}:
+            issues.append("full-pool census base should use limit=0")
 
 
 def audit_config(path: Path) -> dict:
@@ -470,7 +514,10 @@ def make_plan_coverage_rows(config_rows: list[dict], data_rows: list[dict]) -> l
     smoke = _row_by_role(config_rows, "token_efficiency_smoke")
     fullpass = _row_by_role(config_rows, "fullpass_v1")
     mode_comparison = _row_by_role(config_rows, "mode_comparison")
+    dense_sparse = _row_by_role(config_rows, "dense_sparse_calibration")
+    final_showcase = _row_by_role(config_rows, "final_system_fullframe_showcase")
     rag_budget = _row_by_role(config_rows, "rag_budget_matched")
+    memory_budget = _row_by_role(config_rows, "memory_budget_ablation")
     profile_learning = _row_by_role(config_rows, "profile_learning_ablation")
     robustness = _row_by_role(config_rows, "robustness_repeats")
     adaptation_budget = _row_by_role(config_rows, "profile_adaptation_budget_curve")
@@ -608,6 +655,37 @@ def make_plan_coverage_rows(config_rows: list[dict], data_rows: list[dict]) -> l
             ),
         },
         {
+            "audit_item": "dense_sparse_planning_calibration_ready",
+            "status": _pass_fail(
+                dense_sparse.get("status") == "pass"
+                and int(dense_sparse.get("job_count") or 0) == 12
+                and int(dense_sparse.get("covers_all_core_datasets") or 0) == 1
+                and "dense_all" in str(dense_sparse.get("llm_policy_variants") or "")
+                and "sparse_critical" in str(dense_sparse.get("llm_policy_variants") or "")
+                and "planning_off" in str(dense_sparse.get("planning_variants") or "")
+                and "planning_adaptive_peek" in str(dense_sparse.get("planning_variants") or "")
+            ),
+            "evidence": (
+                f"jobs={dense_sparse.get('job_count')}; datasets={dense_sparse.get('datasets')}; "
+                f"planning={dense_sparse.get('planning_variants')}; variants={dense_sparse.get('llm_policy_variants')}"
+            ),
+        },
+        {
+            "audit_item": "final_system_fullframe_showcase_ready",
+            "status": _pass_fail(
+                final_showcase.get("status") == "pass"
+                and int(final_showcase.get("job_count") or 0) == 3
+                and int(final_showcase.get("covers_all_core_datasets") or 0) == 1
+                and str(final_showcase.get("profiles") or "") == "balanced"
+                and str(final_showcase.get("rag_variants") or "") == "full_rag_grounded"
+                and str(final_showcase.get("planning_variants") or "") == "planning_adaptive_peek"
+            ),
+            "evidence": (
+                f"jobs={final_showcase.get('job_count')}; datasets={final_showcase.get('datasets')}; "
+                f"profile={final_showcase.get('profiles')}; planning={final_showcase.get('planning_variants')}"
+            ),
+        },
+        {
             "audit_item": "mode_comparison_ready",
             "status": _pass_fail(
                 mode_comparison.get("status") == "pass"
@@ -618,6 +696,27 @@ def make_plan_coverage_rows(config_rows: list[dict], data_rows: list[dict]) -> l
             "evidence": (
                 f"jobs={mode_comparison.get('job_count')}; datasets={mode_comparison.get('datasets')}; "
                 f"modes={mode_comparison.get('modes')}; planning={mode_comparison.get('planning_variants')}"
+            ),
+        },
+        {
+            "audit_item": "memory_budget_ablation_ready",
+            "status": _pass_fail(
+                memory_budget.get("status") == "pass"
+                and int(memory_budget.get("job_count") or 0) == 36
+                and int(memory_budget.get("covers_all_core_datasets") or 0) == 1
+                and int(memory_budget.get("covers_all_driver_profiles") or 0) == 1
+                and {
+                    "no_memory_no_governor",
+                    "case_memory_only",
+                    "budget_governor_only",
+                    "case_memory_budget_governor",
+                }.issubset(
+                    set(str(memory_budget.get("llm_policy_variants") or "").split(","))
+                )
+            ),
+            "evidence": (
+                f"jobs={memory_budget.get('job_count')}; datasets={memory_budget.get('datasets')}; "
+                f"profiles={memory_budget.get('profiles')}; variants={memory_budget.get('llm_policy_variants')}"
             ),
         },
     ]

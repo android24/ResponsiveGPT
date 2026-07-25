@@ -10,7 +10,7 @@ from .io_utils import ensure_dir, write_csv, write_json
 from ..interface.adapters.adapter_factory import build_event_adapter, build_sequence_adapter
 
 
-DEFAULT_CONFIG = "src/responsivegpt/experiments/configs/paper_responsivegpt_main_token_saver.json"
+DEFAULT_CONFIG = "src/responsivegpt/experiments/configs/paper_fullpool_census_base.json"
 DEFAULT_OUT_DIR = "data/episode_audit"
 
 

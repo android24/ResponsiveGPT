@@ -1,5 +1,5 @@
 {
-  "name": "paper_core_main_sampled_token_saver",
+  "name": "paper_case_memory_budget_ablation_token_saver",
   "dataset_registry_path": "datasets.json",
   "datasets": {
     "highd": {
@@ -34,6 +34,17 @@
       "frame_selection": "all",
       "llm_max_stale_frames": 30,
       "llm_risk_delta_threshold": 0.15,
+      "llm_error_cooldown_frames": 30,
+      "rag_evidence_debounce_frames": 10,
+      "rag_evidence_signature_top_k": 3,
+      "grounding_refresh_debounce_frames": 10,
+      "case_memory_top_k": 3,
+      "case_memory_min_similarity": 0.72,
+      "case_memory_novelty_threshold": 0.45,
+      "case_memory_include_in_prompt": 1,
+      "budget_governor_warn_ratio": 0.8,
+      "budget_governor_critical_ratio": 0.95,
+      "max_wall_time_s": 0,
       "planning_interval": 100,
       "planning_min_gap": 100,
       "planning_risk_threshold": 0.60,
@@ -53,18 +64,6 @@
     ],
     "rag_variants": [
       {
-        "name": "no_rag",
-        "use_retriever": 0,
-        "rag_mode": "none",
-        "require_grounded_decision": 0
-      },
-      {
-        "name": "naive_rag",
-        "use_retriever": 1,
-        "rag_mode": "naive",
-        "require_grounded_decision": 0
-      },
-      {
         "name": "full_rag_grounded",
         "use_retriever": 1,
         "rag_mode": "full",
@@ -77,17 +76,50 @@
         "use_planning_thread": 1,
         "planning_mode": "interval_risk",
         "extra_args": {
-          "planning_peek": 1,
-          "planning_min_gap": 20
+          "planning_peek": 1
         }
       }
     ],
     "llm_policies": [
       {
-        "name": "event_triggered_compact",
+        "name": "no_memory_no_governor",
         "llm_policy": "event_triggered",
         "llm_stride": 30,
-        "llm_risk_threshold": 0.45
+        "llm_risk_threshold": 0.45,
+        "extra_args": {
+          "use_case_memory": 0,
+          "use_budget_governor": 0
+        }
+      },
+      {
+        "name": "case_memory_only",
+        "llm_policy": "event_triggered",
+        "llm_stride": 30,
+        "llm_risk_threshold": 0.45,
+        "extra_args": {
+          "use_case_memory": 1,
+          "use_budget_governor": 0
+        }
+      },
+      {
+        "name": "budget_governor_only",
+        "llm_policy": "event_triggered",
+        "llm_stride": 30,
+        "llm_risk_threshold": 0.45,
+        "extra_args": {
+          "use_case_memory": 0,
+          "use_budget_governor": 1
+        }
+      },
+      {
+        "name": "case_memory_budget_governor",
+        "llm_policy": "event_triggered",
+        "llm_stride": 30,
+        "llm_risk_threshold": 0.45,
+        "extra_args": {
+          "use_case_memory": 1,
+          "use_budget_governor": 1
+        }
       }
     ]
   }

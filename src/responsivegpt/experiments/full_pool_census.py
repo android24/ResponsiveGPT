@@ -13,7 +13,7 @@ from responsivegpt.interface.adapters.adapter_factory import build_event_adapter
 from responsivegpt.interface.runner_core import derive_dataset_risk_label
 
 
-DEFAULT_CONFIG = "src/responsivegpt/experiments/configs/paper_responsivegpt_main_token_saver.json"
+DEFAULT_CONFIG = "src/responsivegpt/experiments/configs/paper_fullpool_census_base.json"
 
 
 def _to_float(value):

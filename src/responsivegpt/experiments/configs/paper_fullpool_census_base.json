@@ -1,5 +1,5 @@
 {
-  "name": "paper_responsivegpt_main_token_saver",
+  "name": "paper_fullpool_census_base",
   "dataset_registry_path": "datasets.json",
   "datasets": [
     "highd",

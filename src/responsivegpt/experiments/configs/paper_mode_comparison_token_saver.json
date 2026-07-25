@@ -1,5 +1,5 @@
 {
-  "name": "paper_mode_comparison_token_saver",
+  "name": "paper_mode_comparison_token_saver_v2",
   "dataset_registry_path": "datasets.json",
   "datasets": {
     "highd": {
@@ -34,7 +34,20 @@
       "frame_selection": "critical",
       "critical_top_k": 8,
       "llm_max_stale_frames": 30,
-      "llm_risk_delta_threshold": 0.15
+      "llm_risk_delta_threshold": 0.15,
+      "llm_error_cooldown_frames": 30,
+      "rag_evidence_debounce_frames": 10,
+      "rag_evidence_signature_top_k": 3,
+      "grounding_refresh_debounce_frames": 10,
+      "use_case_memory": 0,
+      "case_memory_top_k": 3,
+      "case_memory_min_similarity": 0.72,
+      "case_memory_novelty_threshold": 0.45,
+      "case_memory_include_in_prompt": 0,
+      "use_budget_governor": 1,
+      "budget_governor_warn_ratio": 0.8,
+      "budget_governor_critical_ratio": 0.95,
+      "max_wall_time_s": 21600
     }
   },
   "matrix": {
@@ -51,7 +64,8 @@
           "history_window": 0,
           "use_trigger": 0,
           "use_profile_learner": 0,
-          "frame_selection": "all"
+          "frame_selection": "all",
+          "use_case_memory": 0
         }
       },
       {
@@ -62,7 +76,12 @@
           "use_trigger": 1,
           "use_profile_learner": 1,
           "frame_selection": "critical",
-          "critical_top_k": 8
+          "critical_top_k": 8,
+          "use_case_memory": 1,
+          "case_memory_top_k": 3,
+          "case_memory_min_similarity": 0.72,
+          "case_memory_novelty_threshold": 0.45,
+          "case_memory_include_in_prompt": 1
         }
       }
     ],

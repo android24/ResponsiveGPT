@@ -1,5 +1,5 @@
 {
-  "name": "paper_core_planning_ablation_sampled_token_saver",
+  "name": "paper_core_planning_ablation_sampled_token_saver_v3",
   "dataset_registry_path": "datasets.json",
   "datasets": {
     "highd": {
@@ -18,7 +18,7 @@
   "defaults": {
     "mode": "episode",
     "limit": 0,
-    "job_timeout_s": 43200,
+    "job_timeout_s": 7200,
     "model_role": "cheap",
     "feedback": "Prioritize safety, legal compliance, and interaction smoothness while avoiding clearly dangerous operations.",
     "llm_stride": 30,
@@ -29,13 +29,33 @@
       "use_profile_learner": 1,
       "history_window": 10,
       "rag_budget": "reactive_low",
-      "rag_top_k": 8,
+      "rag_top_k": 5,
       "trace_detail": 0,
-      "frame_selection": "all",
-      "llm_max_stale_frames": 30,
-      "llm_risk_delta_threshold": 0.15,
-      "planning_interval": 100,
-      "planning_min_gap": 100,
+      "frame_selection": "critical",
+      "critical_top_k": 8,
+      "llm_max_stale_frames": 60,
+      "llm_risk_delta_threshold": 0.20,
+      "llm_error_cooldown_frames": 60,
+      "rag_evidence_debounce_frames": 10,
+      "rag_evidence_signature_top_k": 3,
+      "grounding_refresh_debounce_frames": 10,
+      "use_case_memory": 1,
+      "case_memory_top_k": 1,
+      "case_memory_min_similarity": 0.72,
+      "case_memory_novelty_threshold": 0.45,
+      "case_memory_include_in_prompt": 1,
+      "use_budget_governor": 1,
+      "budget_governor_warn_ratio": 0.8,
+      "budget_governor_critical_ratio": 0.95,
+      "max_wall_time_s": 5400,
+      "max_llm_calls": 900,
+      "max_reactive_api_attempts": 1000,
+      "max_reactive_tokens": 2000000,
+      "max_planning_calls": 450,
+      "max_planning_api_attempts": 500,
+      "max_planning_tokens": 900000,
+      "planning_interval": 40,
+      "planning_min_gap": 40,
       "planning_risk_threshold": 0.60,
       "planning_max_history": 8
     }
@@ -90,7 +110,8 @@
         "planning_mode": "interval_risk",
         "extra_args": {
           "planning_peek": 1,
-          "planning_min_gap": 20
+          "planning_min_gap": 20,
+          "planning_interval": 20
         }
       }
     ],
