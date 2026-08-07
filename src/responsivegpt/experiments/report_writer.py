@@ -21,6 +21,8 @@ def write_report(
     significance_table: list[dict] | None = None,
     weighted_primary_table: list[dict] | None = None,
     weighted_significance_table: list[dict] | None = None,
+    planning_significance_table: list[dict] | None = None,
+    memory_budget_significance_table: list[dict] | None = None,
     rag_evidence_summary: list[dict] | None = None,
     rag_top_evidence: list[dict] | None = None,
     matrix_completion: dict | None = None,
@@ -358,6 +360,58 @@ def write_report(
             ]
             lines.append("| " + " | ".join(_fmt(v) for v in values) + " |")
 
+    if planning_significance_table:
+        lines.extend([
+            "",
+            "## Fast-Slow Planning Inference Vs Planning Off",
+            "",
+            "| treatment | metric | valid | matched/expected | weight_coverage | mean_delta | ci_low | ci_high | auxiliary_sign_p | auxiliary_wilcoxon_p |",
+            "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
+        ])
+        for row in planning_significance_table[:36]:
+            values = [
+                row.get("treatment_variant"),
+                row.get("metric"),
+                row.get("inference_valid"),
+                (
+                    f"{row.get('matched_clusters')}/"
+                    f"{row.get('expected_clusters')}"
+                ),
+                row.get("paired_weight_coverage"),
+                row.get("mean_delta"),
+                row.get("bootstrap_ci_low"),
+                row.get("bootstrap_ci_high"),
+                row.get("sign_test_p"),
+                row.get("wilcoxon_p"),
+            ]
+            lines.append("| " + " | ".join(_fmt(v) for v in values) + " |")
+
+    if memory_budget_significance_table:
+        lines.extend([
+            "",
+            "## Case Memory And Budget Governor Inference Vs Baseline",
+            "",
+            "| treatment | metric | valid | matched/expected | weight_coverage | mean_delta | ci_low | ci_high | auxiliary_sign_p | auxiliary_wilcoxon_p |",
+            "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
+        ])
+        for row in memory_budget_significance_table[:36]:
+            values = [
+                row.get("treatment_variant"),
+                row.get("metric"),
+                row.get("inference_valid"),
+                (
+                    f"{row.get('matched_clusters')}/"
+                    f"{row.get('expected_clusters')}"
+                ),
+                row.get("paired_weight_coverage"),
+                row.get("mean_delta"),
+                row.get("bootstrap_ci_low"),
+                row.get("bootstrap_ci_high"),
+                row.get("sign_test_p"),
+                row.get("wilcoxon_p"),
+            ]
+            lines.append("| " + " | ".join(_fmt(v) for v in values) + " |")
+
     if rag_evidence_summary:
         lines.extend([
             "",
@@ -394,6 +448,8 @@ def write_report(
         "- `significance_vs_no_rag.csv`",
         "- `paper_primary_weighted_table.csv`",
         "- `weighted_significance_vs_no_rag.csv`",
+        "- `planning_weighted_effects.csv`",
+        "- `memory_budget_weighted_effects.csv`",
         "- `weighted_metric_summary.csv`",
         "- `weighted_stratum_metric_summary.csv`",
         "- `rag_evidence_summary.csv`",

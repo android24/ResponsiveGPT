@@ -32,6 +32,8 @@ from responsivegpt.experiments.statistical_tests import (
     _apply_holm,
     _hierarchical_adaptation_budget_result,
     _paired_cluster_rows,
+    make_memory_budget_significance_tables,
+    make_planning_significance_tables,
     make_significance_tables,
     make_profile_adaptation_budget_significance,
     make_profile_learning_significance_tables,
@@ -2169,6 +2171,70 @@ class ExperimentIntegrityTests(unittest.TestCase):
             7200,
         )
 
+    def test_case_memory_budget_ablation_is_bounded_no_peek(self):
+        config = load_config(
+            "src/responsivegpt/experiments/configs/"
+            "paper_case_memory_budget_ablation_token_saver.json"
+        )
+        jobs = expand_jobs(config)
+        self.assertEqual(36, len(jobs))
+        self.assertEqual(
+            {"highd", "ind", "round"},
+            {job.dataset for job in jobs},
+        )
+        self.assertEqual(
+            {"aggressive", "balanced", "conservative"},
+            {job.profile_name for job in jobs},
+        )
+        self.assertEqual(
+            {
+                "no_memory_no_governor",
+                "case_memory_only",
+                "budget_governor_only",
+                "case_memory_budget_governor",
+            },
+            {job.llm_policy_variant for job in jobs},
+        )
+        self.assertEqual(
+            {"planning_interval_no_peek"},
+            {job.planning_variant for job in jobs},
+        )
+        self.assertEqual({"interval"}, {job.planning_mode for job in jobs})
+        self.assertEqual({0}, {
+            int(job.extra_args.get("planning_peek", 1)) for job in jobs
+        })
+        self.assertEqual(
+            {"full_rag_grounded"},
+            {job.rag_variant for job in jobs},
+        )
+        self.assertEqual({"all"}, {
+            str(job.extra_args.get("frame_selection")) for job in jobs
+        })
+        self.assertTrue(all(
+            int(job.extra_args.get("max_llm_calls", 0)) > 0
+            for job in jobs
+        ))
+        self.assertTrue(all(
+            int(job.extra_args.get("max_reactive_api_attempts", 0)) > 0
+            for job in jobs
+        ))
+        self.assertTrue(all(
+            int(job.extra_args.get("max_reactive_tokens", 0)) > 0
+            for job in jobs
+        ))
+        self.assertTrue(all(
+            int(job.extra_args.get("max_planning_api_attempts", 0)) > 0
+            for job in jobs
+        ))
+        self.assertTrue(all(
+            int(job.extra_args.get("max_planning_tokens", 0)) > 0
+            for job in jobs
+        ))
+        self.assertLessEqual(
+            int(config.get("defaults", {}).get("job_timeout_s", 0)),
+            7200,
+        )
+
     def test_dense_sparse_planning_calibration_covers_dense_and_sparse_endpoints(self):
         config = load_config(
             "src/responsivegpt/experiments/configs/"
@@ -2338,7 +2404,7 @@ class ExperimentIntegrityTests(unittest.TestCase):
             write_csv(root / "weighted_significance_vs_no_rag.csv", [
                 {
                     "dataset": "highd",
-                    "metric": "avg_underreaction_rate",
+                    "metric": "underreaction_rate",
                     "treatment_variant": "full_rag_grounded",
                     "inference_valid": "true",
                     "mean_delta": -0.11,
@@ -2526,6 +2592,136 @@ class ExperimentIntegrityTests(unittest.TestCase):
                 Path(row["path"]).name == "planning_ablation_effect_forest.png"
                 for row in written
             ))
+
+    def test_planning_significance_pairs_against_planning_off(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            weighted_rows = []
+            observation_rows = []
+            for event_index in range(4):
+                for variant, value in [
+                    ("planning_off", 0.30),
+                    ("planning_interval_no_peek", 0.10),
+                ]:
+                    observation_rows.append({
+                        "dataset": "highd",
+                        "mode": "episode",
+                        "profile_name": "balanced",
+                        "use_profile_learner": "1",
+                        "rag_variant": "full_rag_grounded",
+                        "planning_variant": variant,
+                        "llm_policy_variant": "event_triggered_compact",
+                        "profile_adaptation_episodes": "0",
+                        "profile_adaptation_pool_episodes": "0",
+                        "event_index": str(event_index),
+                        "recording_cluster": f"rec_{event_index % 2}",
+                        "metric": "underreaction_rate",
+                        "value": value,
+                        "design_weight": "1.0",
+                    })
+            write_csv(root / "weighted_episode_observations.csv", observation_rows)
+            for variant, mean in [
+                ("planning_off", 0.30),
+                ("planning_interval_no_peek", 0.10),
+            ]:
+                weighted_rows.append({
+                    "estimate_valid": "true",
+                    "dataset": "highd",
+                    "mode": "episode",
+                    "profile_name": "balanced",
+                    "use_profile_learner": "1",
+                    "rag_variant": "full_rag_grounded",
+                    "planning_variant": variant,
+                    "llm_policy_variant": "event_triggered_compact",
+                    "profile_adaptation_episodes": "0",
+                    "profile_adaptation_pool_episodes": "0",
+                    "metric": "underreaction_rate",
+                    "weighted_mean": mean,
+                })
+            rows = make_planning_significance_tables(
+                weighted_rows,
+                root,
+                observation_csv=root / "weighted_episode_observations.csv",
+            )
+            self.assertTrue(rows)
+            row = next(
+                item for item in rows
+                if item["metric"] == "underreaction_rate"
+            )
+            self.assertEqual("planning_off", row["baseline_variant"])
+            self.assertEqual(
+                "planning_interval_no_peek",
+                row["treatment_variant"],
+            )
+            self.assertTrue(row["inference_valid"])
+            self.assertLess(float(row["mean_delta"]), 0.0)
+            self.assertTrue((root / "planning_weighted_effects.csv").exists())
+
+    def test_memory_budget_significance_pairs_against_baseline(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            weighted_rows = []
+            observation_rows = []
+            for event_index in range(4):
+                for variant, value in [
+                    ("no_memory_no_governor", 0.30),
+                    ("budget_governor_only", 0.12),
+                ]:
+                    observation_rows.append({
+                        "dataset": "highd",
+                        "mode": "episode",
+                        "profile_name": "balanced",
+                        "use_profile_learner": "1",
+                        "rag_variant": "full_rag_grounded",
+                        "planning_variant": "planning_interval_no_peek",
+                        "llm_policy_variant": variant,
+                        "profile_adaptation_episodes": "0",
+                        "profile_adaptation_pool_episodes": "0",
+                        "event_index": str(event_index),
+                        "recording_cluster": f"rec_{event_index % 2}",
+                        "metric": "underreaction_rate",
+                        "value": value,
+                        "design_weight": "1.0",
+                    })
+            write_csv(root / "weighted_episode_observations.csv", observation_rows)
+            for variant, mean in [
+                ("no_memory_no_governor", 0.30),
+                ("budget_governor_only", 0.12),
+            ]:
+                weighted_rows.append({
+                    "estimate_valid": "true",
+                    "dataset": "highd",
+                    "mode": "episode",
+                    "profile_name": "balanced",
+                    "use_profile_learner": "1",
+                    "rag_variant": "full_rag_grounded",
+                    "planning_variant": "planning_interval_no_peek",
+                    "llm_policy_variant": variant,
+                    "profile_adaptation_episodes": "0",
+                    "profile_adaptation_pool_episodes": "0",
+                    "metric": "underreaction_rate",
+                    "weighted_mean": mean,
+                })
+            rows = make_memory_budget_significance_tables(
+                weighted_rows,
+                root,
+                observation_csv=root / "weighted_episode_observations.csv",
+            )
+            self.assertTrue(rows)
+            row = next(
+                item for item in rows
+                if item["metric"] == "underreaction_rate"
+            )
+            self.assertEqual(
+                "no_memory_no_governor",
+                row["baseline_variant"],
+            )
+            self.assertEqual("budget_governor_only", row["treatment_variant"])
+            self.assertTrue(row["inference_valid"])
+            self.assertLess(float(row["mean_delta"]), 0.0)
+            self.assertTrue(
+                (root / "memory_budget_weighted_effects.csv").exists()
+            )
 
     def test_profile_learning_ablation_has_fixed_and_adaptive_jobs(self):
         config = load_config(

@@ -394,7 +394,12 @@ Matrix:
 ```
 
 This isolates whether causal prior-case memory and the dynamic budget governor
-reduce LLM cost without degrading corner-case response quality.
+reduce LLM cost without degrading corner-case response quality. It uses
+`planning_interval_no_peek` plus hard reactive/planning request, token, and
+wall-time caps, so the ablation does not inherit the negative Slow-to-Fast peek
+effect observed in the planning mechanism study.
+The refreshed config writes to
+`runs/experiments/paper_case_memory_budget_ablation_token_saver_v2`.
 
 ## 11.2 Profile Learning Ablation
 
@@ -435,6 +440,7 @@ After `run_matrix` finishes, aggregation automatically writes:
 - `profile_adaptation_table.csv`
 - `mode_comparison_table.csv`
 - `significance_vs_no_rag.csv`
+- `planning_weighted_effects.csv`
 - `weighted_metric_summary.csv`
 - `weighted_stratum_metric_summary.csv`
 - `matrix_completion.json`
@@ -472,7 +478,8 @@ table is unavailable.
   composition, and full-pool versus evaluation-sample stratum coverage.
 - Fast-slow planning ablation figures: F1/underreaction/token summaries,
   planning call/reuse/precision mechanism view, design-weighted planning
-  metrics with 95% CIs, and paired effect forest plots when available.
+  metrics with 95% CIs, and planning-vs-off paired effect forest plots from
+  `planning_weighted_effects.csv` when available.
 - Dense-sparse calibration figures: violation agreement, frame reduction,
   alignment drift, and cost-reduction versus alignment-drift trade-off.
 - Mode, memory, RAG-budget, profile-adaptation, and profile-learning figures:

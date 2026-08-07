@@ -659,7 +659,10 @@ def _build_main_matrix_figures(experiment_dir: Path, out_dir: Path, manifest: li
             rag_evidence or rows,
             category="dataset",
             series="rag_variant",
-            metric="grounded_decision_rate",
+            metric=(
+                "grounded_rate"
+                if rag_evidence else "grounded_decision_rate"
+            ),
             title="Main Matrix: Grounded Decision Rate",
             ylabel="Grounded decision rate",
             output_path=out_dir / "main_matrix_grounded_decision_rate.png",
@@ -699,10 +702,12 @@ def _build_main_matrix_figures(experiment_dir: Path, out_dir: Path, manifest: li
             [
                 row for row in weighted_effects
                 if row.get("metric") in {
-                    "avg_underreaction_rate",
-                    "grounded_decision_rate",
-                    "hallucinated_citation_rate",
-                    "reactive_llm_call_rate",
+                    "underreaction_rate",
+                    "rag_grounded_decision_rate",
+                    "rag_output_invalid_citation_frame_rate",
+                    "reaction_success_rate",
+                    "missed_intervention_rate",
+                    "safety_action_appropriateness",
                 }
             ],
             title="Design-Weighted Effects Versus No-RAG Baseline",
@@ -749,7 +754,8 @@ def _build_planning_ablation_figures(experiment_dir: Path, out_dir: Path, manife
         or _read_csv(experiment_dir / "weighted_metric_summary.csv")
     )
     weighted_effects = (
-        _read_csv(experiment_dir / "profile_adaptation_budget_significance.csv")
+        _read_csv(experiment_dir / "planning_weighted_effects.csv")
+        or _read_csv(experiment_dir / "profile_adaptation_budget_significance.csv")
         or _read_csv(experiment_dir / "weighted_significance_vs_no_rag.csv")
         or _read_csv(experiment_dir / "significance_vs_no_rag.csv")
     )
@@ -854,16 +860,17 @@ def _build_planning_ablation_figures(experiment_dir: Path, out_dir: Path, manife
             [
                 row for row in weighted_effects
                 if row.get("metric") in {
-                    "planning_miss_rate",
-                    "planning_reactive_consistency",
                     "underreaction_rate",
-                    "avg_underreaction_rate",
+                    "overreaction_rate",
+                    "reaction_success_rate",
+                    "rag_grounded_decision_rate",
+                    "safety_action_appropriateness",
                 }
             ],
-            title="Fast-Slow Ablation: Paired Effect Estimates",
+            title="Fast-Slow Ablation: Planning Effects Versus Planning Off",
             output_path=out_dir / "planning_ablation_effect_forest.png",
         ),
-        "weighted_significance_vs_no_rag.csv",
+        "planning_weighted_effects.csv",
     )
 
 
@@ -972,6 +979,19 @@ def _build_mode_figures(experiment_dir: Path, out_dir: Path, manifest: list[dict
 
 def _build_memory_budget_figures(experiment_dir: Path, out_dir: Path, manifest: list[dict]) -> None:
     rows = _read_csv(experiment_dir / "aggregate_summary.csv")
+    effect_rows = _read_csv(experiment_dir / "memory_budget_weighted_effects.csv")
+    effect_metrics = {
+        "underreaction_rate",
+        "reaction_success_rate",
+        "missed_intervention_rate",
+        "safety_action_appropriateness",
+        "offline_profile_utility",
+        "rag_grounded_decision_rate",
+    }
+    effect_rows = [
+        row for row in effect_rows
+        if row.get("metric") in effect_metrics
+    ]
     _record(
         manifest,
         "memory_budget_ablation",
@@ -989,6 +1009,20 @@ def _build_memory_budget_figures(experiment_dir: Path, out_dir: Path, manifest: 
     _record(
         manifest,
         "memory_budget_ablation",
+        "variant_llm_attempts",
+        _plot_simple_bars(
+            rows,
+            category="llm_policy_variant",
+            metric="llm_attempts",
+            title="Case Memory And Budget Governor: LLM Attempts",
+            ylabel="LLM attempts",
+            output_path=out_dir / "memory_budget_llm_attempts.png",
+        ),
+        "aggregate_summary.csv",
+    )
+    _record(
+        manifest,
+        "memory_budget_ablation",
         "variant_tokens",
         _plot_simple_bars(
             rows,
@@ -999,6 +1033,34 @@ def _build_memory_budget_figures(experiment_dir: Path, out_dir: Path, manifest: 
             output_path=out_dir / "memory_budget_reactive_tokens.png",
         ),
         "aggregate_summary.csv",
+    )
+    _record(
+        manifest,
+        "memory_budget_ablation",
+        "quality_cost_tradeoff",
+        _plot_scatter(
+            rows,
+            x_metric="reactive_total_tokens",
+            y_metric="f1",
+            label_field="llm_policy_variant",
+            title="Case Memory And Budget Governor: Performance Versus Tokens",
+            xlabel="Reactive tokens",
+            ylabel="F1",
+            output_path=out_dir / "memory_budget_f1_vs_reactive_tokens.png",
+        ),
+        "aggregate_summary.csv",
+    )
+    _record(
+        manifest,
+        "memory_budget_ablation",
+        "memory_budget_effect_forest",
+        _plot_effect_forest(
+            effect_rows,
+            title="Case Memory And Budget Governor: Weighted Effects",
+            output_path=out_dir / "memory_budget_effect_forest.png",
+            max_rows=30,
+        ),
+        "memory_budget_weighted_effects.csv",
     )
 
 

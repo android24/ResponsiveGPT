@@ -354,19 +354,37 @@ def _paired_observation_rows(
             "pair_key": "",
         }
 
+    cluster_values = {}
+    for (
+        cell,
+        cluster,
+        _,
+        _,
+        _,
+        baseline_num,
+        baseline_den,
+        treatment_num,
+        treatment_den,
+    ) in episode_pairs:
+        state = cluster_values.setdefault(
+            (cell, cluster), [0.0, 0.0, 0.0, 0.0]
+        )
+        state[0] += baseline_num
+        state[1] += baseline_den
+        state[2] += treatment_num
+        state[3] += treatment_den
+
     def cell_average(index: int, cluster_weights=None):
         by_cell = {}
         for (
             cell,
             cluster,
-            _,
-            _,
-            _,
+        ), (
             baseline_num,
             baseline_den,
             treatment_num,
             treatment_den,
-        ) in episode_pairs:
+        ) in cluster_values.items():
             numerator = (baseline_num, treatment_num)[index]
             denominator = (baseline_den, treatment_den)[index]
             weight = (
@@ -405,25 +423,6 @@ def _paired_observation_rows(
         ci_high = boot[int(0.975 * (rounds - 1))]
     else:
         ci_low = ci_high = None
-    cluster_values = {}
-    for (
-        cell,
-        cluster,
-        _,
-        _,
-        _,
-        baseline_num,
-        baseline_den,
-        treatment_num,
-        treatment_den,
-    ) in episode_pairs:
-        state = cluster_values.setdefault(
-            (cell, cluster), [0.0, 0.0, 0.0, 0.0]
-        )
-        state[0] += baseline_num
-        state[1] += baseline_den
-        state[2] += treatment_num
-        state[3] += treatment_den
     diffs = [
         treatment_num / treatment_den - baseline_num / baseline_den
         for baseline_num, baseline_den, treatment_num, treatment_den
@@ -674,6 +673,7 @@ def make_weighted_significance_tables(
     baseline_variant: str = DEFAULT_BASELINE,
     metrics: list[str] | None = None,
     observation_csv: str | Path | None = None,
+    observation_rows: list[dict] | None = None,
 ) -> list[dict]:
     output_dir = Path(output_dir)
     metrics = metrics or [
@@ -696,11 +696,12 @@ def make_weighted_significance_tables(
         "unnecessary_intervention_rate",
         "missed_intervention_rate",
     }
-    observation_rows = (
-        _read_aggregate_csv(Path(observation_csv))
-        if observation_csv and Path(observation_csv).exists()
-        else []
-    )
+    if observation_rows is None:
+        observation_rows = (
+            _read_aggregate_csv(Path(observation_csv))
+            if observation_csv and Path(observation_csv).exists()
+            else []
+        )
     by_variant_key_metric = {}
     variants = set()
     for row in weighted_rows:
@@ -724,6 +725,14 @@ def make_weighted_significance_tables(
         )
         variants.add(variant)
         by_variant_key_metric[(variant, key, metric)] = value
+
+    if baseline_variant not in variants or len(variants) < 2:
+        write_csv(
+            output_dir / "weighted_significance_vs_no_rag.csv",
+            [],
+            fieldnames=SIGNIFICANCE_FIELDS,
+        )
+        return []
 
     out = []
     for treatment in sorted(variants):
@@ -820,11 +829,370 @@ def make_weighted_significance_tables(
     return out
 
 
+def make_planning_significance_tables(
+    weighted_rows: list[dict],
+    output_dir: str | Path,
+    *,
+    baseline_variant: str = "planning_off",
+    metrics: list[str] | None = None,
+    observation_csv: str | Path | None = None,
+    observation_rows: list[dict] | None = None,
+) -> list[dict]:
+    output_dir = Path(output_dir)
+    metrics = metrics or [
+        "underreaction_rate",
+        "overreaction_rate",
+        "reaction_success_rate",
+        "reaction_delay_frames",
+        "decision_flip_rate",
+        "rag_grounded_decision_rate",
+        "rag_evidence_usage_rate",
+        "unnecessary_intervention_rate",
+        "missed_intervention_rate",
+        "safety_action_appropriateness",
+        "offline_profile_utility",
+    ]
+    lower_is_better = {
+        "underreaction_rate",
+        "overreaction_rate",
+        "reaction_delay_frames",
+        "decision_flip_rate",
+        "unnecessary_intervention_rate",
+        "missed_intervention_rate",
+    }
+    if observation_rows is None:
+        observation_rows = (
+            _read_aggregate_csv(Path(observation_csv))
+            if observation_csv and Path(observation_csv).exists()
+            else []
+        )
+    by_variant_key_metric = {}
+    variants = set()
+    for row in weighted_rows:
+        valid = row.get("estimate_valid")
+        if valid is not True and str(valid).lower() not in {"true", "1"}:
+            continue
+        variant = str(row.get("planning_variant") or "")
+        metric = str(row.get("metric") or "")
+        value = _to_float(row.get("weighted_mean"))
+        if not variant or metric not in metrics or value is None:
+            continue
+        key = (
+            row.get("dataset"),
+            row.get("mode"),
+            row.get("profile_name"),
+            row.get("use_profile_learner"),
+            row.get("rag_variant"),
+            row.get("llm_policy_variant"),
+            row.get("profile_adaptation_episodes"),
+            row.get("profile_adaptation_pool_episodes"),
+        )
+        variants.add(variant)
+        by_variant_key_metric[(variant, key, metric)] = value
+
+    if baseline_variant not in variants or len(variants) < 2:
+        write_csv(
+            output_dir / "planning_weighted_effects.csv",
+            [],
+            fieldnames=SIGNIFICANCE_FIELDS,
+        )
+        return []
+
+    out = []
+    for treatment in sorted(variants):
+        if treatment == baseline_variant:
+            continue
+        for metric in metrics:
+            metric_role = (
+                "secondary_conditional"
+                if metric == "reaction_delay_frames"
+                else "primary"
+            )
+            if observation_rows:
+                cluster_row = _paired_observation_rows(
+                    observation_rows,
+                    variant_field="planning_variant",
+                    baseline_variant=baseline_variant,
+                    treatment_variant=treatment,
+                    metric=metric,
+                    lower_is_better=metric in lower_is_better,
+                    cell_fields=(
+                        "dataset",
+                        "mode",
+                        "profile_name",
+                        "use_profile_learner",
+                        "rag_variant",
+                        "llm_policy_variant",
+                        "profile_adaptation_episodes",
+                        "profile_adaptation_pool_episodes",
+                    ),
+                    estimator=(
+                        "planning_paired_episode_recording_cluster_"
+                        "design_weighted"
+                    ),
+                    metric_role=metric_role,
+                )
+                if cluster_row is not None:
+                    out.append(cluster_row)
+                    continue
+
+            diffs = []
+            baseline_values = []
+            treatment_values = []
+            pair_keys = []
+            for variant, key, row_metric in sorted(by_variant_key_metric):
+                if variant != baseline_variant or row_metric != metric:
+                    continue
+                treatment_value = by_variant_key_metric.get(
+                    (treatment, key, metric)
+                )
+                if treatment_value is None:
+                    continue
+                baseline_value = by_variant_key_metric[
+                    (variant, key, metric)
+                ]
+                baseline_values.append(baseline_value)
+                treatment_values.append(treatment_value)
+                diffs.append(treatment_value - baseline_value)
+                pair_keys.append("/".join(str(x) for x in key))
+
+            if not diffs:
+                continue
+            positive = sum(1 for value in diffs if value > 0)
+            negative = sum(1 for value in diffs if value < 0)
+            ties = sum(1 for value in diffs if value == 0)
+            lower = metric in lower_is_better
+            ci_low, ci_high = _bootstrap_ci(diffs)
+            out.append({
+                "estimator": "planning_design_weighted_cell_paired_auxiliary",
+                "baseline_variant": baseline_variant,
+                "treatment_variant": treatment,
+                "metric": metric,
+                "metric_role": metric_role,
+                "direction": (
+                    "lower_is_better" if lower else "higher_is_better"
+                ),
+                "inference_valid": False,
+                "primary_inference": "none_cell_level_auxiliary",
+                "num_pairs": len(diffs),
+                "num_clusters": len(diffs),
+                "baseline_mean": _mean(baseline_values),
+                "treatment_mean": _mean(treatment_values),
+                "mean_delta": _mean(diffs),
+                "median_delta": _median(diffs),
+                "paired_standardized_effect": (
+                    _standardized_paired_effect(diffs)
+                ),
+                "bootstrap_ci_low": ci_low,
+                "bootstrap_ci_high": ci_high,
+                "improved_pairs": negative if lower else positive,
+                "degraded_pairs": positive if lower else negative,
+                "ties": ties,
+                "sign_test_p": _binom_two_sided_p(positive, negative),
+                "sign_test_p_holm": None,
+                "wilcoxon_p": _wilcoxon_signed_rank_p(diffs),
+                "wilcoxon_p_holm": None,
+                "auxiliary_test_note": (
+                    "Cell-level fallback only; weighted episode "
+                    "observations were unavailable."
+                ),
+                "pair_key": ";".join(pair_keys),
+            })
+
+    _apply_holm(out, "sign_test_p", "sign_test_p_holm")
+    _apply_holm(out, "wilcoxon_p", "wilcoxon_p_holm")
+    write_csv(
+        output_dir / "planning_weighted_effects.csv",
+        out,
+        fieldnames=SIGNIFICANCE_FIELDS,
+    )
+    return out
+
+
+def make_memory_budget_significance_tables(
+    weighted_rows: list[dict],
+    output_dir: str | Path,
+    *,
+    baseline_variant: str = "no_memory_no_governor",
+    metrics: list[str] | None = None,
+    observation_csv: str | Path | None = None,
+    observation_rows: list[dict] | None = None,
+) -> list[dict]:
+    output_dir = Path(output_dir)
+    metrics = metrics or [
+        "underreaction_rate",
+        "overreaction_rate",
+        "reaction_success_rate",
+        "decision_flip_rate",
+        "rag_grounded_decision_rate",
+        "rag_evidence_usage_rate",
+        "unnecessary_intervention_rate",
+        "missed_intervention_rate",
+        "safety_action_appropriateness",
+        "offline_profile_utility",
+    ]
+    lower_is_better = {
+        "underreaction_rate",
+        "overreaction_rate",
+        "decision_flip_rate",
+        "unnecessary_intervention_rate",
+        "missed_intervention_rate",
+    }
+    if observation_rows is None:
+        observation_rows = (
+            _read_aggregate_csv(Path(observation_csv))
+            if observation_csv and Path(observation_csv).exists()
+            else []
+        )
+    by_variant_key_metric = {}
+    variants = set()
+    for row in weighted_rows:
+        valid = row.get("estimate_valid")
+        if valid is not True and str(valid).lower() not in {"true", "1"}:
+            continue
+        variant = str(row.get("llm_policy_variant") or "")
+        metric = str(row.get("metric") or "")
+        value = _to_float(row.get("weighted_mean"))
+        if not variant or metric not in metrics or value is None:
+            continue
+        key = (
+            row.get("dataset"),
+            row.get("mode"),
+            row.get("profile_name"),
+            row.get("use_profile_learner"),
+            row.get("rag_variant"),
+            row.get("planning_variant"),
+            row.get("profile_adaptation_episodes"),
+            row.get("profile_adaptation_pool_episodes"),
+        )
+        variants.add(variant)
+        by_variant_key_metric[(variant, key, metric)] = value
+
+    if baseline_variant not in variants or len(variants) < 2:
+        write_csv(
+            output_dir / "memory_budget_weighted_effects.csv",
+            [],
+            fieldnames=SIGNIFICANCE_FIELDS,
+        )
+        return []
+
+    out = []
+    for treatment in sorted(variants):
+        if treatment == baseline_variant:
+            continue
+        for metric in metrics:
+            metric_role = (
+                "secondary_conditional"
+                if metric == "decision_flip_rate"
+                else "primary"
+            )
+            if observation_rows:
+                cluster_row = _paired_observation_rows(
+                    observation_rows,
+                    variant_field="llm_policy_variant",
+                    baseline_variant=baseline_variant,
+                    treatment_variant=treatment,
+                    metric=metric,
+                    lower_is_better=metric in lower_is_better,
+                    cell_fields=(
+                        "dataset",
+                        "mode",
+                        "profile_name",
+                        "use_profile_learner",
+                        "rag_variant",
+                        "planning_variant",
+                        "profile_adaptation_episodes",
+                        "profile_adaptation_pool_episodes",
+                    ),
+                    estimator=(
+                        "memory_budget_paired_episode_recording_cluster_"
+                        "design_weighted"
+                    ),
+                    metric_role=metric_role,
+                )
+                if cluster_row is not None:
+                    out.append(cluster_row)
+                    continue
+
+            diffs = []
+            baseline_values = []
+            treatment_values = []
+            pair_keys = []
+            for variant, key, row_metric in sorted(by_variant_key_metric):
+                if variant != baseline_variant or row_metric != metric:
+                    continue
+                treatment_value = by_variant_key_metric.get(
+                    (treatment, key, metric)
+                )
+                if treatment_value is None:
+                    continue
+                baseline_value = by_variant_key_metric[
+                    (variant, key, metric)
+                ]
+                baseline_values.append(baseline_value)
+                treatment_values.append(treatment_value)
+                diffs.append(treatment_value - baseline_value)
+                pair_keys.append("/".join(str(x) for x in key))
+
+            if not diffs:
+                continue
+            positive = sum(1 for value in diffs if value > 0)
+            negative = sum(1 for value in diffs if value < 0)
+            ties = sum(1 for value in diffs if value == 0)
+            lower = metric in lower_is_better
+            ci_low, ci_high = _bootstrap_ci(diffs)
+            out.append({
+                "estimator": "memory_budget_design_weighted_cell_paired_auxiliary",
+                "baseline_variant": baseline_variant,
+                "treatment_variant": treatment,
+                "metric": metric,
+                "metric_role": metric_role,
+                "direction": (
+                    "lower_is_better" if lower else "higher_is_better"
+                ),
+                "inference_valid": False,
+                "primary_inference": "none_cell_level_auxiliary",
+                "num_pairs": len(diffs),
+                "num_clusters": len(diffs),
+                "baseline_mean": _mean(baseline_values),
+                "treatment_mean": _mean(treatment_values),
+                "mean_delta": _mean(diffs),
+                "median_delta": _median(diffs),
+                "paired_standardized_effect": (
+                    _standardized_paired_effect(diffs)
+                ),
+                "bootstrap_ci_low": ci_low,
+                "bootstrap_ci_high": ci_high,
+                "improved_pairs": negative if lower else positive,
+                "degraded_pairs": positive if lower else negative,
+                "ties": ties,
+                "sign_test_p": _binom_two_sided_p(positive, negative),
+                "sign_test_p_holm": None,
+                "wilcoxon_p": _wilcoxon_signed_rank_p(diffs),
+                "wilcoxon_p_holm": None,
+                "auxiliary_test_note": (
+                    "Cell-level fallback only; weighted episode "
+                    "observations were unavailable."
+                ),
+                "pair_key": ";".join(pair_keys),
+            })
+
+    _apply_holm(out, "sign_test_p", "sign_test_p_holm")
+    _apply_holm(out, "wilcoxon_p", "wilcoxon_p_holm")
+    write_csv(
+        output_dir / "memory_budget_weighted_effects.csv",
+        out,
+        fieldnames=SIGNIFICANCE_FIELDS,
+    )
+    return out
+
+
 def make_profile_learning_significance_tables(
     weighted_rows: list[dict],
     output_dir: str | Path,
     *,
     observation_csv: str | Path | None = None,
+    observation_rows: list[dict] | None = None,
 ) -> list[dict]:
     output_dir = Path(output_dir)
     metrics = {
@@ -844,11 +1212,12 @@ def make_profile_learning_significance_tables(
         "reaction_success_rate",
         "safety_action_appropriateness",
     }
-    observation_rows = (
-        _read_aggregate_csv(Path(observation_csv))
-        if observation_csv and Path(observation_csv).exists()
-        else []
-    )
+    if observation_rows is None:
+        observation_rows = (
+            _read_aggregate_csv(Path(observation_csv))
+            if observation_csv and Path(observation_csv).exists()
+            else []
+        )
 
     def normalize_learner(value):
         normalized = str(value).strip().lower()
@@ -885,6 +1254,20 @@ def make_profile_learning_significance_tables(
             row.get("llm_policy_variant"),
         )
         values[(learner, key, metric)] = value
+
+    learners = {learner for learner, _, _ in values}
+    if not {"off", "on"}.issubset(learners):
+        write_csv(
+            output_dir / "profile_learning_weighted_effects.csv",
+            [],
+            fieldnames=SIGNIFICANCE_FIELDS,
+        )
+        write_csv(
+            output_dir / "profile_learning_episode_sensitivity.csv",
+            [],
+            fieldnames=SIGNIFICANCE_FIELDS,
+        )
+        return []
 
     out = []
     episode_sensitivity = []

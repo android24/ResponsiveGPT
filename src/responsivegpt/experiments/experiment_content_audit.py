@@ -36,7 +36,7 @@ APPROVED_ROLES = {
     "paper_core_main_sampled_token_saver_final_v3": "main_matrix",
     "paper_core_rag_budget_matched": "rag_budget_matched",
     "paper_core_planning_ablation_sampled_token_saver_v3": "planning_ablation",
-    "paper_case_memory_budget_ablation_token_saver": "memory_budget_ablation",
+    "paper_case_memory_budget_ablation_token_saver_v2": "memory_budget_ablation",
     "paper_core_profile_learning_ablation": "profile_learning_ablation",
     "paper_core_robustness_repeats": "robustness_repeats",
     "paper_profile_adaptation_budget_curve": "profile_adaptation_budget_curve",

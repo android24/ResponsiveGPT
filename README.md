@@ -290,6 +290,12 @@ PYTHONPATH=src python3 -m responsivegpt.experiments.run_matrix \
   --no_resume
 ```
 
+This ablation uses the current winning slow-planning mechanism
+(`planning_interval_no_peek`) and hard request/token/time caps. It isolates
+causal case memory and the budget governor under the same fixed-window
+corner-case episode pool. The refreshed run writes to
+`runs/experiments/paper_case_memory_budget_ablation_token_saver_v2`.
+
 ### Dense-sparse planning calibration
 
 ```bash

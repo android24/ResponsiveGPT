@@ -16,7 +16,9 @@ from .make_paper_tables import (
 from .rag_evidence_audit import make_rag_evidence_tables
 from .report_writer import write_report
 from .statistical_tests import (
+    make_memory_budget_significance_tables,
     make_profile_adaptation_budget_significance,
+    make_planning_significance_tables,
     make_significance_tables,
     make_profile_learning_significance_tables,
     make_weighted_significance_tables,
@@ -41,6 +43,57 @@ def _read_csv_rows(path: str | Path) -> list[dict]:
         return []
     with path.open("r", encoding="utf-8", newline="") as stream:
         return [dict(row) for row in csv.DictReader(stream)]
+
+
+def _load_cached_weighted_rows(experiment_dir: Path) -> list[dict]:
+    required = [
+        experiment_dir / "weighted_metric_summary.csv",
+        experiment_dir / "weighted_stratum_metric_summary.csv",
+        experiment_dir / "weighted_episode_observations.csv",
+    ]
+    if not all(path.exists() and path.stat().st_size > 0 for path in required):
+        return []
+    return _read_csv_rows(experiment_dir / "weighted_metric_summary.csv")
+
+
+def _load_fresh_cached_aggregate_rows(experiment_dir: Path) -> list[dict]:
+    summary_path = experiment_dir / "aggregate_summary.csv"
+    status_path = experiment_dir / "job_status.jsonl"
+    if not summary_path.exists() or summary_path.stat().st_size <= 0:
+        return []
+    if (
+        status_path.exists()
+        and summary_path.stat().st_mtime < status_path.stat().st_mtime
+    ):
+        return []
+    return _read_csv_rows(summary_path)
+
+
+def _cache_is_fresh(experiment_dir: Path, path: Path) -> bool:
+    status_path = experiment_dir / "job_status.jsonl"
+    return (
+        path.exists()
+        and path.stat().st_size > 0
+        and (
+            not status_path.exists()
+            or path.stat().st_mtime >= status_path.stat().st_mtime
+        )
+    )
+
+
+def _load_fresh_cached_rag_evidence(
+    experiment_dir: Path,
+) -> tuple[list[dict], list[dict]] | None:
+    summary_path = experiment_dir / "rag_evidence_summary.csv"
+    top_path = experiment_dir / "rag_top_evidence.csv"
+    examples_path = experiment_dir / "rag_evidence_examples.md"
+    if not (
+        _cache_is_fresh(experiment_dir, summary_path)
+        and _cache_is_fresh(experiment_dir, top_path)
+        and _cache_is_fresh(experiment_dir, examples_path)
+    ):
+        return None
+    return _read_csv_rows(summary_path), _read_csv_rows(top_path)
 
 
 AGGREGATE_FIELDS = [
@@ -582,22 +635,36 @@ def _row_from_status(status: dict) -> dict | None:
     }
 
 
-def aggregate_experiment(experiment_dir: str | Path) -> list[dict]:
+def aggregate_experiment(
+    experiment_dir: str | Path,
+    *,
+    rebuild_aggregate: bool = False,
+    rebuild_weighted: bool = False,
+) -> list[dict]:
     experiment_dir = Path(experiment_dir)
     validate_experiment_dir(experiment_dir)
     completion = matrix_completion_status(experiment_dir)
 
     usable_statuses = latest_usable_completed_statuses(experiment_dir)
-    rows = []
-    for status in usable_statuses:
-        row = _row_from_status(status)
-        if row is not None:
-            rows.append(row)
+    rows = [] if rebuild_aggregate else _load_fresh_cached_aggregate_rows(
+        experiment_dir
+    )
+    if rows:
+        print("[INFO] Reusing cached aggregate summary.")
+    else:
+        for status in usable_statuses:
+            row = _row_from_status(status)
+            if row is not None:
+                rows.append(row)
+        write_csv(
+            experiment_dir / "aggregate_summary.csv",
+            rows,
+            fieldnames=AGGREGATE_FIELDS,
+        )
     formal_rows = [
         row for row in rows if _is_formal_performance_row(row)
     ]
 
-    write_csv(experiment_dir / "aggregate_summary.csv", rows, fieldnames=AGGREGATE_FIELDS)
     rag_table = make_rag_ablation_table(formal_rows, experiment_dir)
     cross_dataset_table = make_cross_dataset_table(
         formal_rows, experiment_dir
@@ -618,11 +685,19 @@ def aggregate_experiment(experiment_dir: str | Path) -> list[dict]:
         formal_rows, experiment_dir
     )
     weighted_rows = []
+    weighted_observation_path = (
+        experiment_dir / "weighted_episode_observations.csv"
+    )
     if completion.get("primary_matrix_ready", False):
-        try:
-            weighted_rows, _ = build_weighted_estimates(experiment_dir)
-        except FileNotFoundError as exc:
-            print(f"[INFO] Design-weighted estimates unavailable: {exc}")
+        if not rebuild_weighted:
+            weighted_rows = _load_cached_weighted_rows(experiment_dir)
+            if weighted_rows:
+                print("[INFO] Reusing cached design-weighted estimates.")
+        if not weighted_rows:
+            try:
+                weighted_rows, _ = build_weighted_estimates(experiment_dir)
+            except FileNotFoundError as exc:
+                print(f"[INFO] Design-weighted estimates unavailable: {exc}")
     else:
         clear_weighted_outputs(experiment_dir)
         print(
@@ -630,6 +705,11 @@ def aggregate_experiment(experiment_dir: str | Path) -> list[dict]:
             "significance claims are suppressed. "
             f"completion={completion}"
         )
+    weighted_observation_rows = (
+        _read_csv_rows(weighted_observation_path)
+        if weighted_rows and weighted_observation_path.exists()
+        else []
+    )
     weighted_primary_table = make_weighted_primary_table(
         weighted_rows, experiment_dir
     )
@@ -642,9 +722,7 @@ def aggregate_experiment(experiment_dir: str | Path) -> list[dict]:
         make_profile_adaptation_budget_significance(
             weighted_rows,
             experiment_dir,
-            observation_rows=_read_csv_rows(
-                experiment_dir / "weighted_episode_observations.csv"
-            ),
+            observation_rows=weighted_observation_rows,
         )
         if completion.get("primary_matrix_ready", False)
         else make_profile_adaptation_budget_significance(
@@ -654,22 +732,35 @@ def aggregate_experiment(experiment_dir: str | Path) -> list[dict]:
     weighted_significance_table = make_weighted_significance_tables(
         weighted_rows,
         experiment_dir,
-        observation_csv=(
-            experiment_dir / "weighted_episode_observations.csv"
-        ),
+        observation_rows=weighted_observation_rows,
+    )
+    planning_significance_table = make_planning_significance_tables(
+        weighted_rows,
+        experiment_dir,
+        observation_rows=weighted_observation_rows,
+    )
+    memory_budget_significance_table = (
+        make_memory_budget_significance_tables(
+            weighted_rows,
+            experiment_dir,
+            observation_rows=weighted_observation_rows,
+        )
     )
     profile_learning_significance = (
         make_profile_learning_significance_tables(
             weighted_rows,
             experiment_dir,
-            observation_csv=(
-                experiment_dir / "weighted_episode_observations.csv"
-            ),
+            observation_rows=weighted_observation_rows,
         )
     )
-    rag_evidence_summary, rag_top_evidence = make_rag_evidence_tables(
-        formal_rows, experiment_dir
-    )
+    cached_rag_evidence = _load_fresh_cached_rag_evidence(experiment_dir)
+    if cached_rag_evidence is not None:
+        print("[INFO] Reusing cached RAG evidence audit.")
+        rag_evidence_summary, rag_top_evidence = cached_rag_evidence
+    else:
+        rag_evidence_summary, rag_top_evidence = make_rag_evidence_tables(
+            formal_rows, experiment_dir
+        )
     write_report(
         experiment_dir,
         rows,
@@ -685,6 +776,8 @@ def aggregate_experiment(experiment_dir: str | Path) -> list[dict]:
         significance_table=significance_table,
         weighted_primary_table=weighted_primary_table,
         weighted_significance_table=weighted_significance_table,
+        planning_significance_table=planning_significance_table,
+        memory_budget_significance_table=memory_budget_significance_table,
         rag_evidence_summary=rag_evidence_summary,
         rag_top_evidence=rag_top_evidence,
         matrix_completion=completion,
@@ -704,8 +797,28 @@ def aggregate_experiment(experiment_dir: str | Path) -> list[dict]:
 def main():
     parser = argparse.ArgumentParser(description="Aggregate ResponsiveGPT experiment matrix outputs.")
     parser.add_argument("--experiment_dir", required=True)
+    parser.add_argument(
+        "--rebuild_aggregate",
+        action="store_true",
+        help=(
+            "Recompute aggregate_summary.csv from run traces instead of "
+            "reusing a fresh cached aggregate summary."
+        ),
+    )
+    parser.add_argument(
+        "--rebuild_weighted",
+        action="store_true",
+        help=(
+            "Recompute design-weighted estimates from run traces instead of "
+            "reusing existing weighted CSV artifacts."
+        ),
+    )
     args = parser.parse_args()
-    rows = aggregate_experiment(args.experiment_dir)
+    rows = aggregate_experiment(
+        args.experiment_dir,
+        rebuild_aggregate=args.rebuild_aggregate,
+        rebuild_weighted=args.rebuild_weighted,
+    )
     print(f"Aggregated {len(rows)} completed runs.")
 
 
