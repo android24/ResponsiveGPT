@@ -2,6 +2,7 @@ from .planning_context import build_planning_context
 from .planning_prompts import PLANNING_SYSTEM_PROMPT, PLANNING_USER_TEMPLATE
 from .planning_schema import validate_planning_output, default_planning_output
 from ..infrastructure.json_disk_cache import JsonDiskCache
+from ..infrastructure.llm_jiekou import is_fatal_api_error
 
 
 class PlanningService:
@@ -96,6 +97,9 @@ class PlanningService:
             )
             return out
         except Exception as e:
+            if is_fatal_api_error(e):
+                print(f"[ERROR] PlanningService fatal API error: {e}")
+                raise
             print(f"[WARN] PlanningService failed: {e}")
             return default_planning_output(str(e))
 

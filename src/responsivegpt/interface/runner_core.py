@@ -39,7 +39,7 @@ from ..application.case_memory import (
     build_case_memory_query,
     case_memory_hint_text,
 )
-from ..infrastructure.llm_jiekou import LLMBudgetExceeded
+from ..infrastructure.llm_jiekou import LLMBudgetExceeded, is_fatal_api_error
 from ..experiments.stratified_sampler import _allocate_quotas
 from ..application.planning_formatter import (
     summarize_scene,
@@ -548,6 +548,8 @@ def semantic_evidence_signature(evidence_pack: dict, *, top_k: int = 3) -> tuple
 
 
 def error_kind(exc: Exception) -> str:
+    if is_fatal_api_error(exc):
+        return "fatal_api"
     text = str(exc).lower()
     name = exc.__class__.__name__.lower()
     if "timeout" in text or "timed out" in text or "timeout" in name:
@@ -2175,6 +2177,15 @@ def run_interaction_experiment(args, ctx):
                     )
                 except Exception as e:
                     kind = error_kind(e)
+                    if kind == "fatal_api":
+                        summary["fatal_api_error_count"] = (
+                            summary.get("fatal_api_error_count", 0) + 1
+                        )
+                        print(
+                            f"[ERROR] fatal reactive LLM API error: "
+                            f"event={idx}, frame={scene.frame_index}, error={e}"
+                        )
+                        raise
                     summary["llm_error_count"] = summary.get("llm_error_count", 0) + 1
                     summary["fallback_frame_count"] = summary.get("fallback_frame_count", 0) + 1
                     cooldown_frames = max(

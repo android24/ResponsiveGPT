@@ -51,6 +51,37 @@ class LLMBudgetExceeded(RuntimeError):
         self.limit = limit
 
 
+FATAL_API_ERROR_MARKERS = (
+    "not_enough_balance",
+    "not enough balance",
+    "insufficient_balance",
+    "insufficient balance",
+    "insufficient_quota",
+    "insufficient quota",
+    "quota exceeded",
+    "billing",
+    "payment",
+    "invalid api key",
+    "incorrect api key",
+    "authentication",
+    "unauthorized",
+    "permission denied",
+    "forbidden",
+)
+
+
+def is_fatal_api_error(exc: Exception) -> bool:
+    """Return True for non-transient API failures that should stop a job."""
+    text = str(exc).lower()
+    name = exc.__class__.__name__.lower()
+    status_code = getattr(exc, "status_code", None)
+    if any(marker in text for marker in FATAL_API_ERROR_MARKERS):
+        return True
+    if status_code in {401, 402, 403} and "rate" not in text:
+        return True
+    return "authentication" in name or "permission" in name
+
+
 class JiekouChatModel:
     """
     支持：
@@ -348,6 +379,8 @@ class JiekouChatModel:
                     break
                 except RECOVERABLE_ERRORS as e:
                     errors.append(e)
+                    if is_fatal_api_error(e):
+                        raise
                     if attempt < self.max_retries:
                         print(
                             f"[WARN] {label} model request failed: {model}. "

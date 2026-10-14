@@ -89,8 +89,14 @@ def validate_summary(summary: dict, job: dict | None = None) -> dict:
         summary.get("planning_llm_attempts") or 0
     )
     non_llm_frames = int(summary.get("non_llm_frames") or 0)
+    llm_error_count = int(summary.get("llm_error_count") or 0)
+    planning_calls = int(summary.get("planning_calls") or 0)
+    planning_failures = int(summary.get("planning_failures") or 0)
     use_retriever = int(job.get("use_retriever", 0) or 0)
     rag_mode = str(job.get("rag_mode", summary.get("rag_mode", "none")))
+    llm_policy = str(job.get("llm_policy", summary.get("llm_policy", "")) or "")
+    llm_required = llm_policy.lower() not in {"", "none", "dry_run"}
+    planning_required = bool(int(job.get("use_planning_thread", 0) or 0))
     extra = job.get("extra_args", {}) or {}
     profile_protocol_enabled = bool(
         int(extra.get("profile_protocol_enabled", 0) or 0)
@@ -209,6 +215,31 @@ def validate_summary(summary: dict, job: dict | None = None) -> dict:
             execution_reasons.append("reactive_frames <= 0")
         if reactive_frames != llm_calls + non_llm_frames:
             execution_reasons.append("reactive_frames != llm_calls + non_llm_frames")
+        if llm_required and llm_calls <= 0:
+            execution_reasons.append(
+                "llm_policy requires LLM calls but llm_calls <= 0"
+            )
+        severe_llm_error_limit = max(100, int(max(reactive_frames, 1) * 0.05))
+        if llm_required and llm_error_count > severe_llm_error_limit:
+            execution_reasons.append(
+                "llm_error_count exceeds severe failure threshold "
+                f"({severe_llm_error_limit})"
+            )
+        if int(summary.get("fatal_api_error_count") or 0) > 0:
+            execution_reasons.append("fatal_api_error_count > 0")
+        if planning_required and planning_calls > 0:
+            severe_planning_failure_limit = max(
+                100, int(max(planning_calls, 1) * 0.50)
+            )
+            if planning_failures > severe_planning_failure_limit:
+                execution_reasons.append(
+                    "planning_failures exceeds severe failure threshold "
+                    f"({severe_planning_failure_limit})"
+                )
+            if planning_failures == planning_calls:
+                execution_reasons.append(
+                    "all planning calls failed"
+                )
 
     max_reactive_attempts = int(
         summary.get("max_reactive_api_attempts") or 0
