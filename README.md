@@ -64,6 +64,64 @@ cd /path/to/ResponsiveGPT
 PYTHONPATH=src python3 -m responsivegpt.interface.cli --demo --tag demo
 ```
 
+The historical local-output command remains unchanged and writes to
+`./runs/experiments/<experiment_name>`:
+
+```bash
+PYTHONPATH=src python3 -m responsivegpt.experiments.run_matrix \
+  --config src/responsivegpt/experiments/configs/<matrix-config>.json
+```
+
+To run computation on macOS while archiving matrix outputs to a mounted
+Synology share, use:
+
+```bash
+scripts/run_matrix_nas.sh \
+  src/responsivegpt/experiments/configs/<matrix-config>.json
+```
+
+Always use the shell wrapper above; do not invoke `run_matrix_nas.py` directly.
+The wrapper establishes the NAS-backed runtime working directory required by
+matrix aggregation and analysis provenance generation.
+
+The repository keeps local and NAS results separate. Local results remain at
+`runs/experiments/...`; the project-local symlink `runs/nas` points to the NAS
+results root, so NAS experiments can be opened or passed to analysis commands
+as `runs/nas/experiments/<experiment_name>`. The link contains no copied data
+and is available whenever the Synology share is mounted.
+
+The script writes to
+`/Volumes/共享/论文/Papers/202606/ResponsiveGPT/runs` by default and stops before
+launching if the share is unavailable or read-only. Override that location with
+`RESPONSIVEGPT_NAS_RUNS_ROOT`. It creates a lightweight runtime directory under
+`/private/tmp` whose `runs` link points to the NAS, leaving the historical runner
+and its local `./runs` default unchanged. The wrapper prefers
+`/opt/anaconda3/bin/python3` when available; set `RESPONSIVEGPT_PYTHON` to use
+another compatible interpreter.
+
+For SMB stability, each active job writes its complete run directory and console
+logs under `/private/tmp/responsivegpt-nas-jobs`. When the child exits, every
+file is copied through a temporary NAS file, verified with SHA-256, and atomically
+renamed into place. The local job is deleted only after the run and both logs are
+durable on the NAS. If the share briefly drops, the completed local job is kept
+and synchronization retries with backoff; restarting the same command also
+prefers this retained local checkpoint over an older NAS copy. This bounds local
+storage to approximately one active job while preventing an SMB interruption
+from corrupting that job. Set `RESPONSIVEGPT_NAS_JOB_STAGING_ROOT` to move the
+staging area.
+
+Matrix metadata operations also retry transient SMB errors, and a process lock
+prevents the same matrix command from being started twice on one Mac. Retries
+are unlimited by default; set `RESPONSIVEGPT_NAS_RETRY_ATTEMPTS` to a positive
+number for a finite limit and `RESPONSIVEGPT_NAS_RETRY_MAX_DELAY` to cap the
+backoff delay in seconds. The adapter verifies `/Volumes/共享` is still a real
+mount before every NAS boundary operation, preventing an unmounted share from
+silently becoming a local directory; override it with
+`RESPONSIVEGPT_NAS_MOUNT_ROOT`. A hidden keepalive timestamp is written every
+60 seconds; override that interval with
+`RESPONSIVEGPT_NAS_KEEPALIVE_INTERVAL`. Keep at least 5 GiB free locally for the
+active job, or change the guard with `RESPONSIVEGPT_NAS_MIN_FREE_GB`.
+
 ## Configuration
 
 Copy the environment template and fill in local credentials:
